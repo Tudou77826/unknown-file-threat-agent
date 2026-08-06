@@ -217,11 +217,3 @@ The selected LangChain model provider and its credentials must be installed/conf
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
 ```
-
-## Legacy Prototype
-
-The pre-V1 prototype is isolated under `legacy_mvp/`. V1 does not import or execute it. Remove it only after V1 acceptance.
-=======
-# unknown-file-threat-agent
-update
->>>>>>> 0ee366ccf256653cd1b25639a5da383108aa1cee
