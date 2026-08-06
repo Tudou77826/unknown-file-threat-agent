@@ -1,0 +1,5 @@
+{
+  "verdict": "confirmed_malicious",
+  "threat_type": "backdoor_c2",
+  "required_findings": ["remote_command_execution", "active_persistence"]
+}

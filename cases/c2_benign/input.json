@@ -1,0 +1,5 @@
+{
+  "File_id":"file-record-benign-001","File_hash":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","File_path":"/opt/vendor/monitor-agent","File_type":"elf","File_size":524288,"File_mode":"0755","source":"nms-001","Sub_asset":"server-02","status":3,"Sync_status":2,"discovery_time":1776914444221,"Recent_time":1776914800000,"Process_create_time":1776914444221,"Realtime_type":1,
+  "Detail":{"context":[{"pid":"2200","path":"/opt/vendor/monitor-agent","euid":"0","cmdline":"/opt/vendor/monitor-agent --daemon","processStartTime":1776914444221,"tree":[{"pid":"1","path":"/usr/lib/systemd/systemd","processName":"systemd","cmdline":"/sbin/init","processStartTime":1776913000000}]}],"feature":{"hash":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}}
+}
+

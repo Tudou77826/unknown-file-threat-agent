@@ -1,0 +1,1 @@
+{"verdict":"likely_malicious","threat_type":"other","required_findings":["confirmed_lateral_file_propagation"]}

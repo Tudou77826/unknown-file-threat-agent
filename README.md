@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Linux Unknown-File Threat Agent V1
 
 An evidence-grounded investigation agent for Linux unknown-file alerts. V1 focuses on a complete backdoor/C2 investigation loop and includes benign and insufficient-evidence counterexamples.
@@ -221,3 +222,7 @@ The selected LangChain model provider and its credentials must be installed/conf
 ## Legacy Prototype
 
 The pre-V1 prototype is isolated under `legacy_mvp/`. V1 does not import or execute it. Remove it only after V1 acceptance.
+=======
+# unknown-file-threat-agent
+update
+>>>>>>> 0ee366ccf256653cd1b25639a5da383108aa1cee

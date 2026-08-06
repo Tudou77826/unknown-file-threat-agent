@@ -1,0 +1,1 @@
+{"verdict":"confirmed_malicious","threat_type":"data_exfiltration","required_findings":["sensitive_data_staging","confirmed_data_exfiltration"]}

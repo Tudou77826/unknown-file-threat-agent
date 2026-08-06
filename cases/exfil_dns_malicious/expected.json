@@ -1,0 +1,1 @@
+{"verdict":"confirmed_malicious","threat_type":"data_exfiltration","required_findings":["dns_tunnel_pattern","confirmed_data_exfiltration"]}

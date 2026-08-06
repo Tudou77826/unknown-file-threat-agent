@@ -1,0 +1,1 @@
+{"verdict":"confirmed_malicious","threat_type":"ransomware","required_findings":["broad_high_rate_file_impact","probable_file_encryption","recovery_inhibition","ransom_demand_marker","confirmed_ransomware_impact"]}

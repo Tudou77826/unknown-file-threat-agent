@@ -1,0 +1,1037 @@
+[DeepAgents] selecting next action...
+[response] {"tool_name":"query_process_execution","target_hypothesis_id":"hyp-c2-001","target_evidence_role_id":"role-execution","target_gap_id":"gap-execution","decision_summary":"Execution must be independently confirmed before any runtime behavior can be attributed to /opt/vendor/collector. The reported process chain for PID 5500 is an unverified claim; process execution telemetry is needed to verify the PID, start time, and executable identity on host server-05."}
+
+[DeepAgents] selecting next action...
+[response] {"tool_name":"query_process_relations","target_hypothesis_id":"hyp-c2-001","target_evidence_role_id":"role-attribution","target_gap_id":"gap-process-chain","decision_summary":"Execution is independently confirmed (fact-exec-001), but the reported process chain for PID 5500 remains an unverified claim (claim-process-chain-001). Per investigation order, upstream process chains must be treated as claims until independent process events verify them. query_process_relations is the highest-scored tool (85.5) and directly addresses the critical gap-process-chain, satisfying role-attribution which is required for verdict. Process telemetry coverage is complete on server-05."}
+
+[DeepAgents] selecting next action...
+[response] {"tool_name":"query_child_process_execution","target_hypothesis_id":"hyp-c2-001","target_evidence_role_id":"role-c2-behavior","target_gap_id":"gap-remote-command","decision_summary":"Execution is independently confirmed (fact-exec-001) and process-chain is resolved negative with complete coverage. The highest-priority open gap is gap-remote-command (critical), which requires child_process_exec and socket_io evidence to distinguish beaconing from interactive remote control. query_child_process_execution is the highest-scored eligible tool (83.5) and directly addresses this gap by finding commands executed by children of the investigated process PID 5500 on server-05."}
+
+[DeepAgents] selecting next action...
+[response] {"tool_name":"query_socket_activity","target_hypothesis_id":"hyp-c2-001","target_evidence_role_id":"role-c2-behavior","target_gap_id":"gap-remote-command","decision_summary":"The critical gap-remote-command is partially resolved: child process execution returned empty with complete coverage, but socket_io evidence remains needed to determine whether inbound network activity drove command execution or outbound result delivery. query_socket_activity (74.5) directly provides the missing socket_io evidence type for PID 5500 on server-05. The critical priority of this gap justifies selecting it over the higher-scored counter-evidence tools (79.5) addressing the high-priority gap-counter."}
+
+[DeepAgents] selecting next action...
+[response] {"tool_name":"query_package_provenance","target_hypothesis_id":"hyp-c2-001","target_evidence_role_id":"role-counter-evidence","target_gap_id":"gap-counter","decision_summary":"Execution is confirmed (fact-exec-001), process-chain is resolved negative, and gap-remote-command is unresolvable due to unavailable network telemetry. The highest-priority resolvable gap is gap-counter (high, required_for_closure). The file path /opt/vendor/collector strongly suggests a vendor package, so query_package_provenance (79.5) is the best first step to test a legitimate competing explanation. role-counter-evidence requires both package_provenance and approved_endpoint evidence (mode: all), so this query begins that mandatory counter-evidence chain."}
+
+[DeepAgents] selecting next action...
+[response] {"tool_name":"query_approved_endpoints","target_hypothesis_id":"hyp-c2-001","target_evidence_role_id":"role-counter-evidence","target_gap_id":"gap-counter","decision_summary":"The counter-evidence role is partially resolved: query_package_provenance returned empty with unknown coverage, but role-counter-evidence requires both package_provenance AND approved_endpoint (mode: all). query_approved_endpoints (75.5) is the highest-scored eligible tool and directly provides the missing approved_endpoint evidence type for gap-counter, which is required_for_verdict. The file path /opt/vendor/collector suggests a vendor operations tool, making approved endpoint and operations-baseline checks critical to evaluate a legitimate competing explanation before closure."}
+
+[DeepAgents] selecting next action...
+[response] {"tool_name":"query_file_origin","target_hypothesis_id":"hyp-file-provenance-001","target_evidence_role_id":"role-file-provenance","target_gap_id":"gap-file-origin","decision_summary":"File origin has not been independently established. gap-file-origin is open, high priority, and required for closure. query_file_origin is the highest-scored eligible tool (66.8) and checks all supported origin event types in one query. No specific delivery mechanism is suspected, so the broad origin query is preferred over narrower tools per investigation skill."}
+
+[DeepAgents] selecting next action...
+[response] {"tool_name":"query_systemd_events","target_hypothesis_id":"hyp-c2-001","target_evidence_role_id":"role-persistence","target_gap_id":"gap-persistence","decision_summary":"gap-persistence is the highest-priority open gap that has not yet been attempted and is required for closure. query_systemd_events (60.5) is the highest-scored eligible tool and directly provides the required systemd_event evidence type for role-persistence. Execution is confirmed, process-chain is resolved negative with complete coverage, child processes are empty with complete coverage, and gap-remote-command is unresolvable due to unavailable network telemetry. Persistence is the last unattempted mandatory domain before closure evaluation."}
+
+[DeepAgents] selecting next action...
+[response] {"tool_name":"query_process_network","target_hypothesis_id":"hyp-c2-001","target_evidence_role_id":"role-c2-behavior","target_gap_id":"gap-network","decision_summary":"gap-network is the only mandatory closure gap still open with an unattempted recommended tool. Although the network domain shows unavailable from the prior query_socket_activity call, query_process_network is a distinct process-attributed network source that must be attempted before gap-network can be marked unresolvable or the investigation can finish. All other mandatory gaps are either resolved (execution, process-chain, file-origin) or already unresolvable (remote-command, persistence). The counter-evidence gap was partially attempted with both package_provenance and approved_endpoint queries returning empty with unknown coverage, while the trusted package installation finding (finding-origin-package-001) already provides strong benign context."}
+
+[DeepAgents] selecting next action...
+[response] {"tool_name":"__finish__","target_hypothesis_id":"hyp-c2-001","target_evidence_role_id":"role-counter-evidence","target_gap_id":"gap-counter","decision_summary":"All mandatory domains have been attempted. Execution is confirmed (fact-exec-001), file origin is resolved as trusted package installation (finding-origin-package-001, confidence 0.95), process-chain is resolved negative with complete coverage, and child processes are empty with complete coverage. Network, persistence, and remote-command gaps are unresolvable due to unavailable telemetry. The counter-evidence gap is partially resolved: trusted package provenance is established, but approved-endpoint queries returned empty with unknown coverage. The two remaining catalog tools (query_approved_endpoints, query_package_provenance) were already called and returned empty with unknown reputation-domain coverage; repeating without new grounding would not advance the investigation. No malicious runtime behavior was observed despite complete process coverage.","interpretation":{"interpretation_id":"interp-closure-001","statement":"The investigated file /opt/vendor/collector was installed by a trusted, signed package (vendor-collect
+
+        "The data source has complete Coverage",
+        "A deterministic AnalysisObligation is ready"
+      ]
+    },
+    {
+      "iteration": 9,
+      "tool_name": "query_systemd_events",
+      "score": 60.5,
+      "compatible_gap_ids": [
+        "gap-persistence"
+      ],
+      "matching_role_ids": [
+        "role-persistence"
+      ],
+      "components": {
+        "gap_priority": 30.0,
+        "evidence_role": 18.0,
+        "hypothesis_information_gain": 3.5,
+        "missing_evidence_gain": 5.0,
+        "coverage_expectation": 2.0,
+        "counter_evidence_value": 0.0,
+        "entity_applicability": 5.0,
+        "repair_priority": 0.0,
+        "repeat_penalty": 0.0,
+        "query_cost": -3.0,
+        "scope_cost": 0.0
+      },
+      "rationale": [
+        "Addresses the highest-priority compatible evidence gap",
+        "Matches unsatisfied Evidence Role(s)"
+      ]
+    },
+    {
+      "iteration": 9,
+      "tool_name": "query_approved_endpoints",
+      "score": 51.5,
+      "compatible_gap_ids": [
+        "gap-counter"
+      ],
+      "matching_role_ids": [
+        "role-counter-evidence"
+      ],
+      "components": {
+        "gap_priority": 30.0,
+        "evidence_role": 24.0,
+        "hypothesis_information_gain": 3.5,
+        "missing_evidence_gain": 5.0,
+        "coverage_expectation": -2.0,
+        "counter_evidence_value": 12.0,
+        "entity_applicability": 5.0,
+        "repair_priority": 0.0,
+        "repeat_penalty": -24.0,
+        "query_cost": -2.0,
+        "scope_cost": 0.0
+      },
+      "rationale": [
+        "Addresses the highest-priority compatible evidence gap",
+        "Matches unsatisfied Evidence Role(s)",
+        "Can test a legitimate competing explanation"
+      ]
+    },
+    {
+      "iteration": 9,
+      "tool_name": "query_package_provenance",
+      "score": 51.5,
+      "compatible_gap_ids": [
+        "gap-counter"
+      ],
+      "matching_role_ids": [
+        "role-counter-evidence"
+      ],
+      "components": {
+        "gap_priority": 30.0,
+        "evidence_role": 24.0,
+        "hypothesis_information_gain": 3.5,
+        "missing_evidence_gain": 5.0,
+        "coverage_expectation": -2.0,
+        "counter_evidence_value": 12.0,
+        "entity_applicability": 5.0,
+        "repair_priority": 0.0,
+        "repeat_penalty": -24.0,
+        "query_cost": -2.0,
+        "scope_cost": 0.0
+      },
+      "rationale": [
+        "Addresses the highest-priority compatible evidence gap",
+        "Matches unsatisfied Evidence Role(s)",
+        "Can test a legitimate competing explanation"
+      ]
+    },
+    {
+      "iteration": 9,
+      "tool_name": "query_archive_extraction",
+      "score": 46.0,
+      "compatible_gap_ids": [
+        "gap-file-origin"
+      ],
+      "matching_role_ids": [],
+      "components": {
+        "gap_priority": 30.0,
+        "evidence_role": 0.0,
+        "hypothesis_information_gain": 0.0,
+        "missing_evidence_gain": 5.0,
+        "coverage_expectation": 9.0,
+        "counter_evidence_value": 0.0,
+        "entity_applicability": 5.0,
+        "repair_priority": 0.0,
+        "repeat_penalty": 0.0,
+        "query_cost": -3.0,
+        "scope_cost": 0.0
+      },
+      "rationale": [
+        "Addresses the highest-priority compatible evidence gap",
+        "The data source has complete Coverage"
+      ]
+    },
+    {
+      "iteration": 9,
+      "tool_name": "query_file_downloads",
+      "score": 46.0,
+      "compatible_gap_ids": [
+        "gap-file-origin"
+      ],
+      "matching_role_ids": [],
+      "components": {
+        "gap_priority": 30.0,
+        "evidence_role": 0.0,
+        "hypothesis_information_gain": 0.0,
+        "missing_evidence_gain": 5.0,
+        "coverage_expectation": 9.0,
+        "counter_evidence_value": 0.0,
+        "entity_applicability": 5.0,
+        "repair_priority": 0.0,
+        "repeat_penalty": 0.0,
+        "query_cost": -3.0,
+        "scope_cost": 0.0
+      },
+      "rationale": [
+        "Addresses the highest-priority compatible evidence gap",
+        "The data source has complete Coverage"
+      ]
+    },
+    {
+      "iteration": 9,
+      "tool_name": "query_file_transfer",
+      "score": 46.0,
+      "compatible_gap_ids": [
+        "gap-file-origin"
+      ],
+      "matching_role_ids": [],
+      "components": {
+        "gap_priority": 30.0,
+        "evidence_role": 0.0,
+        "hypothesis_information_gain": 0.0,
+        "missing_evidence_gain": 5.0,
+        "coverage_expectation": 9.0,
+        "counter_evidence_value": 0.0,
+        "entity_applicability": 5.0,
+        "repair_priority": 0.0,
+        "repeat_penalty": 0.0,
+        "query_cost": -3.0,
+        "scope_cost": 0.0
+      },
+      "rationale": [
+        "Addresses the highest-priority compatible evidence gap",
+        "The data source has complete Coverage"
+      ]
+    },
+    {
+      "iteration": 9,
+      "tool_name": "query_web_upload_activity",
+      "score": 46.0,
+      "compatible_gap_ids": [
+        "gap-file-origin"
+      ],
+      "matching_role_ids": [],
+      "components": {
+        "gap_priority": 30.0,
+        "evidence_role": 0.0,
+        "hypothesis_information_gain": 0.0,
+        "missing_evidence_gain": 5.0,
+        "coverage_expectation": 9.0,
+        "counter_evidence_value": 0.0,
+        "entity_applicability": 5.0,
+        "repair_priority": 0.0,
+        "repeat_penalty": 0.0,
+        "query_cost": -3.0,
+        "scope_cost": 0.0
+      },
+      "rationale": [
+        "Addresses the highest-priority compatible evidence gap",
+        "The data source has complete Coverage"
+      ]
+    },
+    {
+      "iteration": 9,
+      "tool_name": "query_file_origin",
+      "score": 33.0,
+      "compatible_gap_ids": [
+        "gap-file-origin"
+      ],
+      "matching_role_ids": [],
+      "components": {
+        "gap_priority": 30.0,
+        "evidence_role": 0.0,
+        "hypothesis_information_gain": 0.0,
+        "missing_evidence_gain": 16.0,
+        "coverage_expectation": 9.0,
+        "counter_evidence_value": 0.0,
+        "entity_applicability": 5.0,
+        "repair_priority": 0.0,
+        "repeat_penalty": -24.0,
+        "query_cost": -3.0,
+        "scope_cost": 0.0
+      },
+      "rationale": [
+        "Addresses the highest-priority compatible evidence gap",
+        "The data source has complete Coverage"
+      ]
+    },
+    {
+      "iteration": 9,
+      "tool_name": "query_process_network",
+      "score": 22.5,
+      "compatible_gap_ids": [
+        "gap-network"
+      ],
+      "matching_role_ids": [
+        "role-c2-behavior"
+      ],
+      "components": {
+        "gap_priority": 30.0,
+        "evidence_role": 18.0,
+        "hypothesis_information_gain": 3.5,
+        "missing_evidence_gain": 5.0,
+        "coverage_expectation": -35.0,
+        "counter_evidence_value": 0.0,
+        "entity_applicability": 5.0,
+        "repair_priority": 0.0,
+        "repeat_penalty": 0.0,
+        "query_cost": -4.0,
+        "scope_cost": 0.0
+      },
+      "rationale": [
+        "Addresses the highest-priority compatible evidence gap",
+        "Matches unsatisfied Evidence Role(s)",
+        "The data source is unavailable or in error"
+      ]
+    },
+    {
+      "iteration": 10,
+      "tool_name": "query_systemd_events",
+      "score": 60.5,
+      "compatible_gap_ids": [
+        "gap-persistence"
+      ],
+      "matching_role_ids": [
+        "role-persistence"
+      ],
+      "components": {
+        "gap_priority": 30.0,
+        "evidence_role": 18.0,
+        "hypothesis_information_gain": 3.5,
+        "missing_evidence_gain": 5.0,
+        "coverage_expectation": 2.0,
+        "counter_evidence_value": 0.0,
+        "entity_applicability": 5.0,
+        "repair_priority": 0.0,
+        "repeat_penalty": 0.0,
+        "query_cost": -3.0,
+        "scope_cost": 0.0
+      },
+      "rationale": [
+        "Addresses the highest-priority compatible evidence gap",
+        "Matches unsatisfied Evidence Role(s)"
+      ]
+    },
+    {
+      "iteration": 10,
+      "tool_name": "query_approved_endpoints",
+      "score": 51.5,
+      "compatible_gap_ids": [
+        "gap-counter"
+      ],
+      "matching_role_ids": [
+        "role-counter-evidence"
+      ],
+      "components": {
+        "gap_priority": 30.0,
+        "evidence_role": 24.0,
+        "hypothesis_information_gain": 3.5,
+        "missing_evidence_gain": 5.0,
+        "coverage_expectation": -2.0,
+        "counter_evidence_value": 12.0,
+        "entity_applicability": 5.0,
+        "repair_priority": 0.0,
+        "repeat_penalty": -24.0,
+        "query_cost": -2.0,
+        "scope_cost": 0.0
+      },
+      "rationale": [
+        "Addresses the highest-priority compatible evidence gap",
+        "Matches unsatisfied Evidence Role(s)",
+        "Can test a legitimate competing explanation"
+      ]
+    },
+    {
+      "iteration": 10,
+      "tool_name": "query_package_provenance",
+      "score": 51.5,
+      "compatible_gap_ids": [
+        "gap-counter"
+      ],
+      "matching_role_ids": [
+        "role-counter-evidence"
+      ],
+      "components": {
+        "gap_priority": 30.0,
+        "evidence_role": 24.0,
+        "hypothesis_information_gain": 3.5,
+        "missing_evidence_gain": 5.0,
+        "coverage_expectation": -2.0,
+        "counter_evidence_value": 12.0,
+        "entity_applicability": 5.0,
+        "repair_priority": 0.0,
+        "repeat_penalty": -24.0,
+        "query_cost": -2.0,
+        "scope_cost": 0.0
+      },
+      "rationale": [
+        "Addresses the highest-priority compatible evidence gap",
+        "Matches unsatisfied Evidence Role(s)",
+        "Can test a legitimate competing explanation"
+      ]
+    },
+    {
+      "iteration": 10,
+      "tool_name": "query_process_network",
+      "score": 22.5,
+      "compatible_gap_ids": [
+        "gap-network"
+      ],
+      "matching_role_ids": [
+        "role-c2-behavior"
+      ],
+      "components": {
+        "gap_priority": 30.0,
+        "evidence_role": 18.0,
+        "hypothesis_information_gain": 3.5,
+        "missing_evidence_gain": 5.0,
+        "coverage_expectation": -35.0,
+        "counter_evidence_value": 0.0,
+        "entity_applicability": 5.0,
+        "repair_priority": 0.0,
+        "repeat_penalty": 0.0,
+        "query_cost": -4.0,
+        "scope_cost": 0.0
+      },
+      "rationale": [
+        "Addresses the highest-priority compatible evidence gap",
+        "Matches unsatisfied Evidence Role(s)",
+        "The data source is unavailable or in error"
+      ]
+    },
+    {
+      "iteration": 11,
+      "tool_name": "query_approved_endpoints",
+      "score": 51.5,
+      "compatible_gap_ids": [
+        "gap-counter"
+      ],
+      "matching_role_ids": [
+        "role-counter-evidence"
+      ],
+      "components": {
+        "gap_priority": 30.0,
+        "evidence_role": 24.0,
+        "hypothesis_information_gain": 3.5,
+        "missing_evidence_gain": 5.0,
+        "coverage_expectation": -2.0,
+        "counter_evidence_value": 12.0,
+        "entity_applicability": 5.0,
+        "repair_priority": 0.0,
+        "repeat_penalty": -24.0,
+        "query_cost": -2.0,
+        "scope_cost": 0.0
+      },
+      "rationale": [
+        "Addresses the highest-priority compatible evidence gap",
+        "Matches unsatisfied Evidence Role(s)",
+        "Can test a legitimate competing explanation"
+      ]
+    },
+    {
+      "iteration": 11,
+      "tool_name": "query_package_provenance",
+      "score": 51.5,
+      "compatible_gap_ids": [
+        "gap-counter"
+      ],
+      "matching_role_ids": [
+        "role-counter-evidence"
+      ],
+      "components": {
+        "gap_priority": 30.0,
+        "evidence_role": 24.0,
+        "hypothesis_information_gain": 3.5,
+        "missing_evidence_gain": 5.0,
+        "coverage_expectation": -2.0,
+        "counter_evidence_value": 12.0,
+        "entity_applicability": 5.0,
+        "repair_priority": 0.0,
+        "repeat_penalty": -24.0,
+        "query_cost": -2.0,
+        "scope_cost": 0.0
+      },
+      "rationale": [
+        "Addresses the highest-priority compatible evidence gap",
+        "Matches unsatisfied Evidence Role(s)",
+        "Can test a legitimate competing explanation"
+      ]
+    },
+    {
+      "iteration": 11,
+      "tool_name": "query_process_network",
+      "score": 22.5,
+      "compatible_gap_ids": [
+        "gap-network"
+      ],
+      "matching_role_ids": [
+        "role-c2-behavior"
+      ],
+      "components": {
+        "gap_priority": 30.0,
+        "evidence_role": 18.0,
+        "hypothesis_information_gain": 3.5,
+        "missing_evidence_gain": 5.0,
+        "coverage_expectation": -35.0,
+        "counter_evidence_value": 0.0,
+        "entity_applicability": 5.0,
+        "repair_priority": 0.0,
+        "repeat_penalty": 0.0,
+        "query_cost": -4.0,
+        "scope_cost": 0.0
+      },
+      "rationale": [
+        "Addresses the highest-priority compatible evidence gap",
+        "Matches unsatisfied Evidence Role(s)",
+        "The data source is unavailable or in error"
+      ]
+    },
+    {
+      "iteration": 12,
+      "tool_name": "query_approved_endpoints",
+      "score": 51.5,
+      "compatible_gap_ids": [
+        "gap-counter"
+      ],
+      "matching_role_ids": [
+        "role-counter-evidence"
+      ],
+      "components": {
+        "gap_priority": 30.0,
+        "evidence_role": 24.0,
+        "hypothesis_information_gain": 3.5,
+        "missing_evidence_gain": 5.0,
+        "coverage_expectation": -2.0,
+        "counter_evidence_value": 12.0,
+        "entity_applicability": 5.0,
+        "repair_priority": 0.0,
+        "repeat_penalty": -24.0,
+        "query_cost": -2.0,
+        "scope_cost": 0.0
+      },
+      "rationale": [
+        "Addresses the highest-priority compatible evidence gap",
+        "Matches unsatisfied Evidence Role(s)",
+        "Can test a legitimate competing explanation"
+      ]
+    },
+    {
+      "iteration": 12,
+      "tool_name": "query_package_provenance",
+      "score": 51.5,
+      "compatible_gap_ids": [
+        "gap-counter"
+      ],
+      "matching_role_ids": [
+        "role-counter-evidence"
+      ],
+      "components": {
+        "gap_priority": 30.0,
+        "evidence_role": 24.0,
+        "hypothesis_information_gain": 3.5,
+        "missing_evidence_gain": 5.0,
+        "coverage_expectation": -2.0,
+        "counter_evidence_value": 12.0,
+        "entity_applicability": 5.0,
+        "repair_priority": 0.0,
+        "repeat_penalty": -24.0,
+        "query_cost": -2.0,
+        "scope_cost": 0.0
+      },
+      "rationale": [
+        "Addresses the highest-priority compatible evidence gap",
+        "Matches unsatisfied Evidence Role(s)",
+        "Can test a legitimate competing explanation"
+      ]
+    }
+  ],
+  "evidence_packs": [
+    {
+      "pack_id": "pack-e475ea98762b",
+      "request_call_id": "call-aaa2305365",
+      "tool_name": "query_process_execution",
+      "target_gap_id": "gap-execution",
+      "target_role_ids": [
+        "role-execution"
+      ],
+      "target_hypothesis_ids": [
+        "hyp-c2-001"
+      ],
+      "query_parameters": {},
+      "requested_host_ids": [
+        "server-05"
+      ],
+      "requested_start": "2026-04-23T03:05:44.221000Z",
+      "requested_end": "2026-04-23T03:26:40Z",
+      "evidence_refs": [
+        "package-proc-exec"
+      ],
+      "returned_evidence_types": [
+        "process_exec"
+      ],
+      "coverage": {
+        "domain": "process",
+        "status": "available",
+        "host_id": "server-05",
+        "source_system": null,
+        "completeness": "complete",
+        "requested_start": "2026-04-23T03:05:44.221000Z",
+        "requested_end": "2026-04-23T03:26:40Z",
+        "available_start": "2026-04-23T03:05:44.221000Z",
+        "available_end": "2026-04-23T03:26:40Z",
+        "result_start": "2026-04-23T03:20:44.221000Z",
+        "result_end": "2026-04-23T03:20:44.221000Z",
+        "limitations": []
+      },
+      "analysis_obligation_refs": [
+        "obligation-8dedc8296b5e"
+      ],
+      "outcome": "positive",
+      "limitations": []
+    },
+    {
+      "pack_id": "pack-07c94db51de1",
+      "request_call_id": "call-68edad6f54",
+      "tool_name": "query_process_relations",
+      "target_gap_id": "gap-process-chain",
+      "target_role_ids": [
+        "role-attribution"
+      ],
+      "target_hypothesis_ids": [
+        "hyp-c2-001"
+      ],
+      "query_parameters": {},
+      "requested_host_ids": [
+        "server-05"
+      ],
+      "requested_start": "2026-04-23T03:05:44.221000Z",
+      "requested_end": "2026-04-23T03:26:40Z",
+      "evidence_refs": [],
+      "returned_evidence_types": [],
+      "coverage": {
+        "domain": "process",
+        "status": "available",
+        "host_id": "server-05",
+        "source_system": null,
+        "completeness": "complete",
+        "requested_start": "2026-04-23T03:05:44.221000Z",
+        "requested_end": "2026-04-23T03:26:40Z",
+        "available_start": "2026-04-23T03:05:44.221000Z",
+        "available_end": "2026-04-23T03:26:40Z",
+        "result_start": null,
+        "result_end": null,
+        "limitations": []
+      },
+      "analysis_obligation_refs": [],
+      "outcome": "negative",
+      "limitations": []
+    },
+    {
+      "pack_id": "pack-e0b703d562f2",
+      "request_call_id": "call-83db385581",
+      "tool_name": "query_child_process_execution",
+      "target_gap_id": "gap-remote-command",
+      "target_role_ids": [
+        "role-c2-behavior"
+      ],
+      "target_hypothesis_ids": [
+        "hyp-c2-001"
+      ],
+      "query_parameters": {},
+      "requested_host_ids": [
+        "server-05"
+      ],
+      "requested_start": "2026-04-23T03:05:44.221000Z",
+      "requested_end": "2026-04-23T03:26:40Z",
+      "evidence_refs": [],
+      "returned_evidence_types": [],
+      "coverage": {
+        "domain": "process",
+        "status": "available",
+        "host_id": "server-05",
+        "source_system": null,
+        "completeness": "complete",
+        "requested_start": "2026-04-23T03:05:44.221000Z",
+        "requested_end": "2026-04-23T03:26:40Z",
+        "available_start": "2026-04-23T03:05:44.221000Z",
+        "available_end": "2026-04-23T03:26:40Z",
+        "result_start": null,
+        "result_end": null,
+        "limitations": []
+      },
+      "analysis_obligation_refs": [],
+      "outcome": "negative",
+      "limitations": []
+    },
+    {
+      "pack_id": "pack-193ba7f4bc5b",
+      "request_call_id": "call-4852f76156",
+      "tool_name": "query_socket_activity",
+      "target_gap_id": "gap-remote-command",
+      "target_role_ids": [
+        "role-c2-behavior"
+      ],
+      "target_hypothesis_ids": [
+        "hyp-c2-001"
+      ],
+      "query_parameters": {},
+      "requested_host_ids": [
+        "server-05"
+      ],
+      "requested_start": "2026-04-23T03:05:44.221000Z",
+      "requested_end": "2026-04-23T03:26:40Z",
+      "evidence_refs": [],
+      "returned_evidence_types": [],
+      "coverage": {
+        "domain": "network",
+        "status": "unavailable",
+        "host_id": "server-05",
+        "source_system": null,
+        "completeness": "unavailable",
+        "requested_start": "2026-04-23T03:05:44.221000Z",
+        "requested_end": "2026-04-23T03:26:40Z",
+        "available_start": null,
+        "available_end": null,
+        "result_start": null,
+        "result_end": null,
+        "limitations": []
+      },
+      "analysis_obligation_refs": [],
+      "outcome": "unavailable",
+      "limitations": []
+    },
+    {
+      "pack_id": "pack-462b020904f2",
+      "request_call_id": "call-519ee42aac",
+      "tool_name": "query_package_provenance",
+      "target_gap_id": "gap-counter",
+      "target_role_ids": [
+        "role-counter-evidence"
+      ],
+      "target_hypothesis_ids": [
+        "hyp-c2-001"
+      ],
+      "query_parameters": {},
+      "requested_host_ids": [
+        "server-05"
+      ],
+      "requested_start": "2026-04-23T03:05:44.221000Z",
+      "requested_end": "2026-04-23T03:26:40Z",
+      "evidence_refs": [],
+      "returned_evidence_types": [],
+      "coverage": {
+        "domain": "reputation",
+        "status": "empty",
+        "host_id": "server-05",
+        "source_system": null,
+        "completeness": "unknown",
+        "requested_start": "2026-04-23T03:05:44.221000Z",
+        "requested_end": "2026-04-23T03:26:40Z",
+        "available_start": null,
+        "available_end": null,
+        "result_start": null,
+        "result_end": null,
+        "limitations": []
+      },
+      "analysis_obligation_refs": [],
+      "outcome": "partial",
+      "limitations": []
+    },
+    {
+      "pack_id": "pack-fef6b156aec7",
+      "request_call_id": "call-c4f2fe3d58",
+      "tool_name": "query_approved_endpoints",
+      "target_gap_id": "gap-counter",
+      "target_role_ids": [
+        "role-counter-evidence"
+      ],
+      "target_hypothesis_ids": [
+        "hyp-c2-001"
+      ],
+      "query_parameters": {},
+      "requested_host_ids": [
+        "server-05"
+      ],
+      "requested_start": "2026-04-23T03:05:44.221000Z",
+      "requested_end": "2026-04-23T03:26:40Z",
+      "evidence_refs": [],
+      "returned_evidence_types": [],
+      "coverage": {
+        "domain": "reputation",
+        "status": "empty",
+        "host_id": "server-05",
+        "source_system": null,
+        "completeness": "unknown",
+        "requested_start": "2026-04-23T03:05:44.221000Z",
+        "requested_end": "2026-04-23T03:26:40Z",
+        "available_start": null,
+        "available_end": null,
+        "result_start": null,
+        "result_end": null,
+        "limitations": []
+      },
+      "analysis_obligation_refs": [],
+      "outcome": "partial",
+      "limitations": []
+    },
+    {
+      "pack_id": "pack-2a6e7ec306d6",
+      "request_call_id": "call-e8a35d2250",
+      "tool_name": "query_file_origin",
+      "target_gap_id": "gap-file-origin",
+      "target_role_ids": [
+        "role-file-provenance"
+      ],
+      "target_hypothesis_ids": [
+        "hyp-file-provenance-001"
+      ],
+      "query_parameters": {},
+      "requested_host_ids": [
+        "server-05"
+      ],
+      "requested_start": "2026-04-23T03:05:44.221000Z",
+      "requested_end": "2026-04-23T03:26:40Z",
+      "evidence_refs": [
+        "package-origin-001"
+      ],
+      "returned_evidence_types": [
+        "package_install"
+      ],
+      "coverage": {
+        "domain": "file",
+        "status": "available",
+        "host_id": "server-05",
+        "source_system": null,
+        "completeness": "complete",
+        "requested_start": "2026-04-23T03:05:44.221000Z",
+        "requested_end": "2026-04-23T03:26:40Z",
+        "available_start": "2026-04-23T03:05:44.221000Z",
+        "available_end": "2026-04-23T03:26:40Z",
+        "result_start": "2026-04-23T03:18:00Z",
+        "result_end": "2026-04-23T03:18:00Z",
+        "limitations": []
+      },
+      "analysis_obligation_refs": [
+        "obligation-bfdb9cd52cc4"
+      ],
+      "outcome": "positive",
+      "limitations": []
+    },
+    {
+      "pack_id": "pack-922aa62c6d41",
+      "request_call_id": "call-f1b0f378cd",
+      "tool_name": "query_systemd_events",
+      "target_gap_id": "gap-persistence",
+      "target_role_ids": [
+        "role-persistence"
+      ],
+      "target_hypothesis_ids": [
+        "hyp-c2-001"
+      ],
+      "query_parameters": {},
+      "requested_host_ids": [
+        "server-05"
+      ],
+      "requested_start": "2026-04-23T03:05:44.221000Z",
+      "requested_end": "2026-04-23T03:26:40Z",
+      "evidence_refs": [],
+      "returned_evidence_types": [],
+      "coverage": {
+        "domain": "persistence",
+        "status": "unavailable",
+        "host_id": "server-05",
+        "source_system": null,
+        "completeness": "unavailable",
+        "requested_start": "2026-04-23T03:05:44.221000Z",
+        "requested_end": "2026-04-23T03:26:40Z",
+        "available_start": null,
+        "available_end": null,
+        "result_start": null,
+        "result_end": null,
+        "limitations": []
+      },
+      "analysis_obligation_refs": [],
+      "outcome": "unavailable",
+      "limitations": []
+    },
+    {
+      "pack_id": "pack-30f7d6ef7f5d",
+      "request_call_id": "call-8c618df304",
+      "tool_name": "query_process_network",
+      "target_gap_id": "gap-network",
+      "target_role_ids": [
+        "role-c2-behavior"
+      ],
+      "target_hypothesis_ids": [
+        "hyp-c2-001"
+      ],
+      "query_parameters": {},
+      "requested_host_ids": [
+        "server-05"
+      ],
+      "requested_start": "2026-04-23T03:05:44.221000Z",
+      "requested_end": "2026-04-23T03:26:40Z",
+      "evidence_refs": [],
+      "returned_evidence_types": [],
+      "coverage": {
+        "domain": "network",
+        "status": "unavailable",
+        "host_id": "server-05",
+        "source_system": null,
+        "completeness": "unavailable",
+        "requested_start": "2026-04-23T03:05:44.221000Z",
+        "requested_end": "2026-04-23T03:26:40Z",
+        "available_start": null,
+        "available_end": null,
+        "result_start": null,
+        "result_end": null,
+        "limitations": []
+      },
+      "analysis_obligation_refs": [],
+      "outcome": "unavailable",
+      "limitations": []
+    }
+  ],
+  "repair_actions": [
+    {
+      "repair_id": "repair-41518e35f96e",
+      "repair_type": "use_alternative_source",
+      "trigger": "empty_result_with_incomplete_coverage",
+      "target_gap_id": "gap-remote-command",
+      "recommended_tools": [
+        "query_socket_activity"
+      ],
+      "reason_evidence_refs": [],
+      "reason": "The query returned no evidence, but Coverage is not complete; absence cannot be concluded",
+      "blocking": false,
+      "status": "applied",
+      "attempts": 1,
+      "max_attempts": 1,
+      "limitations": []
+    },
+    {
+      "repair_id": "repair-a9ad6a7c3e11",
+      "repair_type": "use_alternative_source",
+      "trigger": "empty_result_with_incomplete_coverage",
+      "target_gap_id": "gap-counter",
+      "recommended_tools": [
+        "query_package_provenance",
+        "query_approved_endpoints"
+      ],
+      "reason_evidence_refs": [],
+      "reason": "The query returned no evidence, but Coverage is not complete; absence cannot be concluded",
+      "blocking": false,
+      "status": "applied",
+      "attempts": 1,
+      "max_attempts": 1,
+      "limitations": []
+    },
+    {
+      "repair_id": "repair-75f52470cebc",
+      "repair_type": "use_alternative_source",
+      "trigger": "empty_result_with_incomplete_coverage",
+      "target_gap_id": "gap-counter",
+      "recommended_tools": [
+        "query_approved_endpoints"
+      ],
+      "reason_evidence_refs": [],
+      "reason": "The query returned no evidence, but Coverage is not complete; absence cannot be concluded",
+      "blocking": false,
+      "status": "applied",
+      "attempts": 1,
+      "max_attempts": 1,
+      "limitations": []
+    },
+    {
+      "repair_id": "repair-a00d80d2260b",
+      "repair_type": "use_alternative_source",
+      "trigger": "empty_result_with_incomplete_coverage",
+      "target_gap_id": "gap-persistence",
+      "recommended_tools": [
+        "query_systemd_events"
+      ],
+      "reason_evidence_refs": [],
+      "reason": "The query returned no evidence, but Coverage is not complete; absence cannot be concluded",
+      "blocking": false,
+      "status": "applied",
+      "attempts": 1,
+      "max_attempts": 1,
+      "limitations": []
+    },
+    {
+      "repair_id": "repair-a32ee80dd2d4",
+      "repair_type": "use_alternative_source",
+      "trigger": "empty_result_with_incomplete_coverage",
+      "target_gap_id": "gap-network",
+      "recommended_tools": [
+        "query_process_network"
+      ],
+      "reason_evidence_refs": [],
+      "reason": "The query returned no evidence, but Coverage is not complete; absence cannot be concluded",
+      "blocking": false,
+      "status": "applied",
+      "attempts": 1,
+      "max_attempts": 1,
+      "limitations": []
+    }
+  ],
+  "active_scenarios": [
+    "c2",
+    "file_provenance"
+  ],
+  "scope": {
+    "host_ids": [
+      "server-05"
+    ],
+    "container_ids": [],
+    "entity_ids": [
+      "file:server-05:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    ],
+    "allowed_domains": [
+      "server-05"
+    ],
+    "container_ids": [],
+    "entity_ids": [
+      "file:server-05:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    ],
+    "allowed_domains": [
+    ],
+    "container_ids": [],
+    "entity_ids": [
+      "file:server-05:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    ],
+    "allowed_domains": [
+    "container_ids": [],
+    "entity_ids": [
+      "file:server-05:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    ],
+    "allowed_domains": [
+    "entity_ids": [
+      "file:server-05:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    ],
+    "allowed_domains": [
+      "file:server-05:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    ],
+    "allowed_domains": [
+"
+    ],
+    "allowed_domains": [
+    ],
+    "allowed_domains": [
+    "allowed_domains": [
+      "process",
+      "process",
+      "file",
+      "file",
+      "network",
+      "persistence",
+      "reputation"
+    ],
+    "start_time": "2026-04-23T03:05:44.221000Z",
+    "end_time": "2026-04-23T03:26:40Z",
+    "expansion_policy": "approval_required"
+  },
+  "scope_expansions": [],
+  "verdict_validation": {
+    "status": "PASS",
+    "errors": []
+  },
+  "analysis_notes": [],
+  "limitations": [
+    "Independent evidence does not establish a complete malicious behavior chain",    
+    "Unavailable evidence domains: network, persistence"
+  ]
+}

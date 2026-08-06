@@ -1,0 +1,17 @@
+{
+  "File_id": "file-origin-package-001",
+  "File_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "File_path": "/opt/vendor/collector",
+  "File_type": "elf",
+  "File_size": 8192,
+  "File_mode": "0755",
+  "source": "nms-001",
+  "Sub_asset": "server-05",
+  "status": 3,
+  "Sync_status": 2,
+  "discovery_time": 1776914444221,
+  "Recent_time": 1776914800000,
+  "Realtime_type": 1,
+  "Investigation_scenarios": ["c2", "file_provenance"],
+  "Detail": {"context": [{"pid": "5500", "path": "/opt/vendor/collector", "euid": "0", "cmdline": "/opt/vendor/collector", "processStartTime": 1776914444221, "tree": []}], "feature": {}}
+}

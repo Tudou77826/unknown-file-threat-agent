@@ -1,0 +1,5 @@
+{
+  "File_id":"file-record-insufficient-001","File_hash":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","File_path":"/tmp/unknown.bin","File_type":"elf","File_size":1024,"File_mode":"0755","source":"nms-001","Sub_asset":"server-03","status":3,"Sync_status":2,"discovery_time":1776914444221,"Recent_time":1776914800000,"Realtime_type":0,
+  "Detail":"{\"context\":[{\"pid\":\"3300\",\"path\":\"/tmp/unknown.bin\",\"euid\":\"1000\",\"cmdline\":\"/tmp/unknown.bin\",\"processStartTime\":1776914444221,\"tree\":[]}],\"feature\":{}}"
+}
+

@@ -1,0 +1,18 @@
+{
+  "File_id": "file-record-malicious-001",
+  "File_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "File_path": "/tmp/.cache/sysupd",
+  "File_type": "elf",
+  "File_size": 245760,
+  "File_mode": "0755",
+  "source": "nms-001",
+  "Sub_asset": "server-01",
+  "status": 3,
+  "Sync_status": 2,
+  "discovery_time": 1776914444221,
+  "Recent_time": 1776914800000,
+  "Process_create_time": 1776914444221,
+  "Realtime_type": 1,
+  "Detail": "{\"context\":[{\"pid\":\"1234\",\"path\":\"/tmp/.cache/sysupd\",\"euid\":\"0\",\"cmdline\":\"/tmp/.cache/sysupd\",\"processStartTime\":1776914444221,\"tree\":[{\"pid\":\"5332\",\"path\":\"/usr/bin/bash\",\"processName\":\"bash\",\"cmdline\":\"-bash\",\"processStartTime\":1776914233979},{\"pid\":\"5330\",\"path\":\"/usr/sbin/sshd\",\"processName\":\"sshd\",\"cmdline\":\"/usr/sbin/sshd -D\",\"processStartTime\":1776914000000}]}],\"feature\":{\"hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}}"
+}
+

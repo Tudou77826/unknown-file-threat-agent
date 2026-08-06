@@ -1,0 +1,17 @@
+{
+  "File_id": "file-origin-download-001",
+  "File_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "File_path": "/tmp/update.bin",
+  "File_type": "elf",
+  "File_size": 4096,
+  "File_mode": "0755",
+  "source": "nms-001",
+  "Sub_asset": "server-04",
+  "status": 3,
+  "Sync_status": 2,
+  "discovery_time": 1776914444221,
+  "Recent_time": 1776914800000,
+  "Realtime_type": 1,
+  "Investigation_scenarios": ["c2", "file_provenance"],
+  "Detail": {"context": [{"pid": "4400", "path": "/tmp/update.bin", "euid": "1000", "cmdline": "/tmp/update.bin", "processStartTime": 1776914444221, "tree": []}], "feature": {}}
+}
