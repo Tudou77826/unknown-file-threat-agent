@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Linux Unknown-File Threat Agent V1
 
 An evidence-grounded investigation agent for Linux unknown-file alerts. V1 focuses on a complete backdoor/C2 investigation loop and includes benign and insufficient-evidence counterexamples.
