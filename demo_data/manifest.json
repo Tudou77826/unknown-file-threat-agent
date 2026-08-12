@@ -1,0 +1,38 @@
+{
+  "dataset_version": "2026.08.1",
+  "random_seed": 20260811,
+  "datasets": [
+    {
+      "dataset_id": "c2-malicious-reference",
+      "case_directory": "cases/c2_malicious",
+      "label": "malicious_reference",
+      "profiles": ["profiles/l0.json", "profiles/l1.json", "profiles/l2.json", "profiles/l3.json"]
+    },
+    {
+      "dataset_id": "c2-benign-reference",
+      "case_directory": "cases/c2_benign",
+      "label": "benign_reference",
+      "profiles": ["profiles/l0.json", "profiles/l1.json", "profiles/l2.json", "profiles/l3.json"]
+    }
+  ],
+  "assets": [
+    {
+      "dataset_id": "c2-malicious-reference",
+      "asset": {
+        "host_id": "server-01", "asset_name": "payment-api-prod-01", "environment": "production",
+        "business_system": "payment-api", "criticality": "critical", "business_owner": "payment-platform",
+        "security_owner": "security-operations", "maintenance_window": "Sunday 02:00-04:00 CST",
+        "isolation_policy": "dual_approval", "isolation_impact": "Interrupts payment authorization traffic"
+      }
+    },
+    {
+      "dataset_id": "c2-benign-reference",
+      "asset": {
+        "host_id": "server-02", "asset_name": "monitoring-test-02", "environment": "test",
+        "business_system": "monitoring-validation", "criticality": "low", "business_owner": "platform-engineering",
+        "security_owner": "security-operations", "maintenance_window": "Any time",
+        "isolation_policy": "allowed", "isolation_impact": "No production service impact"
+      }
+    }
+  ]
+}

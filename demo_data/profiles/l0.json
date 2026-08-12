@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0",
+  "profile_id": "l0-alert-only",
+  "dataset_version": "2026.08.1",
+  "level": "l0",
+  "visible_sources": [],
+  "coverage_rules": [],
+  "asset_context_visible": false,
+  "description": "Only the original unknown-file alert is available; no investigation telemetry can be queried."
+}

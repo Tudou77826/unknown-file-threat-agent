@@ -12,12 +12,12 @@
 | 旧知识 | 新位置 |
 |---|---|
 | 端到端方案与总体边界 | `../softwareArchitecture.md` |
-| 证据采集和场景数据需求 | `../features/data-foundation/` |
-| Agent、Tool、Evidence 和 Verdict 设计 | `../features/judgment-engine/` |
-| 未知文件攻击路径方法 | `../features/judgment-engine/scenarios/` 和运行时 Skill |
-| 处置建议设想 | `../features/response-advisory/` |
-| 历史检索设想 | `../features/rag-knowledge/` |
-| Scope、审批和运行控制 | `../features/case-governance/` |
+| 证据采集和场景数据需求 | `../features/01-data-foundation/` |
+| Agent、Tool、Evidence 和 Verdict 设计 | `../features/02-judgment-engine/` |
+| 未知文件攻击路径方法 | `../features/02-judgment-engine/scenarios/` 和运行时 Skill |
+| 处置建议设想 | `../features/03-response-advisory/` |
+| 历史检索设想 | `../features/04-rag-knowledge/` |
+| Scope、审批和运行控制 | `../features/05-case-governance/` |
 | 公共术语与跨模块契约 | `../shared/` |
 
 ## 已知失效内容

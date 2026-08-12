@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "profile_id": "l1-process-context",
+  "dataset_version": "2026.08.1",
+  "level": "l1",
+  "visible_sources": ["edr-process"],
+  "coverage_rules": [
+    {"source_id": "edr-process", "domains": ["process"], "status": "available", "completeness": "partial", "limitations": ["Child exec audit is not available"]}
+  ],
+  "asset_context_visible": false,
+  "description": "Adds target execution and parent-process lineage from endpoint telemetry."
+}

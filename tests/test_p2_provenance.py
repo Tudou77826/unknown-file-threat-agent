@@ -3,13 +3,13 @@ from pathlib import Path
 
 import pytest
 
-from threat_agent.cli import run_case
-from threat_agent.ingestion import initialize_state
-from threat_agent.planner import DeepAgentsPlanner
-from threat_agent.reporting import evaluation_payload
-from threat_agent.repository import JsonlEventRepository
-from threat_agent.scenarios import activate_scenario
-from threat_agent.tools import ToolRegistry
+from threat_agent.bootstrap.cli import run_case
+from threat_agent.case_management import initialize_state
+from threat_agent.judgment.application.planner import DeepAgentsPlanner
+from threat_agent.case_management.application.reporting import evaluation_payload
+from threat_agent.data_foundation.adapters.repository import JsonlEventRepository
+from threat_agent.judgment.domain.scenarios import activate_scenario
+from threat_agent.judgment.adapters.tools import ToolRegistry
 
 
 ROOT = Path(__file__).resolve().parents[1]

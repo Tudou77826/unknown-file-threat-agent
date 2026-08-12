@@ -4,7 +4,7 @@
 
 目标系统由五个 Feature 组成：安全数据底座、AI 研判引擎、AI 处置建议、RAG 知识能力和案件治理。LLM 是研判与处置建议的核心推理组件；确定性计算、证据模型和策略校验作为引擎内部的可信约束。处置建议与实际执行隔离。
 
-当前代码只实现了案件级研判原型：从本地 JSONL 读取证据，在单进程内维护 `InvestigationState`，完成调查、确定性分析和报告。数据平台、处置建议循环、RAG、持久化案件管理和生产治理尚未实现。
+当前代码已实现目标架构的本地可运行骨架：数据查询端口、JSONL/Fixture 适配器与 SQLite 参考数据存储，由案件父图原生挂载的 LangGraph 研判与处置建议子图，内存/SQLite Checkpoint、审批中断、稳定读模型、只读 API 和页面。代码采用按能力纵向组织的模块化单体；RAG 仅保留接口与 Null Adapter，生产数据源、知识检索、身份系统和处置执行尚未接入。
 
 ## 2. 系统边界
 
@@ -93,26 +93,52 @@ LLM 只生成结构化建议。实际执行必须经过动作白名单、身份�
 
 | 目标组件 | 当前实现 | 差距 |
 |---|---|---|
-| 数据底座 | `JsonlEventRepository`、Case JSONL | 无生产连接器、统一事件 Schema、历史查询和数据级 RBAC |
-| 研判引擎 | `InvestigationEngine`、Planner、Analyzer、Policy、Verdict | 单进程、内存状态，场景和规则仍集中注册 |
-| RAG | 无 | 无知识接入、检索、ACL、引用和评测 |
-| 处置建议 | 无 | 当前系统只调查和报告 |
-| 案件治理 | Scope、Budget、ToolCall 模型 | 无持久化、任务调度、人工审批服务和执行审计 |
+| 数据底座 | `data_foundation`：`EvidenceQueryPort`、JSONL/Fixture Adapter、SQLite 参考存储、Data Profile、Coverage | 参考存储不是生产数据湖；无生产连接器和数据级 RBAC |
+| 研判引擎 | `judgment`：原生子图、结构化 Planner、Analyzer、Policy、Verdict | 场景和规则仍集中注册，真实模型需部署配置 |
+| RAG | `knowledge`：`KnowledgeRetrievalPort`、Null Adapter | 具体知识来源、索引、检索、ACL 和评测后置 |
+| 处置建议 | `response_advisory`：原生子图、Response Policy、`ResponseContextPort`、参考资产上下文 | 无真实动作执行和组织策略知识 |
+| 案件治理 | `case_management`：父图、内存/SQLite Checkpoint、interrupt、结果提交 | 无生产队列、身份系统、审计存储和执行集成 |
+| 输出展示 | `presentation`：案件及 L0～L3 对照读模型、只读 API、HTML 和契约序列化 | 当前为进程内读模型，未接生产读库 |
 
-## 7. 演进顺序
+## 7. 代码组织与依赖方向
 
-1. 冻结跨 Feature 契约和规范化数据模型。
-2. 用真实数据底座适配器替换案件 JSONL，但保持研判引擎工具契约。
-3. 持久化案件状态，支持暂停、恢复和人工补充。
-4. 建设处置建议循环，先输出建议，不连接高风险自动执行。
-5. 优先为处置策略建设 RAG，再为研判方法和历史案件提供检索。
-6. 将场景、工具和判定规则逐步封装为可独立版本化的能力包。
+```text
+src/threat_agent/
+├── bootstrap/          # 配置、依赖组装和 CLI
+├── contracts/          # 跨模块稳定 DTO，不依赖业务模块
+├── case_management/    # 父图、审批、Checkpoint、结果提交
+├── data_foundation/    # 证据查询端口与数据适配器
+├── judgment/           # 研判 domain/application/ports/adapters
+├── response_advisory/  # 处置 domain/application/ports/adapters
+├── knowledge/          # RAG 端口与 Null Adapter
+├── presentation/       # 只读 API、Store 和契约序列化
+└── shared/             # ID、基础模型等无业务含义代码
+```
 
-## 8. 详细设计入口
+依赖约束如下：
 
-- [Data Foundation](features/data-foundation/README.md)
-- [Judgment Engine](features/judgment-engine/README.md)
-- [Response Advisory](features/response-advisory/README.md)
-- [RAG Knowledge](features/rag-knowledge/README.md)
-- [Case Governance](features/case-governance/README.md)
+- `contracts` 和 `shared` 不依赖任何业务能力；
+- `data_foundation` 不依赖案件、研判、处置或展示流程；
+- `presentation` 只消费稳定契约，不读取调查状态或 Checkpoint；
+- 具体 Adapter 在 `bootstrap` 中组装，业务模块不依赖 `bootstrap`；
+- 案件管理可以调用两个子图，两个子图之间只传递 `JudgmentResult`。
+
+上述规则由 `tests/test_architecture_dependencies.py` 自动检查。
+
+## 8. 后续演进
+
+1. 用生产数据源适配器替换案件 JSONL，保持 `EvidenceQueryPort` 不变。
+2. 将 Checkpoint、案件读模型、身份和审计迁入生产存储与服务。
+3. 将 RAG 作为独立需求建设，替换 Null Adapter。
+4. 在审批、幂等和补偿机制完备后接入处置执行系统。
+5. 将场景、工具和判定规则逐步封装为可独立版本化的能力包。
+
+## 9. 详细设计入口
+
+- [Data Foundation](features/01-data-foundation/README.md)
+- [Judgment Engine](features/02-judgment-engine/README.md)
+- [Response Advisory](features/03-response-advisory/README.md)
+- [RAG Knowledge](features/04-rag-knowledge/README.md)
+- [Case Governance](features/05-case-governance/README.md)
+- [Data-Driven Investigation Quality Demo](features/07-data-driven-investigation-quality-demo/README.md)
 - [Architecture Decisions](shared/architecture-decisions.md)

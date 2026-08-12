@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "profile_id": "l3-attribution-and-assets",
+  "dataset_version": "2026.08.1",
+  "level": "l3",
+  "visible_sources": ["edr-process", "auditd-execve", "edr-network", "ebpf-socket", "auditd-file", "package-manager", "systemd-journal", "rpm-inventory", "cmdb-baseline"],
+  "coverage_rules": [
+    {"source_id": "edr-process", "domains": ["process"], "status": "available", "completeness": "complete", "limitations": []},
+    {"source_id": "auditd-execve", "domains": ["process"], "status": "available", "completeness": "complete", "limitations": []},
+    {"source_id": "edr-network", "domains": ["network"], "status": "available", "completeness": "complete", "limitations": []},
+    {"source_id": "ebpf-socket", "domains": ["network"], "status": "available", "completeness": "complete", "limitations": []},
+    {"source_id": "auditd-file", "domains": ["persistence"], "status": "available", "completeness": "partial", "limitations": []},
+    {"source_id": "package-manager", "domains": ["persistence"], "status": "available", "completeness": "partial", "limitations": []},
+    {"source_id": "systemd-journal", "domains": ["persistence"], "status": "available", "completeness": "complete", "limitations": []},
+    {"source_id": "rpm-inventory", "domains": ["reputation"], "status": "available", "completeness": "complete", "limitations": []},
+    {"source_id": "cmdb-baseline", "domains": ["reputation"], "status": "available", "completeness": "complete", "limitations": []}
+  ],
+  "asset_context_visible": true,
+  "description": "Adds package provenance, approved-endpoint baselines and business asset context."
+}

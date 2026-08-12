@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from threat_agent.ingestion import initialize_state
+from threat_agent.case_management import initialize_state
 
 
 ROOT = Path(__file__).resolve().parents[1]

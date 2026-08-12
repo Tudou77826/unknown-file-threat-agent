@@ -1,13 +1,13 @@
 import json
 from pathlib import Path
 
-from threat_agent.cli import run_case
-from threat_agent.ingestion import initialize_state
-from threat_agent.planner import DeepAgentsPlanner
-from threat_agent.reporting import evaluation_payload, report_payload, write_reports
-from threat_agent.repository import JsonlEventRepository
-from threat_agent.state import apply_evidence_bundle
-from threat_agent.tools import ToolRegistry
+from threat_agent.bootstrap.cli import run_case
+from threat_agent.case_management import initialize_state
+from threat_agent.judgment.application.planner import DeepAgentsPlanner
+from threat_agent.case_management.application.reporting import evaluation_payload, report_payload, write_reports
+from threat_agent.data_foundation.adapters.repository import JsonlEventRepository
+from threat_agent.judgment.application.state import apply_evidence_bundle
+from threat_agent.judgment.adapters.tools import ToolRegistry
 
 
 ROOT = Path(__file__).resolve().parents[1]

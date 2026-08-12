@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "profile_id": "l2-behavior-telemetry",
+  "dataset_version": "2026.08.1",
+  "level": "l2",
+  "visible_sources": ["edr-process", "auditd-execve", "edr-network", "ebpf-socket", "auditd-file", "package-manager", "systemd-journal"],
+  "coverage_rules": [
+    {"source_id": "edr-process", "domains": ["process"], "status": "available", "completeness": "complete", "limitations": []},
+    {"source_id": "auditd-execve", "domains": ["process"], "status": "available", "completeness": "complete", "limitations": []},
+    {"source_id": "edr-network", "domains": ["network"], "status": "available", "completeness": "complete", "limitations": []},
+    {"source_id": "ebpf-socket", "domains": ["network"], "status": "available", "completeness": "complete", "limitations": []},
+    {"source_id": "auditd-file", "domains": ["persistence"], "status": "available", "completeness": "partial", "limitations": []},
+    {"source_id": "package-manager", "domains": ["persistence"], "status": "available", "completeness": "partial", "limitations": []},
+    {"source_id": "systemd-journal", "domains": ["persistence"], "status": "available", "completeness": "complete", "limitations": []}
+  ],
+  "asset_context_visible": false,
+  "description": "Adds process, network, socket and persistence behavior telemetry."
+}

@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from threat_agent.cli import run_case
-from threat_agent.models import VerdictLevel
+from threat_agent.bootstrap.cli import run_case
+from threat_agent.judgment.domain.models import VerdictLevel
 
 ROOT = Path(__file__).resolve().parents[1]
 

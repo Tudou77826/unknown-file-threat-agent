@@ -11,13 +11,15 @@
 
 ## Feature
 
-| Feature | 责任 | 当前状态 |
-|---|---|---|
-| [data-foundation](features/data-foundation/README.md) | 安全数据接入、规范化、存储、查询、Coverage 和数据访问控制 | 目标设计；当前仅有案件 JSONL Repository |
-| [judgment-engine](features/judgment-engine/README.md) | LLM 驱动的未知文件调查、确定性分析和结论校验 | 已有 P2.5 原型 |
-| [response-advisory](features/response-advisory/README.md) | 独立的 LLM 处置建议循环和结构化处置方案 | 待实现 |
-| [rag-knowledge](features/rag-knowledge/README.md) | 调查知识、组织策略和历史案件检索 | 待实现 |
-| [case-governance](features/case-governance/README.md) | 案件生命周期、身份、审批、审计和执行边界 | 部分概念已有，平台能力待实现 |
+| 序号 | Feature | 责任 | 当前状态 |
+|---:|---|---|---|
+| 01 | [data-foundation](features/01-data-foundation/README.md) | 安全数据接入、规范化、存储、查询、Coverage 和数据访问控制 | 已有查询端口与本地适配器；生产数据源待接入 |
+| 02 | [judgment-engine](features/02-judgment-engine/README.md) | LLM 驱动的未知文件调查、确定性分析和结论校验 | LangGraph 研判子图已实现 |
+| 03 | [response-advisory](features/03-response-advisory/README.md) | 独立的 LLM 处置建议循环和结构化处置方案 | LangGraph 处置建议子图已实现 |
+| 04 | [rag-knowledge](features/04-rag-knowledge/README.md) | 调查知识、组织策略和历史案件检索 | 单独规划；本次仅预留接口 |
+| 05 | [case-governance](features/05-case-governance/README.md) | 案件生命周期、身份、审批、审计和执行边界 | 父图、Checkpoint 与审批中断已实现；执行集成待建设 |
+| 06 | [platform-architecture-migration](features/06-platform-architecture-migration/README.md) | 将现有原型迁移到目标架构、原生 LangGraph 子图和纵向代码边界 | 已完成 |
+| 07 | [data-driven-investigation-quality-demo](features/07-data-driven-investigation-quality-demo/README.md) | 用受控数据 Profile 展示数据源对研判与处置质量的决定性影响，并统一外置运行配置 | 已实现并通过 8 条 Profile 路径验收 |
 
 ## 文档规则
 
@@ -30,7 +32,7 @@
 
 ## 运行时文档
 
-[`investigation_skills/linux-unknown-file/SKILL.md`](../investigation_skills/linux-unknown-file/SKILL.md) 是 DeepAgents Planner 直接读取的运行时资源，不属于普通设计文档，保持原路径。修改它必须同步验证 Planner 和端到端 Case。
+[`investigation_skills/linux-unknown-file/SKILL.md`](../investigation_skills/linux-unknown-file/SKILL.md) 是结构化 LLM Planner 直接读取的运行时资源，不属于普通设计文档，保持原路径。修改它必须同步验证 Planner 和端到端 Case。
 
 ## 归档
 

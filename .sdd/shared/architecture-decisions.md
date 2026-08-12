@@ -19,3 +19,19 @@
 ## AD-005：设计文档按 Feature 归属
 
 **状态：接受。** `.sdd` 根目录只保留导航和总体架构；每个 Feature 在 `features/` 下维护需求、设计、模型和验收；跨 Feature 内容进入 `shared/`。
+
+## AD-006：LangGraph 负责双循环流程控制
+
+**状态：接受并已实现。** 案件父图、研判子图和处置建议子图由 LangGraph 编排；领域模型、Analyzer、Policy 和 Validator 保持框架无关。Checkpoint 与 interrupt 用于恢复和审批，节点通过显式状态更新交换结果。
+
+## AD-007：RAG 实现从平台迁移中拆出
+
+**状态：接受。** 当前迁移只交付 `KnowledgeRetrievalPort`、知识契约、可选调用点和 Null Adapter。文档管线、Embedding、索引、检索、ACL 与评测后续单独审批，不作为当前平台运行前提。
+
+## AD-008：代码按业务能力纵向组织
+
+**状态：接受并已实现。** 代码采用 `src/threat_agent` 布局，一级包对应稳定业务能力；能力内部使用 `domain`、`application`、`ports` 和 `adapters` 表达职责。公共契约不得依赖业务模块，数据底座不得依赖工作流模块，展示层只消费稳定契约。这些依赖方向由架构测试持续检查。
+
+## AD-009：父图原生挂载双子图
+
+**状态：接受并已实现。** `CaseGraph` 将编译后的 `JudgmentGraph` 和 `ResponseGraph` 直接注册为节点。父子图仅共享边界状态字段，子图内部状态不提升为案件公共状态；子图沿用父图 Checkpointer 的持久化语义。

@@ -2,13 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from threat_agent.cli import run_case
-from threat_agent.ingestion import initialize_state
-from threat_agent.models import ScopeRequest, VerdictLevel
-from threat_agent.policy import PolicyError, validate_action
-from threat_agent.planner import DeepAgentsPlanner
-from threat_agent.repository import JsonlEventRepository
-from threat_agent.tools import ToolRegistry
+from threat_agent.bootstrap.cli import run_case
+from threat_agent.case_management import initialize_state
+from threat_agent.judgment.domain.models import ScopeRequest, VerdictLevel
+from threat_agent.judgment.application.policy import PolicyError, validate_action
+from threat_agent.judgment.application.planner import DeepAgentsPlanner
+from threat_agent.data_foundation.adapters.repository import JsonlEventRepository
+from threat_agent.judgment.adapters.tools import ToolRegistry
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -42,7 +42,8 @@ def test_shared_c2_without_transfer_does_not_expand_or_prove_propagation():
 def test_approval_required_scope_does_not_read_target_host_evidence():
     state = run("cross_host_scope_denied")
     assert state.scope.host_ids == ["deny-01"]
-    assert state.scope_expansions[0].approval_status == "pending"
+    assert state.scope_expansions[0].approval_status == "denied"
+    assert state.scope_expansions[0].approval_source == "human:cli-policy"
     assert "deny-hidden-target" not in {e.evidence_id for e in state.evidence}
     assert "confirmed_lateral_file_propagation" not in {f.finding_type for f in state.findings}
 

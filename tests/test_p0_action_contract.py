@@ -4,13 +4,13 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from threat_agent.engine import InvestigationEngine
-from threat_agent.ingestion import initialize_state
-from threat_agent.models import AnalysisRequest, EvidenceRequest, FinishRequest
-from threat_agent.planner import ACTION_ADAPTER, DeterministicPlanner
-from threat_agent.policy import PolicyError, validate_action
-from threat_agent.repository import JsonlEventRepository
-from threat_agent.tools import ToolRegistry
+from threat_agent.judgment.application.engine import InvestigationEngine
+from threat_agent.case_management import initialize_state
+from threat_agent.judgment.domain.models import AnalysisRequest, EvidenceRequest, FinishRequest
+from threat_agent.judgment.application.planner import ACTION_ADAPTER, DeterministicPlanner
+from threat_agent.judgment.application.policy import PolicyError, validate_action
+from threat_agent.data_foundation.adapters.repository import JsonlEventRepository
+from threat_agent.judgment.adapters.tools import ToolRegistry
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -52,7 +52,7 @@ def test_catalog_only_exposes_analysis_tools_when_prerequisites_exist():
     assert "analyze_execution" not in initial_names
 
     bundle = registry.invoke("query_process_execution", state, {})
-    from threat_agent.state import apply_evidence_bundle
+    from threat_agent.judgment.application.state import apply_evidence_bundle
 
     apply_evidence_bundle(state, bundle, registry)
     updated_names = {item["tool_name"] for item in registry.catalog(state)}

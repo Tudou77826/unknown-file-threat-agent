@@ -3,13 +3,13 @@ from pathlib import Path
 
 import pytest
 
-from threat_agent.ingestion import initialize_state
-from threat_agent.models import AnalysisRequest, EvidenceRequest, FinishRequest
-from threat_agent.planner import DeepAgentsPlanner
-from threat_agent.policy import PolicyError, validate_action
-from threat_agent.repository import JsonlEventRepository
-from threat_agent.state import apply_evidence_bundle
-from threat_agent.tools import ToolRegistry
+from threat_agent.case_management import initialize_state
+from threat_agent.judgment.domain.models import AnalysisRequest, EvidenceRequest, FinishRequest
+from threat_agent.judgment.application.planner import DeepAgentsPlanner
+from threat_agent.judgment.application.policy import PolicyError, validate_action
+from threat_agent.data_foundation.adapters.repository import JsonlEventRepository
+from threat_agent.judgment.application.state import apply_evidence_bundle
+from threat_agent.judgment.adapters.tools import ToolRegistry
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -71,23 +71,24 @@ def test_deep_planner_prioritizes_required_analysis_without_model_call():
     assert action.evidence_refs == ["raw-proc-exec-target"]
 
 
-class EmptyStreamGraph:
+class FailingStructuredModel:
     def __init__(self):
         self.calls = 0
 
-    def stream(self, *_args, **_kwargs):
+    def invoke(self, *_args, **_kwargs):
         self.calls += 1
-        return iter(())
+        raise ValueError("empty structured response")
 
 
 def test_deep_planner_retries_empty_responses_then_uses_catalog_fallback():
     state, registry = setup_case()
     planner = DeepAgentsPlanner.__new__(DeepAgentsPlanner)
     planner.registry = registry
-    planner.graph = EmptyStreamGraph()
+    planner.system_prompt = "test prompt"
+    planner.structured_model = FailingStructuredModel()
 
     action = planner.plan(state)
 
-    assert planner.graph.calls == 3
+    assert planner.structured_model.calls == 3
     assert isinstance(action, EvidenceRequest)
     assert action.tool_name == registry.catalog(state)[0]["tool_name"]
