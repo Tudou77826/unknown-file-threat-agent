@@ -2,14 +2,33 @@ import json
 from pathlib import Path
 
 import pytest
+from langchain_core.messages import AIMessage
 
 from threat_agent.bootstrap.cli import run_case
 from threat_agent.case_management import initialize_state
-from threat_agent.judgment.application.planner import DeepAgentsPlanner
+from threat_agent.judgment.application.planner import StructuredJudgmentPlanner
+from threat_agent.judgment.domain.models import ScenarioActivationRequest
 from threat_agent.case_management.application.reporting import evaluation_payload
 from threat_agent.data_foundation.adapters.repository import JsonlEventRepository
 from threat_agent.judgment.domain.scenarios import activate_scenario
 from threat_agent.judgment.adapters.tools import ToolRegistry
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class _ActivationModel:
+    model_name = "fake-native-model"
+
+    def __init__(self, tool_calls):
+        self.tool_calls = tool_calls
+
+    def bind_tools(self, tools, **_kwargs):
+        self.bound_tools = tools
+        return self
+
+    def invoke(self, _messages):
+        return AIMessage(content="", tool_calls=self.tool_calls)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -86,63 +105,25 @@ def test_llm_scenario_activation_uses_reviewed_local_template():
     raw = json.loads((ROOT / "cases" / "c2_malicious" / "input.json").read_text(encoding="utf-8"))
     state = initialize_state(raw)
     registry = ToolRegistry(JsonlEventRepository(ROOT / "cases" / "c2_malicious"))
-    planner = DeepAgentsPlanner.__new__(DeepAgentsPlanner)
-    planner.registry = registry
-    planner._generate = lambda _instruction: {
-        "tool_name": "query_process_execution",
-        "target_hypothesis_id": "hyp-c2-001",
-        "target_evidence_role_id": "role-execution",
-        "target_gap_id": "gap-execution",
-        "decision_summary": "Execution and file provenance should both be established from independent telemetry.",
-        "activate_scenarios": [{"scenario": "file_provenance", "reason_refs": ["ev-input-file-001"]}],
-    }
+    planner = StructuredJudgmentPlanner(_ActivationModel([{
+        "name": "activate_scenario",
+        "args": {"scenario": "file_provenance", "reason_refs": ["ev-input-file-001"]},
+        "id": "call-act-1",
+        "type": "tool_call",
+    }]), registry)
 
     action = planner.plan(state)
 
-    assert action.tool_name == "query_process_execution"
+    assert isinstance(action, ScenarioActivationRequest)
+    assert action.scenario == "file_provenance"
+    assert state.planner_decisions[-1].activated_scenarios == ["file_provenance"]
+    # The graph's activate_scenario node deterministically loads the template.
+    activate_scenario(state, "file_provenance", ["ev-input-file-001"])
     assert "file_provenance" in state.active_scenarios
     assert any(item.hypothesis_id == "hyp-file-provenance-001" for item in state.hypotheses)
     assert any(item.role_id == "role-file-provenance" for item in state.evidence_roles)
     assert any(item.gap_id == "gap-file-origin" for item in state.evidence_gaps)
-    assert state.planner_decisions[-1].activated_scenarios == ["file_provenance"]
     assert "query_file_origin" in {item["tool_name"] for item in registry.catalog(state)}
-
-
-def test_llm_can_add_cited_candidate_interpretation_but_not_a_fact():
-    state, registry = setup_case("provenance_package")
-    # First run deterministic evidence/analysis so the proposal has real refs.
-    state = run_case(ROOT / "cases" / "provenance_package", "deterministic")
-    state.finished = False
-    state.verdict = None
-    origin_gap = next(item for item in state.evidence_gaps if item.gap_id == "gap-file-origin")
-    origin_gap.status = "open"
-    origin_gap.resolution = "none"
-    planner = DeepAgentsPlanner.__new__(DeepAgentsPlanner)
-    planner.registry = registry
-    planner.model_name = "test-model"
-    planner._generate = lambda _instruction: {
-        "tool_name": "__finish__",
-        "target_hypothesis_id": "hyp-file-provenance-001",
-        "target_evidence_role_id": "role-file-provenance",
-        "target_gap_id": None,
-        "decision_summary": "The signed package event provides a candidate legitimate origin explanation.",
-        "interpretation": {
-            "interpretation_type": "provenance_assessment",
-            "statement": "The signed trusted package is a plausible legitimate origin, subject to independent runtime-behavior review.",
-            "supporting_fact_refs": ["fact-origin-001"],
-            "supporting_finding_refs": ["finding-origin-package-001"],
-            "contradicting_refs": [],
-            "confidence": 0.85
-        }
-    }
-
-    fact_count = len(state.facts)
-    planner.plan(state)
-
-    assert len(state.facts) == fact_count
-    assert state.interpretations[-1].status == "candidate"
-    assert state.interpretations[-1].model == "test-model"
-    assert state.planner_decisions[-1].created_interpretation_id == state.interpretations[-1].interpretation_id
 
 
 def test_unknown_or_unsupported_scenario_activation_is_rejected():

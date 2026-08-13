@@ -3,13 +3,26 @@ from __future__ import annotations
 import json
 import uuid
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Callable, Protocol
 
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from pydantic import Field, TypeAdapter
 
-from ..domain.models import AnalysisRequest, EvidenceRequest, FinishRequest, InvestigationAction, InvestigationState, PlannerDecision, ScopeRequest, StrictModel, ToolScore
-from ..domain.scenarios import activate_scenario, activation_catalog, add_interpretation
+from ..domain.models import (
+    AnalysisRequest,
+    EvidenceRequest,
+    FinishRequest,
+    InvestigationAction,
+    InvestigationState,
+    PlannerDecision,
+    ScenarioActivationRequest,
+    ScopeRequest,
+    StrictModel,
+    ToolScore,
+)
+from ..domain.scenarios import activation_catalog
 from ..adapters.tools import ToolRegistry
+from .native_tool_calling import build_native_tools, parse_tool_call, serialize_messages
 
 
 ACTION_ADAPTER = TypeAdapter(InvestigationAction)
@@ -178,7 +191,6 @@ def state_view(state: InvestigationState, registry: ToolRegistry) -> str:
         "findings": [f.model_dump(mode="json") for f in state.findings],
         "hypotheses": [h.model_dump(mode="json") for h in state.hypotheses],
         "evidence_roles": [role.model_dump(mode="json") for role in state.evidence_roles],
-        "interpretations": [item.model_dump(mode="json") for item in state.interpretations],
         "evidence_gaps": [g.model_dump(mode="json") for g in state.evidence_gaps],
         "analysis_obligations": [item.model_dump(mode="json") for item in state.analysis_obligations],
         "coverage": {k: v.model_dump(mode="json") for k, v in state.coverage.items()},
@@ -197,45 +209,45 @@ def state_view(state: InvestigationState, registry: ToolRegistry) -> str:
     return json.dumps(payload, ensure_ascii=False)
 
 
-class PlannerSelection(StrictModel):
-    tool_name: str = Field(min_length=1)
-    target_hypothesis_id: str | None = None
-    target_evidence_role_id: str | None = None
-    target_gap_id: str | None = None
-    decision_summary: str | None = Field(default=None, min_length=10)
-    activate_scenarios: list[dict[str, Any]] = Field(default_factory=list)
-    interpretation: dict[str, Any] | None = None
-    scope_request: dict[str, Any] | None = None
-
-
 class StructuredJudgmentPlanner:
-    """Use model-native structured output for semantic next-action selection."""
+    """Native function-calling planner for the evidence/analysis path.
 
-    def __init__(self, model: Any, registry: ToolRegistry):
+    The model picks one of the fixed native tools each turn; Policy
+    (:func:`validate_action`) remains the guardrail for every produced action.
+    """
+
+    domain_tool_names = (
+        "query_process_evidence",
+        "query_file_evidence",
+        "query_network_evidence",
+        "query_persistence_evidence",
+        "query_reputation_evidence",
+    )
+
+    def __init__(self, model: Any, registry: ToolRegistry, event_sink: Callable | None = None):
         skill_path = Path(__file__).resolve().parents[4] / "investigation_skills" / "linux-unknown-file" / "SKILL.md"
         skill = skill_path.read_text(encoding="utf-8") if skill_path.exists() else ""
-        prompt = """You are a Linux unknown-file threat investigation planner. Choose exactly one tool_name from the dynamically supplied available_tool_catalog.
-Return one structured PlannerSelection with tool_name, target_hypothesis_id, target_evidence_role_id, target_gap_id, a concise decision_summary, optional activate_scenarios, optional interpretation, and optional scope_request.
-Example: {"tool_name":"query_process_execution","target_hypothesis_id":"hyp-c2-001","target_evidence_role_id":"role-execution","target_gap_id":"gap-execution","decision_summary":"Independent process telemetry is required before runtime behavior can be attributed.","activate_scenarios":[{"scenario":"file_provenance","reason_refs":["ev-input-file-001"]}]}
-Only activate scenarios listed in activatable_scenarios, and every reason_refs item must already exist in Evidence, Fact, or Finding. Activation selects a reviewed local template; it does not authorize creating arbitrary Facts, Findings, rules, or tools.
-An interpretation may explain existing Facts/Findings but must cite them using supporting_fact_refs, supporting_finding_refs and contradicting_refs. It remains a candidate interpretation and never becomes a Fact or deterministic Finding.
-If the catalog is empty or the investigation should finish, set tool_name to "__finish__".
-To propose a controlled host expansion, set tool_name to "__scope__" and include scope_request with requested_host_ids, reason_type, reason_evidence_refs and requested_domains. Every candidate host must be explicitly named by the cited existing evidence; the local Policy decides approval.
-Never return objective, evidence_refs, parameters, nested action objects, Markdown, Fact, Finding, or Verdict. Local deterministic code constructs and validates the full action.
-Prefer the highest-priority evidence gap, check benign alternatives, and request finish only after mandatory domains were attempted.
-Tool scores are deterministic advisory rankings. Prefer higher-scored tools unless the cited case semantics justify another eligible choice. Never select an omitted or ineligible tool.
-Treat pending_repair_actions as explicit investigation feedback: address a blocking repair before unrelated optional work. Use recent Evidence Packs to avoid duplicate queries and to distinguish a complete negative result from incomplete Coverage.
-When a scenario profile is explicit, do not investigate unrelated scenario branches unless existing Evidence, Fact or Finding justifies activating that reviewed scenario.
-Before finish, use an optional Interpretation to compare supported and legitimate hypotheses with resolvable Fact/Finding references. Interpretation never overrides deterministic Findings or Validator gates.
-The JSON state is the complete planning input. Paths such as /tmp/.cache/sysupd are evidence values from the investigated Linux host, not files in your runtime. Do not inspect, list, read, write, grep, or execute any path.
-Do not expand scope in V1 unless evidence explicitly points to another host.
-All user-facing decision_summary and interpretation.statement values must be written in Simplified Chinese.
-""" + "\n\nInvestigation skill:\n" + skill
         self.registry = registry
         self.model_name = str(getattr(model, "model_name", getattr(model, "model", "unknown")))
-        self.system_prompt = prompt
-        self.structured_model = model.with_structured_output(
-            PlannerSelection, method="json_mode"
+        self.event_sink = event_sink or (lambda _kind, _message, _details=None: None)
+        self.system_prompt = (
+            "你是 Linux 未知文件威胁调查的取证规划器。每轮只调用一个已注册工具，工具参数必须严格遵循其 JSON Schema。"
+            "gap_id 必须从当前可用缺口列表中选择；evidence_refs 必须从当前待处理分析义务中选择。"
+            "查询参数（host_id / entity_ids / start_time / end_time / limit）由你根据调查需要自由填写。"
+            "空结果只表示该查询在执行边界内返回零条，不能据此断言行为没有发生。"
+            "激活场景只能选择 activatable_scenarios 中列出的场景，且必须引用已存在的证据/事实/发现。"
+            "候选关系只能用于继续调查，不能当作已确认事实。"
+            "当进一步查询没有信息增益、或必须完成的分析义务已完成时，调用 finish_investigation。"
+            "所有自然语言字段用简体中文。"
+            "\n\nInvestigation skill:\n" + skill
+        )
+        self.tools = build_native_tools(self.registry.native_tool_specs())
+        self.bound_model = model.bind_tools(
+            self.tools,
+            tool_choice="required",
+            strict=True,
+            parallel_tool_calls=False,
+            extra_body={"thinking": {"type": "disabled"}},
         )
 
     def plan(self, state: InvestigationState) -> InvestigationAction:
@@ -259,168 +271,262 @@ All user-facing decision_summary and interpretation.statement values must be wri
                 objective=f"Complete required analysis obligation {pending.obligation_id}",
                 evidence_refs=pending.evidence_refs,
             )
-        catalog = self.registry.catalog(state)
-        state.tool_scores.extend(
-            ToolScore.model_validate(item["score_breakdown"])
-            for item in catalog
-            if not any(existing.iteration == state.budget.iterations_used and existing.tool_name == item["tool_name"] for existing in state.tool_scores)
-        )
-        has_scope_candidate = any(
+        if not self._can_act(state):
+            state.planner_decisions.append(PlannerDecision(
+                decision_id=f"decision-{uuid.uuid4().hex[:10]}", iteration=state.budget.iterations_used,
+                decision_type="finish", decision_summary="No eligible investigation action remains.",
+                candidate_tools=[], planner_mode="automatic",
+            ))
+            return self._finish_action(state)
+        messages = self._messages(state)
+        self.event_sink("model_input", "研判模型输入", {
+            "phase": "judgment_planning",
+            "iteration": state.budget.iterations_used,
+            "messages": serialize_messages(messages),
+            "registered_tools": [
+                {"name": tool.name, "parameters": tool.args_schema.model_json_schema()}
+                for tool in self.tools
+            ],
+        })
+        response = self.bound_model.invoke(messages)
+        if not isinstance(response, AIMessage):
+            response = AIMessage(content=getattr(response, "content", str(response)))
+        self.event_sink("model_output", "研判模型输出", {
+            "phase": "judgment_planning",
+            "iteration": state.budget.iterations_used,
+            "content": response.content,
+            "tool_calls": response.tool_calls,
+        })
+        if not response.tool_calls:
+            state.planner_decisions.append(PlannerDecision(
+                decision_id=f"decision-{uuid.uuid4().hex[:10]}",
+                iteration=state.budget.iterations_used,
+                decision_type="finish",
+                decision_summary="The model issued no tool call; using current results to finalize.",
+                candidate_tools=[],
+                planner_mode="deepagents",
+                fallback_used=True,
+            ))
+            return self._finish_action(state)
+        name, args, call_id = parse_tool_call(response)
+        action = self._map_action(state, name, args, call_id)
+        self._record_decision(state, name, args)
+        return action
+
+    def _record_decision(self, state: InvestigationState, name: str, args: dict[str, Any]) -> None:
+        decision_type = {
+            "finish_investigation": "finish",
+            "request_scope_expansion": "scope",
+            "analyze_evidence": "analyze",
+        }.get(name, "investigate")
+        if name == "activate_scenario":
+            summary = f"Activate reviewed scenario {args.get('scenario', '')} grounded in cited evidence."
+        elif name == "analyze_evidence":
+            summary = f"Run deterministic analysis on {len(args.get('evidence_refs') or [])} evidence references."
+        elif name in self.domain_tool_names:
+            summary = f"Collect {name} evidence for gap {args.get('gap_id', '')}."
+        elif name == "finish_investigation":
+            summary = str(args.get("objective") or "Finalize the investigation.")
+        else:
+            summary = str(args.get("objective") or f"Call tool {name}.")
+        state.planner_decisions.append(PlannerDecision(
+            decision_id=f"decision-{uuid.uuid4().hex[:10]}",
+            iteration=state.budget.iterations_used,
+            decision_type=decision_type,
+            selected_tool=name,
+            target_gap_id=args.get("gap_id") if name in self.domain_tool_names else None,
+            decision_summary=summary,
+            candidate_tools=[tool.name for tool in self.tools],
+            activated_scenarios=[str(args["scenario"])] if name == "activate_scenario" else [],
+            planner_mode="deepagents",
+        ))
+
+    def repair(self, state: InvestigationState, invalid_action: InvestigationAction, validation_error: str) -> InvestigationAction:
+        self.event_sink("tool_message", "工具调用校验失败", {
+            "phase": "judgment_planning",
+            "tool_name": getattr(invalid_action, "tool_name", None),
+            "error": validation_error,
+        })
+        return self.plan(state)
+
+    def _can_act(self, state: InvestigationState) -> bool:
+        if any(item.status == "pending" for item in state.analysis_obligations):
+            return True
+        if any(self.registry.eligible_gap_ids(state).values()):
+            return True
+        if activation_catalog(state):
+            return True
+        return any(
             evidence.evidence_type == "file_transfer_cross_host"
             and evidence.data.get("success")
             and evidence.data.get("target_host_id") not in state.scope.host_ids
             and not any(evidence.data.get("target_host_id") in item.candidate_host_ids for item in state.scope_expansions)
             for evidence in state.evidence
         )
-        if not catalog and not has_scope_candidate:
-            state.planner_decisions.append(PlannerDecision(
-                decision_id=f"decision-{uuid.uuid4().hex[:10]}", iteration=state.budget.iterations_used,
-                decision_type="finish", decision_summary="No eligible investigation or analysis tool remains after mandatory gaps were accounted for.",
-                candidate_tools=[], planner_mode="automatic",
-            ))
-            return self._finish_action(state)
-        fallback_used = False
-        try:
-            proposal = self._generate("Select the next investigation decision for this state:\n" + state_view(state, self.registry))
-            tool_name = proposal["tool_name"]
-        except EmptyModelResponseError:
-            tool_name = catalog[0]["tool_name"]
-            proposal = {"tool_name": tool_name, "decision_summary": "The model returned no usable response; the highest-ranked eligible catalog tool was selected."}
-            fallback_used = True
-        activated_scenarios = []
-        activation_repaired = False
-        for activation in proposal.get("activate_scenarios") or []:
-            try:
-                if activate_scenario(
-                    state,
-                    str(activation.get("scenario", "")),
-                    [str(ref) for ref in activation.get("reason_refs") or []],
-                ):
-                    activated_scenarios.append(str(activation["scenario"]))
-            except (TypeError, ValueError):
-                activation_repaired = True
-        if activated_scenarios:
-            catalog = self.registry.catalog(state)
-        created_interpretation_id = None
-        interpretation_repaired = False
-        if proposal.get("interpretation"):
-            try:
-                created_interpretation_id = add_interpretation(
-                    state,
-                    proposal["interpretation"],
-                    getattr(self, "model_name", "unknown"),
-                )
-            except (TypeError, ValueError):
-                interpretation_repaired = True
-        choices = {item["tool_name"]: item for item in catalog}
-        if tool_name == "__scope__":
-            scope = proposal.get("scope_request") or {}
-            evidence_ids = {item.evidence_id for item in state.evidence}
-            proposed_refs = [str(item) for item in scope.get("reason_evidence_refs") or []]
-            normalized_refs = [item for item in proposed_refs if item in evidence_ids]
-            domain_aliases = {"host_asset": "reputation", "auth": "process", "authentication": "process"}
-            proposed_domains = [domain_aliases.get(str(item), str(item)) for item in scope.get("requested_domains") or ["process", "file", "network"]]
-            normalized_domains = list(dict.fromkeys(item for item in proposed_domains if item in state.scope.allowed_domains))
-            scope_repaired = normalized_refs != proposed_refs or normalized_domains != list(scope.get("requested_domains") or ["process", "file", "network"])
-            action = ScopeRequest(
-                objective=str(proposal.get("decision_summary") or "Request evidence-grounded cross-host investigation scope"),
-                requested_host_ids=[str(item) for item in scope.get("requested_host_ids") or []],
-                reason_evidence_refs=normalized_refs,
-                reason_type=str(scope.get("reason_type") or "related_host_evidence"),
-                requested_domains=normalized_domains,
-                start_time=state.scope.start_time,
-                end_time=state.scope.end_time,
-            )
-            state.planner_decisions.append(PlannerDecision(
-                decision_id=f"decision-{uuid.uuid4().hex[:10]}", iteration=state.budget.iterations_used,
-                decision_type="scope", selected_tool=None,
-                target_hypothesis_id=proposal.get("target_hypothesis_id"),
-                target_evidence_role_id=proposal.get("target_evidence_role_id"),
-                target_gap_id=proposal.get("target_gap_id"),
-                decision_summary=str(proposal.get("decision_summary") or "Request controlled scope expansion"),
-                candidate_tools=[item["tool_name"] for item in catalog], planner_mode="deepagents", repaired=scope_repaired,
-            ))
-            return action
-        selected = choices.get(tool_name)
-        actual_gap = selected["compatible_gap_ids"][0] if selected and selected["kind"] == "evidence" and selected["compatible_gap_ids"] else None
-        hypothesis_ids = {item.hypothesis_id for item in state.hypotheses}
-        role_ids = {item.role_id for item in state.evidence_roles}
-        proposed_hypothesis = proposal.get("target_hypothesis_id")
-        proposed_role = proposal.get("target_evidence_role_id")
-        proposed_gap = proposal.get("target_gap_id")
-        repaired = activation_repaired or interpretation_repaired or bool(
-            (proposed_hypothesis and proposed_hypothesis not in hypothesis_ids)
-            or (proposed_role and proposed_role not in role_ids)
-            or (proposed_gap and proposed_gap != actual_gap)
-        )
-        state.planner_decisions.append(PlannerDecision(
-            decision_id=f"decision-{uuid.uuid4().hex[:10]}",
-            iteration=state.budget.iterations_used,
-            decision_type="finish" if tool_name == "__finish__" else "investigate",
-            selected_tool=tool_name,
-            target_hypothesis_id=proposed_hypothesis if proposed_hypothesis in hypothesis_ids else None,
-            target_evidence_role_id=proposed_role if proposed_role in role_ids else None,
-            target_gap_id=actual_gap,
-            decision_summary=str(proposal.get("decision_summary") or f"Selected eligible evidence tool {tool_name}."),
-            candidate_tools=[item["tool_name"] for item in catalog],
-            activated_scenarios=activated_scenarios,
-            created_interpretation_id=created_interpretation_id,
-            planner_mode="deepagents",
-            repaired=repaired,
-            fallback_used=fallback_used,
-        ))
-        return self._build_action(state, catalog, tool_name)
 
-    def repair(self, state: InvestigationState, invalid_action: InvestigationAction, validation_error: str) -> InvestigationAction:
-        return self.plan(state)
+    def _map_action(self, state: InvestigationState, name: str, args: dict[str, Any], call_id: str) -> InvestigationAction:
+        if name in self.domain_tool_names:
+            parameters = {key: value for key, value in args.items() if key != "gap_id" and value is not None}
+            return EvidenceRequest(
+                tool_name=name,
+                objective=f"收集 {name} 对应证据缺口 {args.get('gap_id', '')} 的证据",
+                gap_id=str(args.get("gap_id", "")),
+                parameters=parameters,
+            )
+        if name == "analyze_evidence":
+            return self._analysis_action(state, list(args.get("evidence_refs") or []))
+        if name == "activate_scenario":
+            return ScenarioActivationRequest(
+                scenario=str(args.get("scenario", "")),
+                objective=f"依据既有证据激活调查场景 {args.get('scenario', '')}",
+                reason_refs=[str(item) for item in args.get("reason_refs") or []],
+            )
+        if name == "request_scope_expansion":
+            return self._scope_action(state, args)
+        if name == "finish_investigation":
+            return self._finish_action(
+                state,
+                objective=str(args.get("objective") or "现有证据已足以形成结论，结束调查并生成报告"),
+            )
+        raise ValueError(f"Model requested an unregistered tool: {name}")
+
+    def _analysis_action(self, state: InvestigationState, evidence_refs: list[str]) -> InvestigationAction:
+        refs = sorted(set(evidence_refs))
+        obligation = next(
+            (
+                item
+                for item in state.analysis_obligations
+                if item.status == "pending" and set(item.evidence_refs) == set(refs)
+            ),
+            None,
+        )
+        if obligation is None:
+            # The model cited evidence that does not resolve to a pending
+            # analysis obligation. Do not silently run an unrelated analyzer;
+            # hand back a finish so Policy re-evaluates mandatory closure.
+            return self._finish_action(state)
+        return AnalysisRequest(
+            tool_name=obligation.tool_name,
+            objective=f"运行确定性分析 {obligation.tool_name}",
+            evidence_refs=list(obligation.evidence_refs),
+        )
+
+    def _scope_action(self, state: InvestigationState, args: dict[str, Any]) -> ScopeRequest:
+        evidence_ids = {item.evidence_id for item in state.evidence}
+        proposed_refs = [str(item) for item in args.get("reason_evidence_refs") or []]
+        normalized_refs = [item for item in proposed_refs if item in evidence_ids]
+        domain_aliases = {"host_asset": "reputation", "auth": "process", "authentication": "process"}
+        proposed_domains = [domain_aliases.get(str(item), str(item)) for item in args.get("requested_domains") or ["process", "file", "network"]]
+        normalized_domains = list(dict.fromkeys(item for item in proposed_domains if item in state.scope.allowed_domains))
+        return ScopeRequest(
+            objective=str(args.get("objective") or "申请扩大调查范围"),
+            requested_host_ids=[str(item) for item in args.get("requested_host_ids") or []],
+            reason_evidence_refs=normalized_refs,
+            reason_type=str(args.get("reason_type") or "related_host_evidence"),
+            requested_domains=normalized_domains,
+            start_time=state.scope.start_time,
+            end_time=state.scope.end_time,
+        )
 
     @staticmethod
-    def _finish_action(state: InvestigationState) -> FinishRequest:
+    def _finish_action(
+        state: InvestigationState,
+        objective: str = "Finish after all currently eligible investigation actions were attempted",
+    ) -> FinishRequest:
         resolved = [gap.gap_id for gap in state.evidence_gaps if gap.status == "resolved"]
         unresolved = [gap.gap_id for gap in state.evidence_gaps if gap.status != "resolved"]
         return FinishRequest(
-            objective="Finish after all currently eligible investigation actions were attempted",
+            objective=objective,
             resolved_gap_ids=resolved,
             unresolved_gap_ids=unresolved,
         )
 
-    def _build_action(self, state: InvestigationState, catalog: list[dict[str, Any]], tool_name: str) -> InvestigationAction:
-        if tool_name == "__finish__":
-            return self._finish_action(state)
-        choices = {item["tool_name"]: item for item in catalog}
-        if tool_name not in choices:
-            raise RuntimeError(f"Model selected unavailable tool_name: {tool_name!r}")
-        selected = choices[tool_name]
-        if selected["kind"] == "evidence":
-            return EvidenceRequest(
-                tool_name=tool_name,
-                objective=f"Collect scoped evidence with {tool_name}",
-                gap_id=selected["compatible_gap_ids"][0],
-            )
-        return AnalysisRequest(
-            tool_name=tool_name,
-            objective=f"Run deterministic analysis with {tool_name}",
-            evidence_refs=selected["eligible_evidence_refs"],
-        )
+    def _messages(self, state: InvestigationState) -> list[Any]:
+        payload = {
+            "available_options": self._available_options(state),
+            "state": json.loads(state_view(state, self.registry)),
+        }
+        messages: list[Any] = [
+            SystemMessage(content=self.system_prompt),
+            HumanMessage(content=json.dumps(payload, ensure_ascii=False)),
+        ]
+        messages.extend(self._replay(state))
+        return messages
 
-    def _generate(self, instruction: str, attempt: int = 1, max_attempts: int = 3) -> dict[str, Any]:
-        try:
-            response = self.structured_model.invoke(
-                [
-                    {"role": "system", "content": self.system_prompt},
-                    {"role": "user", "content": instruction},
-                ]
-            )
-            selection = PlannerSelection.model_validate(response)
-            if selection.tool_name == "__scope__" and not selection.scope_request:
-                raise ValueError("__scope__ requires a non-empty scope_request")
-            return selection.model_dump(exclude_none=True)
-        except Exception as exc:
-            if attempt < max_attempts:
-                return self._generate(instruction, attempt + 1, max_attempts)
-            raise EmptyModelResponseError(
-                f"Structured judgment planner failed {max_attempts} consecutive times"
-            ) from exc
+    def _available_options(self, state: InvestigationState) -> dict[str, Any]:
+        return {
+            "eligible_gaps_by_domain": self.registry.eligible_gap_ids(state),
+            "pending_analysis_obligations": [
+                {"tool_name": item.tool_name, "evidence_refs": item.evidence_refs, "gap_ids": item.gap_ids}
+                for item in state.analysis_obligations
+                if item.status == "pending"
+            ],
+            "activatable_scenarios": activation_catalog(state),
+            "authorized_host_ids": state.scope.host_ids,
+        }
+
+    def _replay(self, state: InvestigationState) -> list[Any]:
+        messages: list[Any] = []
+        packs_by_call = {item.request_call_id: item for item in state.evidence_packs}
+        analysis_names = {item.name for item in self.registry.list() if item.kind == "analysis"}
+        obligations_by_key = {
+            (item.tool_name, tuple(sorted(item.evidence_refs))): item
+            for item in state.analysis_obligations
+        }
+        for call in state.tool_calls[-12:]:
+            if call.tool_name in self.domain_tool_names:
+                model_tool_name = call.tool_name
+                args = dict(call.parameters)
+                content: dict[str, Any] = {}
+                pack = packs_by_call.get(call.call_id)
+                if pack is not None:
+                    content = {
+                        "outcome": pack.outcome,
+                        "evidence_refs": pack.evidence_refs,
+                        "returned_evidence_types": pack.returned_evidence_types,
+                        "limitations": pack.limitations,
+                    }
+            elif call.tool_name in analysis_names:
+                # The model invoked the fixed "analyze_evidence" facade; the
+                # recorded tool_name is the concrete analyzer it resolved to.
+                model_tool_name = "analyze_evidence"
+                args = {"evidence_refs": list(call.parameters.get("evidence_refs") or [])}
+                obligation = obligations_by_key.get(
+                    (call.tool_name, tuple(sorted(call.parameters.get("evidence_refs") or [])))
+                )
+                content = (
+                    {
+                        "outcome": obligation.outcome,
+                        "result_refs": obligation.result_refs,
+                        "limitations": obligation.limitations,
+                    }
+                    if obligation is not None
+                    else {}
+                )
+            elif call.tool_name == "activate_scenario":
+                model_tool_name = "activate_scenario"
+                args = dict(call.parameters)
+                content = {
+                    "scenario": call.parameters.get("scenario"),
+                    "activated": call.status == "success",
+                }
+            else:
+                continue
+            if call.status in {"denied", "error"}:
+                content["error"] = call.error
+            messages.append(AIMessage(content="", tool_calls=[{
+                "name": model_tool_name,
+                "args": args,
+                "id": call.call_id,
+                "type": "tool_call",
+            }]))
+            messages.append(ToolMessage(
+                content=json.dumps(content, ensure_ascii=False),
+                tool_call_id=call.call_id,
+                name=model_tool_name,
+                status="error" if call.status in {"denied", "error"} else "success",
+            ))
+        return messages
 
 
 # Compatibility import for existing callers. The implementation no longer uses Deep Agents.

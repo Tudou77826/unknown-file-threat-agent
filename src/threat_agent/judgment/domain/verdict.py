@@ -137,13 +137,6 @@ def validate_verdict(state: InvestigationState, verdict: CandidateVerdict) -> li
         missing_entities = {relation.source_entity_ref, relation.target_entity_ref} - entity_ids
         if missing_entities:
             errors.append(f"Relation {relation.relation_id} references unknown entities: {sorted(missing_entities)}")
-    finding_ids = {item.finding_id for item in state.findings}
-    for interpretation in state.interpretations:
-        missing_interpretation_facts = set(interpretation.supporting_fact_refs) - fact_ids
-        missing_interpretation_findings = set(interpretation.supporting_finding_refs) - finding_ids
-        missing_interpretation_contradictions = set(interpretation.contradicting_refs) - known
-        if missing_interpretation_facts or missing_interpretation_findings or missing_interpretation_contradictions:
-            errors.append(f"Interpretation {interpretation.interpretation_id} contains unresolved references")
     if verdict.level == VerdictLevel.CONFIRMED_MALICIOUS:
         fact_types = {x.fact_type for x in state.facts}
         finding_types = {x.finding_type for x in state.findings}

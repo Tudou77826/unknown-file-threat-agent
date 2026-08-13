@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from ..domain.models import AnalysisRequest, EvidenceRequest, FinishRequest, InvestigationAction, InvestigationState, ScopeRequest
+from ..domain.models import AnalysisRequest, DataToolRequest, EvidenceRequest, FinishRequest, InvestigationAction, InvestigationState, ScenarioActivationRequest, ScopeRequest
+from ..domain.scenarios import SCENARIO_CATALOG
 from ..adapters.tools import ToolRegistry
 
 
@@ -31,19 +32,58 @@ def _contains_host(value, host_id: str) -> bool:
     return False
 
 
-def validate_action(action: InvestigationAction, state: InvestigationState, registry: ToolRegistry) -> None:
-    if state.budget.iterations_used >= state.budget.max_iterations:
+def _tool_info(registry: ToolRegistry, state: InvestigationState, action):
+    """Return ``(kind, domain, provides_evidence_types, allowed_parameters)``.
+
+    Domain tools resolve their evidence types from the requested gap instead of
+    a fixed ``ToolDefinition``.
+    """
+
+    if isinstance(action, EvidenceRequest) and action.tool_name in registry.domain_tool_names():
+        domain = registry.domain_for_tool(action.tool_name)
+        try:
+            provides = registry.resolve_domain_gap(state, domain, action.gap_id)
+        except KeyError as exc:
+            raise PolicyError(str(exc)) from exc
+        except ValueError as exc:
+            raise PolicyError(str(exc)) from exc
+        allowed = {"host_id", "entity_ids", "start_time", "end_time", "limit"}
+        return "evidence", domain, provides, allowed
+    tool = registry.get(action.tool_name)
+    allowed = set(tool.input_schema.get("properties", {}))
+    return tool.kind, tool.domain, tool.provides_evidence_types, allowed
+
+
+def validate_action(
+    action: InvestigationAction,
+    state: InvestigationState,
+    registry: ToolRegistry,
+    *,
+    data_tool_mode: bool = False,
+) -> None:
+    if (
+        state.budget.iterations_used >= state.budget.max_iterations
+        and not isinstance(action, FinishRequest)
+    ):
         raise PolicyError("Iteration budget exhausted")
     evidence_by_id = {e.evidence_id: e for e in state.evidence}
     gaps_by_id = {g.gap_id: g for g in state.evidence_gaps}
 
+    if isinstance(action, DataToolRequest):
+        if action.tool_name not in {
+            "query_activities", "explore_entity", "get_raw_records", "calculate_activity_metrics"
+        }:
+            raise PolicyError(f"Unknown LLM data tool: {action.tool_name}")
+        if state.budget.tool_calls_used >= state.budget.max_tool_calls:
+            raise PolicyError("Tool-call budget exhausted")
+
     if isinstance(action, (EvidenceRequest, AnalysisRequest)):
-        tool = registry.get(action.tool_name)
+        kind, domain, _provides, _allowed = _tool_info(registry, state, action)
         expected = "evidence" if isinstance(action, EvidenceRequest) else "analysis"
-        if tool.kind != expected:
+        if kind != expected:
             raise PolicyError(f"{action.tool_name} is not an {expected} tool")
-        if tool.domain not in state.scope.allowed_domains and tool.domain != "execution":
-            raise PolicyError(f"Domain {tool.domain} is outside scope")
+        if domain not in state.scope.allowed_domains and domain != "execution":
+            raise PolicyError(f"Domain {domain} is outside scope")
         if state.budget.tool_calls_used >= state.budget.max_tool_calls:
             raise PolicyError("Tool-call budget exhausted")
 
@@ -53,15 +93,14 @@ def validate_action(action: InvestigationAction, state: InvestigationState, regi
             raise PolicyError(f"Unknown evidence gap: {action.gap_id}")
         if gap.status not in {"open", "querying", "evidence_collected", "partially_resolved"}:
             raise PolicyError(f"Evidence gap {action.gap_id} is already {gap.status}")
-        tool = registry.get(action.tool_name)
+        _kind, _domain, provides_types, allowed_parameters = _tool_info(registry, state, action)
         collected_types = {e.evidence_type for e in state.evidence if e.status.value == "available"}
         missing_gap_types = set(gap.required_evidence_types) - collected_types
-        if not (tool.provides_evidence_types & missing_gap_types):
+        if not (provides_types & missing_gap_types):
             raise PolicyError(
                 f"{action.tool_name} cannot resolve {action.gap_id}; it provides "
-                f"{sorted(tool.provides_evidence_types)}"
+                f"{sorted(provides_types)}"
             )
-        allowed_parameters = set(tool.input_schema.get("properties", {}))
         unknown_parameters = set(action.parameters) - allowed_parameters
         if unknown_parameters:
             raise PolicyError(f"Unsupported parameters for {action.tool_name}: {sorted(unknown_parameters)}")
@@ -136,7 +175,23 @@ def validate_action(action: InvestigationAction, state: InvestigationState, regi
         if action.end_time and state.scope.end_time and action.end_time > state.scope.end_time:
             raise PolicyError("Scope request end_time exceeds the approved case window")
 
+    if isinstance(action, ScenarioActivationRequest):
+        if action.scenario in state.active_scenarios:
+            raise PolicyError(f"Scenario {action.scenario} is already active")
+        if action.scenario not in SCENARIO_CATALOG:
+            raise PolicyError(f"Unknown scenario activation: {action.scenario}")
+        known_refs = (
+            {item.evidence_id for item in state.evidence}
+            | {item.fact_id for item in state.facts}
+            | {item.finding_id for item in state.findings}
+        )
+        missing = set(action.reason_refs) - known_refs
+        if not action.reason_refs or missing:
+            raise PolicyError(f"Scenario activation requires existing reason refs; missing={sorted(missing)}")
+
     if isinstance(action, FinishRequest):
+        if data_tool_mode:
+            return
         pending = [
             item.obligation_id for item in state.analysis_obligations
             if item.required_for_closure and item.status in {"pending", "running"}

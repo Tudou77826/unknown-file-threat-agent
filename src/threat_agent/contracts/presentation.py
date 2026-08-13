@@ -21,7 +21,6 @@ class CaseReadModel(ContractModel):
     findings: list[dict[str, Any]] = Field(default_factory=list)
     hypotheses: list[dict[str, Any]] = Field(default_factory=list)
     evidence_roles: list[dict[str, Any]] = Field(default_factory=list)
-    interpretations: list[dict[str, Any]] = Field(default_factory=list)
     coverage: dict[str, Coverage] = Field(default_factory=dict)
     analysis_obligations: list[dict[str, Any]] = Field(default_factory=list)
     evidence_gaps: list[dict[str, Any]] = Field(default_factory=list)

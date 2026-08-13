@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .models import EvidenceGap, EvidenceRole, Hypothesis, Interpretation, InvestigationState
+from .models import EvidenceGap, EvidenceRole, Hypothesis, InvestigationState
 
 
 SCENARIO_CATALOG: dict[str, dict[str, Any]] = {
@@ -164,36 +164,3 @@ def activate_scenario(state: InvestigationState, scenario: str, reason_refs: lis
         ])
     state.active_scenarios.append(scenario)
     return True
-
-
-def add_interpretation(state: InvestigationState, proposal: dict[str, Any], model: str) -> str:
-    fact_ids = {item.fact_id for item in state.facts}
-    finding_ids = {item.finding_id for item in state.findings}
-    supporting_facts = [str(ref) for ref in proposal.get("supporting_fact_refs") or []]
-    supporting_findings = [str(ref) for ref in proposal.get("supporting_finding_refs") or []]
-    contradicting = [str(ref) for ref in proposal.get("contradicting_refs") or []]
-    known = fact_ids | finding_ids
-    unresolved = (set(supporting_facts) - fact_ids) | (set(supporting_findings) - finding_ids) | (set(contradicting) - known)
-    statement = str(proposal.get("statement") or "").strip()
-    if unresolved or not statement or not (supporting_facts or supporting_findings):
-        raise ValueError(f"Interpretation requires a statement and resolvable Fact/Finding refs; unresolved={sorted(unresolved)}")
-    confidence = float(proposal.get("confidence", 0.5))
-    if not 0 <= confidence <= 1:
-        raise ValueError("Interpretation confidence must be between 0 and 1")
-    fingerprint = (statement, tuple(sorted(supporting_facts)), tuple(sorted(supporting_findings)), tuple(sorted(contradicting)))
-    for existing in state.interpretations:
-        existing_fingerprint = (existing.statement, tuple(sorted(existing.supporting_fact_refs)), tuple(sorted(existing.supporting_finding_refs)), tuple(sorted(existing.contradicting_refs)))
-        if existing_fingerprint == fingerprint:
-            return existing.interpretation_id
-    interpretation_id = f"interpretation-{len(state.interpretations)+1:03d}"
-    state.interpretations.append(Interpretation(
-        interpretation_id=interpretation_id,
-        interpretation_type=str(proposal.get("interpretation_type") or "case_assessment"),
-        statement=statement,
-        supporting_fact_refs=supporting_facts,
-        supporting_finding_refs=supporting_findings,
-        contradicting_refs=contradicting,
-        confidence=confidence,
-        model=model,
-    ))
-    return interpretation_id

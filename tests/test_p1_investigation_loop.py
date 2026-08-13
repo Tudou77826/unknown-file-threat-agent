@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import pytest
+from langchain_core.messages import AIMessage
 
 from threat_agent.case_management import initialize_state
 from threat_agent.judgment.domain.models import AnalysisRequest, EvidenceRequest, FinishRequest
@@ -71,24 +72,21 @@ def test_deep_planner_prioritizes_required_analysis_without_model_call():
     assert action.evidence_refs == ["raw-proc-exec-target"]
 
 
-class FailingStructuredModel:
-    def __init__(self):
-        self.calls = 0
+class EmptyToolCallModel:
+    model_name = "fake-native-model"
 
-    def invoke(self, *_args, **_kwargs):
-        self.calls += 1
-        raise ValueError("empty structured response")
+    def bind_tools(self, tools, **_kwargs):
+        self.bound_tools = tools
+        return self
+
+    def invoke(self, _messages):
+        return AIMessage(content="", tool_calls=[])
 
 
-def test_deep_planner_retries_empty_responses_then_uses_catalog_fallback():
+def test_native_planner_finishes_when_model_issues_no_tool_call():
     state, registry = setup_case()
-    planner = DeepAgentsPlanner.__new__(DeepAgentsPlanner)
-    planner.registry = registry
-    planner.system_prompt = "test prompt"
-    planner.structured_model = FailingStructuredModel()
-
+    planner = DeepAgentsPlanner(EmptyToolCallModel(), registry)
     action = planner.plan(state)
-
-    assert planner.structured_model.calls == 3
-    assert isinstance(action, EvidenceRequest)
-    assert action.tool_name == registry.catalog(state)[0]["tool_name"]
+    assert isinstance(action, FinishRequest)
+    assert state.planner_decisions[-1].fallback_used is True
+    assert state.planner_decisions[-1].decision_type == "finish"

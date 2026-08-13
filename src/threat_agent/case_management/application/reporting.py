@@ -59,7 +59,6 @@ def evaluation_payload(state: InvestigationState, expected: dict | None = None) 
         "tool_calls": len(state.tool_calls),
         "planner_decisions": len(state.planner_decisions),
         "active_scenarios": list(state.active_scenarios),
-        "interpretations_count": len(state.interpretations),
         "evidence_packs_count": len(state.evidence_packs),
         "repair_actions_count": len(state.repair_actions),
         "pending_repair_actions": sum(item.status == "pending" for item in state.repair_actions),

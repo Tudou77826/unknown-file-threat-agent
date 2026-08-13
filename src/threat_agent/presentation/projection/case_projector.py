@@ -27,7 +27,6 @@ def case_read_payload(read_model: CaseReadModel) -> dict:
         "findings": read_model.findings,
         "hypotheses": read_model.hypotheses,
         "evidence_roles": read_model.evidence_roles,
-        "interpretations": read_model.interpretations,
         "coverage": {
             name: value.model_dump(mode="json") for name, value in read_model.coverage.items()
         },
