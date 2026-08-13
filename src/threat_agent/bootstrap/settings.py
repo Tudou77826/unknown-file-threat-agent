@@ -64,6 +64,7 @@ class ModelSettings(FrozenSettings):
 
 class DemoSettings(FrozenSettings):
     data_store_path: Path = PROJECT_ROOT / "outputs" / "demo-reference.sqlite"
+    runtime_store_path: Path = PROJECT_ROOT / "outputs" / "investigation-runtime.sqlite"
     dataset_version: str = "2026.08.1"
     data_profile: str = "l3-attribution-and-assets"
     random_seed: int = 20260811
@@ -174,6 +175,9 @@ class AppSettings(FrozenSettings):
             demo=DemoSettings(
                 data_store_path=path(
                     "DEMO_DATA_STORE_PATH", PROJECT_ROOT / "outputs" / "demo-reference.sqlite"
+                ),
+                runtime_store_path=path(
+                    "DEMO_RUNTIME_STORE_PATH", PROJECT_ROOT / "outputs" / "investigation-runtime.sqlite"
                 ),
                 dataset_version=get("DEMO_DATASET_VERSION", "2026.08.1"),
                 data_profile=get("DEMO_DATA_PROFILE", "l3-attribution-and-assets"),

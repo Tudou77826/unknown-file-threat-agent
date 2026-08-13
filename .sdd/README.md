@@ -20,6 +20,7 @@
 | 05 | [case-governance](features/05-case-governance/README.md) | 案件生命周期、身份、审批、审计和执行边界 | 父图、Checkpoint 与审批中断已实现；执行集成待建设 |
 | 06 | [platform-architecture-migration](features/06-platform-architecture-migration/README.md) | 将现有原型迁移到目标架构、原生 LangGraph 子图和纵向代码边界 | 已完成 |
 | 07 | [data-driven-investigation-quality-demo](features/07-data-driven-investigation-quality-demo/README.md) | 用受控数据 Profile 展示数据源对研判与处置质量的决定性影响，并统一外置运行配置 | 已实现并通过 8 条 Profile 路径验收 |
+| 08 | [investigation-platform-foundation](features/08-investigation-platform-foundation/README.md) | 安全活动模型、正式调查报告、持久化运行审计和最小调查运行接口 | 已完成首版架构收敛；容量实测后置为独立需求 |
 
 ## 文档规则
 

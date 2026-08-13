@@ -15,6 +15,7 @@ def _serializer() -> JsonPlusSerializer:
             ("threat_agent.contracts.investigation", "VerdictLevel"),
             ("threat_agent.judgment.domain.models", "InvestigationState"),
             ("threat_agent.contracts.investigation", "JudgmentResult"),
+            ("threat_agent.contracts.operations", "InvestigationReport"),
             ("threat_agent.contracts.response", "ResponsePlan"),
         ]
     )

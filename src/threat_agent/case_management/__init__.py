@@ -2,6 +2,7 @@ from .application.graph import CaseGraph
 from .application.intake import initialize_state
 from .application.read_model import build_case_read_model
 from .adapters.checkpointing import create_memory_checkpointer, create_sqlite_checkpointer
+from .adapters.runtime_store import SQLiteInvestigationRuntimeStore
 
 __all__ = [
     "CaseGraph",
@@ -9,4 +10,5 @@ __all__ = [
     "create_memory_checkpointer",
     "create_sqlite_checkpointer",
     "initialize_state",
+    "SQLiteInvestigationRuntimeStore",
 ]

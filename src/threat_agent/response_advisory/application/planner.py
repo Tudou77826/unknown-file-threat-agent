@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Protocol
+from typing import Any, Callable, Protocol
 
 from langchain_core.exceptions import OutputParserException
 from pydantic import ValidationError
@@ -141,8 +141,9 @@ class DeterministicResponsePlanner:
 class StructuredResponsePlanner:
     """Use a chat model's structured-output capability for response planning."""
 
-    def __init__(self, model: Any):
+    def __init__(self, model: Any, event_sink: Callable | None = None):
         self.model = model
+        self.event_sink = event_sink or (lambda _kind, _message, _details=None: None)
         self.structured_model = model.with_structured_output(
             ResponseProposal, method="json_mode"
         )
@@ -184,11 +185,27 @@ class StructuredResponsePlanner:
         ]
         last_error: Exception | None = None
         for attempt in range(2):
+            self.event_sink("model_input", "处置建议模型输入", {
+                "phase": "response_advisory",
+                "attempt": attempt + 1,
+                "messages": messages,
+            })
             try:
                 response = self.structured_model.invoke(messages)
+                self.event_sink("model_output", "处置建议模型输出", {
+                    "phase": "response_advisory",
+                    "attempt": attempt + 1,
+                    "output": response.model_dump(mode="json") if hasattr(response, "model_dump") else response,
+                })
                 return ResponseProposal.model_validate(response)
             except (OutputParserException, ValidationError) as error:
                 last_error = error
+                self.event_sink("model_output", "处置建议模型输出校验失败", {
+                    "phase": "response_advisory",
+                    "attempt": attempt + 1,
+                    "error_type": type(error).__name__,
+                    "error_message": str(error),
+                })
                 messages.append(
                     {
                         "role": "user",

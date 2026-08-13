@@ -5,7 +5,7 @@ from typing import Any, Literal, TypedDict
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command, interrupt
 
-from ...contracts import JudgmentResult, ResponsePlan
+from ...contracts import InvestigationReport, JudgmentResult, ResponsePlan
 from .contract_builders import build_judgment_result
 from ...judgment import JudgmentGraph
 from ...judgment.domain.models import InvestigationState
@@ -18,6 +18,7 @@ class CaseGraphState(TypedDict, total=False):
     lifecycle_status: str
     investigation: InvestigationState
     judgment_result: JudgmentResult | None
+    investigation_report: InvestigationReport | None
     response_plan: ResponsePlan | None
     approval_status: str | None
     route: Literal["scope_approval", "judged", "response", "response_approval", "complete"]
@@ -94,6 +95,7 @@ class CaseGraph:
                 "lifecycle_status": "investigating",
                 "investigation": state.model_copy(deep=True),
                 "judgment_result": None,
+                "investigation_report": None,
                 "response_plan": None,
                 "approval_status": None,
             },
@@ -186,6 +188,7 @@ class CaseGraph:
         )
         return {
             "judgment_result": result,
+            "investigation_report": state.investigation_report,
             "lifecycle_status": "judged",
             "route": "response" if self.response_graph is not None else "complete",
         }

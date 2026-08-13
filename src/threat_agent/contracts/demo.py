@@ -8,6 +8,7 @@ from ..shared import StrictModel
 from .common import ContractModel, SCHEMA_VERSION
 from .evidence import Coverage, EvidenceStatus
 from .presentation import CaseReadModel
+from .operations import InvestigationReport
 
 
 class DemoSchemaModel(StrictModel):
@@ -91,6 +92,7 @@ class ProfileComparisonItem(StrictModel):
     level: Literal["l0", "l1", "l2", "l3"]
     readiness: DataReadinessReport
     case: CaseReadModel
+    investigation_report: InvestigationReport | None = None
     new_fact_ids: list[str] = Field(default_factory=list)
     new_finding_ids: list[str] = Field(default_factory=list)
 

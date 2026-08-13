@@ -21,3 +21,12 @@ class ContractModel(StrictModel):
     case_id: str = Field(min_length=1)
     created_at: datetime = Field(default_factory=utc_now)
     source_identity: str = Field(default="system", min_length=1)
+
+
+class TenantContractModel(StrictModel):
+    """Versioned tenant-scoped contract for data that does not belong to a case."""
+
+    schema_version: Literal["1.0"] = SCHEMA_VERSION
+    tenant_id: str = Field(min_length=1)
+    created_at: datetime = Field(default_factory=utc_now)
+    source_identity: str = Field(default="system", min_length=1)

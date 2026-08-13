@@ -7,6 +7,7 @@ from typing import Any, Protocol
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import HTMLResponse
 
+from ...contracts import InvestigationCreateRequest, InvestigationRunReadModel
 from ..projection.case_projector import case_read_payload
 from ..read_model.store import CaseReadStore
 from ..read_model.demo_store import DemoComparisonStore
@@ -15,7 +16,7 @@ from .demo_page import render_demo_page
 
 class DemoRunServicePort(Protocol):
     def start(self, dataset_id: str, profile_id: str) -> str: ...
-    def get(self, run_id: str) -> dict[str, Any] | None: ...
+    def get_investigation(self, run_id: str) -> InvestigationRunReadModel | None: ...
 
 
 def create_app(
@@ -46,24 +47,30 @@ def create_app(
             raise HTTPException(status_code=404, detail="Demo comparison not found")
         return item.model_dump(mode="json")
 
-    @app.post("/api/demo/{dataset_id}/runs")
-    def start_demo_run(dataset_id: str, payload: dict[str, Any]) -> dict[str, str]:
+    @app.post("/api/investigations", status_code=202)
+    def start_investigation(payload: InvestigationCreateRequest) -> dict[str, str]:
         if demo_run_service is None:
-            raise HTTPException(status_code=503, detail="AI demo runner is not configured")
-        profile_id = str(payload.get("profile_id") or "")
-        if not profile_id:
-            raise HTTPException(status_code=422, detail="profile_id is required")
+            raise HTTPException(status_code=503, detail="Investigation runner is not configured")
         try:
-            return {"run_id": demo_run_service.start(dataset_id, profile_id)}
+            run_id = demo_run_service.start(
+                payload.reference_dataset_id, payload.profile_id
+            )
         except KeyError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
+        return {
+            "run_id": run_id,
+            "status": "queued",
+            "location": f"/api/investigations/{run_id}",
+        }
 
-    @app.get("/api/demo/runs/{run_id}")
-    def get_demo_run(run_id: str) -> dict[str, Any]:
-        item = demo_run_service.get(run_id) if demo_run_service is not None else None
+    @app.get("/api/investigations/{run_id}")
+    def get_investigation(run_id: str) -> dict[str, Any]:
+        if demo_run_service is None:
+            raise HTTPException(status_code=503, detail="Investigation runner is not configured")
+        item = demo_run_service.get_investigation(run_id)
         if item is None:
-            raise HTTPException(status_code=404, detail="AI demo run not found")
-        return item
+            raise HTTPException(status_code=404, detail="Investigation run not found")
+        return item.model_dump(mode="json")
 
     @app.get("/demo/{dataset_id}", response_class=HTMLResponse)
     def demo_page(dataset_id: str) -> str:

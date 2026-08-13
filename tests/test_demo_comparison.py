@@ -12,16 +12,27 @@ class FakeRunService:
         assert profile_id == "l3-attribution-and-assets"
         return "ai-test"
 
-    def get(self, run_id):
+    def get_investigation(self, run_id):
         if run_id != "ai-test":
             return None
-        return {
-            "run_id": run_id,
-            "status": "running",
-            "events": [{"sequence": 1, "kind": "thinking", "message": "planning"}],
-            "result": None,
-            "error": None,
-        }
+
+        class Payload:
+            @staticmethod
+            def model_dump(mode="json"):
+                return {
+                    "run": {
+                        "run_id": "ai-test",
+                        "status": "running",
+                        "stage": "investigating",
+                    },
+                    "reference_dataset_id": "c2-benign-reference",
+                    "profile_id": "l3-attribution-and-assets",
+                    "events": [],
+                    "investigation_report": None,
+                    "response_plan": None,
+                }
+
+        return Payload()
 
 
 def test_full_demo_proves_data_quality_changes_judgment(tmp_path):
@@ -69,20 +80,27 @@ def test_demo_page_can_start_and_observe_ai_run(tmp_path):
     client = TestClient(create_app(
         InMemoryCaseReadStore(), InMemoryDemoComparisonStore(comparisons), FakeRunService()
     ))
-    started = client.post(
+    formal_started = client.post(
+        "/api/investigations",
+        json={
+            "reference_dataset_id": "c2-benign-reference",
+            "profile_id": "l3-attribution-and-assets",
+        },
+    )
+    assert formal_started.status_code == 202
+    assert formal_started.json()["location"] == "/api/investigations/ai-test"
+    formal_observed = client.get("/api/investigations/ai-test")
+    assert formal_observed.status_code == 200
+    assert formal_observed.json()["run"]["stage"] == "investigating"
+    assert client.post(
         "/api/demo/c2-benign-reference/runs",
         json={"profile_id": "l3-attribution-and-assets"},
-    )
-    assert started.status_code == 200
-    observed = client.get("/api/demo/runs/ai-test")
-    assert observed.status_code == 200
-    assert observed.json()["events"][0]["kind"] == "thinking"
+    ).status_code == 404
     page = client.get("/demo/c2-benign-reference")
     assert "启动 AI 全流程调查" in page.text
     assert "事件与当前态势" in page.text
     assert "数据与证据条件" in page.text
     assert "AI 分析与输出" in page.text
-    assert "确认良性" in page.text
     assert "这个未知文件是否真的运行过" in page.text
     assert "确认文件是否执行" in page.text
     assert "查看本级数据来源" in page.text
@@ -98,3 +116,4 @@ def test_demo_page_can_start_and_observe_ai_run(tmp_path):
     assert "影响评估与结论边界" in page.text
     assert "合法性反证" in page.text
     assert "查看结构化记录" not in page.text
+    assert "/api/investigations" in page.text

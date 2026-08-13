@@ -78,3 +78,20 @@ def test_only_bootstrap_reads_process_environment():
         if "os.getenv" in text or "os.environ" in text or "load_dotenv" in text:
             violations.append(str(path.relative_to(PACKAGE_ROOT)))
     assert not violations, "Environment access outside bootstrap: " + ", ".join(violations)
+
+
+def test_online_demo_path_uses_formal_investigation_api_and_activity_tools():
+    page = (PACKAGE_ROOT / "presentation" / "api" / "demo_page.py").read_text(
+        encoding="utf-8"
+    )
+    routes = (PACKAGE_ROOT / "presentation" / "api" / "routes.py").read_text(
+        encoding="utf-8"
+    )
+    bootstrap = (PACKAGE_ROOT / "bootstrap" / "demo.py").read_text(encoding="utf-8")
+    assert "POST /api/demo" not in routes
+    assert '@app.post("/api/demo/' not in routes
+    assert "fetch('/api/investigations'" in page
+    assert "fetch(`/api/investigations/${" in page
+    assert "datasetId.includes" not in page
+    assert "InvestigationToolGateway(" in bootstrap
+    assert "StructuredDataToolPlanner(" in bootstrap
