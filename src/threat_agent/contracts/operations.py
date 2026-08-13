@@ -7,7 +7,7 @@ from pydantic import Field
 
 from ..shared import StrictModel
 from .common import ContractModel
-from .investigation import CandidateVerdict, Fact, Finding, Relation
+from .investigation import CandidateVerdict
 from .response import ResponsePlan
 
 
@@ -27,9 +27,7 @@ class InvestigationReport(ContractModel):
     executive_summary: str = Field(min_length=1)
     current_situation: list[ReportStatement] = Field(default_factory=list)
     affected_scope: list[ReportStatement] = Field(default_factory=list)
-    attack_path: list[Relation] = Field(default_factory=list)
-    key_facts: list[Fact] = Field(default_factory=list)
-    key_findings: list[Finding] = Field(default_factory=list)
+    key_evidence: list[ReportStatement] = Field(default_factory=list)
     supporting_evidence_refs: list[str] = Field(default_factory=list)
     counter_evidence: list[ReportStatement] = Field(default_factory=list)
     unresolved_questions: list[str] = Field(default_factory=list)

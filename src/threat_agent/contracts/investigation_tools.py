@@ -11,7 +11,18 @@ from .data_boundary import ActivityQueryResult
 from .evidence import Scope
 
 
-ActivityType = Literal["process", "network", "socket", "file", "service", "package", "asset", "extension"]
+InvestigationToolName = Literal[
+    "query_process_activities",
+    "query_network_activities",
+    "query_socket_activities",
+    "query_file_activities",
+    "query_service_activities",
+    "query_package_activities",
+    "query_asset_activities",
+    "explore_entity",
+    "get_raw_records",
+    "calculate_activity_metrics",
+]
 
 
 class ToolRuntimeContext(StrictModel):
@@ -21,21 +32,68 @@ class ToolRuntimeContext(StrictModel):
     scope: Scope
 
 
-class QueryActivitiesInput(StrictModel):
-    activity_type: ActivityType
-    host_refs: list[str] = Field(default_factory=list)
-    entity_refs: list[str] = Field(default_factory=list)
-    start_time: datetime | None = None
-    end_time: datetime | None = None
-    filters: dict[str, Any] = Field(default_factory=dict)
-    cursor: str | None = None
-    limit: int = Field(default=200, ge=1, le=1000)
+class DomainActivityQueryInput(StrictModel):
+    """活动查询的通用字段；具体领域子类补充各自专属过滤字段。
+
+    ``activity_type`` 由工具名固定，不出现在任何查询参数里。
+    """
+
+    host_refs: list[str] = Field(default_factory=list, description="按主机引用过滤")
+    entity_refs: list[str] = Field(default_factory=list, description="按实体引用过滤")
+    start_time: datetime | None = Field(default=None, description="查询时间下界（含）")
+    end_time: datetime | None = Field(default=None, description="查询时间上界（含）")
+    source_event_types: list[str] = Field(default_factory=list, description="按来源事件类型过滤")
+    cursor: str | None = Field(default=None, description="分页游标，取上次结果的 next_cursor")
+    limit: int = Field(default=200, ge=1, le=1000, description="返回条数上限")
 
     @model_validator(mode="after")
-    def validate_time_range(self) -> "QueryActivitiesInput":
+    def validate_time_range(self) -> "DomainActivityQueryInput":
         if self.start_time and self.end_time and self.start_time > self.end_time:
             raise ValueError("start_time cannot be after end_time")
         return self
+
+
+class ProcessActivitiesInput(DomainActivityQueryInput):
+    process_refs: list[str] = Field(default_factory=list, description="按进程引用过滤")
+    operations: list[Literal["create", "execute", "terminate"]] = Field(
+        default_factory=list, description="进程操作：create/execute/terminate"
+    )
+    executable: str | None = Field(default=None, description="按可执行文件路径过滤")
+
+
+class NetworkActivitiesInput(DomainActivityQueryInput):
+    process_refs: list[str] = Field(default_factory=list, description="按进程引用过滤")
+    endpoint_refs: list[str] = Field(default_factory=list, description="按目标端点引用过滤")
+    protocols: list[str] = Field(default_factory=list, description="按协议过滤，如 tcp/udp")
+
+
+class SocketActivitiesInput(DomainActivityQueryInput):
+    process_refs: list[str] = Field(default_factory=list, description="按进程引用过滤")
+    socket_refs: list[str] = Field(default_factory=list, description="按 socket 引用过滤")
+
+
+class FileActivitiesInput(DomainActivityQueryInput):
+    file_refs: list[str] = Field(default_factory=list, description="按文件引用过滤")
+    process_refs: list[str] = Field(default_factory=list, description="按进程引用过滤")
+    operations: list[Literal["create", "write", "rename", "delete", "execute", "observe"]] = Field(
+        default_factory=list, description="文件操作"
+    )
+
+
+class ServiceActivitiesInput(DomainActivityQueryInput):
+    service_refs: list[str] = Field(default_factory=list, description="按服务引用过滤")
+    operations: list[Literal["define", "enable", "disable", "start", "stop"]] = Field(
+        default_factory=list, description="服务操作"
+    )
+
+
+class PackageActivitiesInput(DomainActivityQueryInput):
+    package_refs: list[str] = Field(default_factory=list, description="按软件包引用过滤")
+    file_refs: list[str] = Field(default_factory=list, description="按文件引用过滤")
+
+
+class AssetActivitiesInput(DomainActivityQueryInput):
+    asset_refs: list[str] = Field(default_factory=list, description="按资产引用过滤")
 
 
 class ExploreEntityInput(StrictModel):
@@ -96,9 +154,7 @@ class ActivityMetricResult(StrictModel):
 
 class InvestigationToolTrace(StrictModel):
     sequence: int = Field(ge=1)
-    tool_name: Literal[
-        "query_activities", "explore_entity", "get_raw_records", "calculate_activity_metrics"
-    ]
+    tool_name: InvestigationToolName
     arguments: dict[str, Any]
     result_type: str
     result: dict[str, Any]

@@ -24,6 +24,8 @@ def _host_ids(judgment: JudgmentResult) -> list[str]:
             hosts.append(parts[1])
         elif parts[0] in {"file", "process"} and len(parts) > 1:
             hosts.append(parts[1])
+    # Online path has no facts/findings subjects; hosts come from the scope.
+    hosts.extend(judgment.asserted_host_refs)
     return list(dict.fromkeys(hosts))
 
 

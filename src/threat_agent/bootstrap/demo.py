@@ -22,7 +22,7 @@ from ..presentation import InMemoryCaseReadStore, InMemoryDemoComparisonStore
 from ..presentation.api.routes import create_app
 from ..response_advisory import DeterministicResponsePlanner, ResponseGraph, StructuredResponsePlanner
 from ..response_advisory.adapters import ReferenceResponseContextAdapter
-from .settings import AppSettings, PROJECT_ROOT, build_judgment_model, build_response_model
+from .settings import AppSettings, PROJECT_ROOT, build_judgment_model, build_report_model, build_response_model
 
 
 EventSink = Callable[[str, str, dict[str, Any] | None], None]
@@ -233,7 +233,9 @@ def run_demo_profile(
         judgment_planner = ObservableJudgmentPlanner(
             StructuredDataToolPlanner(judgment_model, emit), emit
         )
-        report_composer = ObservableReportComposer(StructuredReportComposer(judgment_model, emit), emit)
+        report_composer = ObservableReportComposer(
+            StructuredReportComposer(build_report_model(settings), emit), emit
+        )
         response_planner = ObservableResponsePlanner(
             StructuredResponsePlanner(build_response_model(settings), emit), emit
         )

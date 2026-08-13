@@ -7,10 +7,16 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, Tool
 from pydantic import Field
 
 from ...contracts import (
+    AssetActivitiesInput,
     CalculateActivityMetricsInput,
     ExploreEntityInput,
+    FileActivitiesInput,
     GetRawRecordsInput,
-    QueryActivitiesInput,
+    NetworkActivitiesInput,
+    PackageActivitiesInput,
+    ProcessActivitiesInput,
+    ServiceActivitiesInput,
+    SocketActivitiesInput,
 )
 from ...shared import StrictModel
 from ..domain.models import (
@@ -33,7 +39,9 @@ class DataToolSelection(StrictModel):
     """Legacy contract retained for stored events; online planning uses native tool calls."""
 
     action: Literal[
-        "query_activities", "explore_entity", "get_raw_records",
+        "query_process_activities", "query_network_activities", "query_socket_activities",
+        "query_file_activities", "query_service_activities", "query_package_activities",
+        "query_asset_activities", "explore_entity", "get_raw_records",
         "calculate_activity_metrics", "request_scope_expansion", "finish_investigation",
     ]
     objective: str = Field(default="执行下一步受控数据调查", min_length=10)
@@ -42,34 +50,37 @@ class DataToolSelection(StrictModel):
 
 
 def investigation_tools() -> list:
-    """Return the exact schemas registered with the chat model."""
+    """Return the exact schemas registered with the chat model.
+
+    Query tools are split by activity domain: each tool's name fixes the
+    domain, and its schema exposes only that domain's fields.
+    """
 
     definitions = [
-        (
-            "query_activities", QueryActivitiesInput,
-            "查询授权 Scope 内的规范化安全活动。使用 entity_refs（数组）按实体过滤；"
-            "activity_type 必须是 process、network、socket、file、service、package、asset 或 extension。",
-        ),
-        (
-            "explore_entity", ExploreEntityInput,
-            "读取一个平台实体的身份、已解析/候选关系及时间线。entity_ref 必须来自案件或先前工具结果。",
-        ),
-        (
-            "get_raw_records", GetRawRecordsInput,
-            "读取本次运行中 query_activities 或 explore_entity 已返回活动对应的原始记录。",
-        ),
-        (
-            "calculate_activity_metrics", CalculateActivityMetricsInput,
-            "对本次运行已返回的活动执行进程树、连接模式、传输汇总或文件变更等确定性计算。",
-        ),
-        (
-            "request_scope_expansion", RequestScopeExpansionInput,
-            "发现当前 Scope 外的相关主机且有证据引用时，发起范围扩大审批；本工具不直接扩大权限。",
-        ),
-        (
-            "finish_investigation", FinishInvestigationInput,
-            "现有证据足以形成结论、继续查询没有信息增益或预算将耗尽时，结束调查并生成报告。",
-        ),
+        ("query_process_activities", ProcessActivitiesInput,
+         "查询进程活动：进程创建/执行/终止、父子关系、可执行文件与命令行。"),
+        ("query_network_activities", NetworkActivitiesInput,
+         "查询网络活动：进程发起/接受的连接、目标端点和协议。"),
+        ("query_socket_activities", SocketActivitiesInput,
+         "查询 socket 活动：进程的收发字节与 socket 会话。"),
+        ("query_file_activities", FileActivitiesInput,
+         "查询文件活动：创建、写入、重命名、删除、执行和读取。"),
+        ("query_service_activities", ServiceActivitiesInput,
+         "查询服务活动：systemd 等服务的定义、启用、启动与停止。"),
+        ("query_package_activities", PackageActivitiesInput,
+         "查询软件包活动：包归属、安装、签名与文件关联。"),
+        ("query_asset_activities", AssetActivitiesInput,
+         "查询资产活动：主机环境、业务关键度、负责人与批准上下文。"),
+        ("explore_entity", ExploreEntityInput,
+         "读取一个平台实体的身份、已解析/候选关系及时间线。entity_ref 必须来自案件或先前工具结果。"),
+        ("get_raw_records", GetRawRecordsInput,
+         "读取本次运行中已返回活动对应的原始记录。"),
+        ("calculate_activity_metrics", CalculateActivityMetricsInput,
+         "对本次运行已返回的活动执行进程树、连接模式、传输汇总或文件变更等确定性计算。"),
+        ("request_scope_expansion", RequestScopeExpansionInput,
+         "发现当前 Scope 外的相关主机且有证据引用时，发起范围扩大审批；本工具不直接扩大权限。"),
+        ("finish_investigation", FinishInvestigationInput,
+         "现有证据足以形成结论、继续查询没有信息增益或预算将耗尽时，结束调查并生成报告。"),
     ]
     return build_native_tools(definitions)
 
@@ -143,7 +154,11 @@ class StructuredDataToolPlanner:
         if not call_id:
             call_id = f"tool-call-{state.budget.iterations_used}"
         call = response.tool_calls[0]
-        if name in {"query_activities", "explore_entity", "get_raw_records", "calculate_activity_metrics"}:
+        if name in {
+            "query_process_activities", "query_network_activities", "query_socket_activities",
+            "query_file_activities", "query_service_activities", "query_package_activities",
+            "query_asset_activities", "explore_entity", "get_raw_records", "calculate_activity_metrics",
+        }:
             return DataToolRequest(
                 tool_name=name,
                 objective=self._objective(name),
@@ -208,7 +223,13 @@ class StructuredDataToolPlanner:
     @staticmethod
     def _objective(name: str) -> str:
         return {
-            "query_activities": "查询授权范围内的规范化安全活动并获取可引用数据对象",
+            "query_process_activities": "查询进程活动并获取可引用数据对象",
+            "query_network_activities": "查询网络活动并获取可引用数据对象",
+            "query_socket_activities": "查询 socket 活动并获取可引用数据对象",
+            "query_file_activities": "查询文件活动并获取可引用数据对象",
+            "query_service_activities": "查询服务活动并获取可引用数据对象",
+            "query_package_activities": "查询软件包活动并获取可引用数据对象",
+            "query_asset_activities": "查询资产活动并获取可引用数据对象",
             "explore_entity": "沿已知实体身份和关系继续调查关联活动与上下文",
             "get_raw_records": "读取已授权活动对应的原始记录以核对关键字段",
             "calculate_activity_metrics": "对已授权活动执行确定性计算以验证行为模式",

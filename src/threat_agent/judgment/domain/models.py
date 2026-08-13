@@ -6,6 +6,7 @@ from typing import Annotated, Any, Literal, TypeAlias
 from pydantic import Field, RootModel
 
 from ...contracts.evidence import Coverage, Entity, Evidence, EvidenceBundle, EvidenceStatus, Scope
+from ...contracts import InvestigationReport, InvestigationToolLedger
 from ...contracts.investigation import CandidateVerdict, Fact, Finding, Relation, VerdictLevel
 from ...shared import StrictModel
 
@@ -240,8 +241,21 @@ class FinishRequest(StrictModel):
     unresolved_gap_ids: list[str] = Field(default_factory=list)
 
 
+class DataToolRequest(StrictModel):
+    action_type: Literal["data_tool_request"] = "data_tool_request"
+    tool_name: Literal[
+        "query_process_activities", "query_network_activities", "query_socket_activities",
+        "query_file_activities", "query_service_activities", "query_package_activities",
+        "query_asset_activities", "explore_entity", "get_raw_records", "calculate_activity_metrics",
+    ]
+    objective: str = Field(min_length=10)
+    arguments: dict[str, Any] = Field(default_factory=dict)
+    tool_call_id: str | None = None
+    model_message: dict[str, Any] = Field(default_factory=dict)
+
+
 InvestigationAction: TypeAlias = Annotated[
-    EvidenceRequest | AnalysisRequest | ScopeRequest | FinishRequest,
+    EvidenceRequest | AnalysisRequest | DataToolRequest | ScopeRequest | FinishRequest,
     Field(discriminator="action_type"),
 ]
 
@@ -284,4 +298,7 @@ class InvestigationState(StrictModel):
     active_scenarios: list[str] = Field(default_factory=lambda: ["c2"])
     verdict_validation_errors: list[str] = Field(default_factory=list)
     verdict: CandidateVerdict | None = None
+    tool_ledger: InvestigationToolLedger = Field(default_factory=InvestigationToolLedger)
+    investigation_report: InvestigationReport | None = None
+    report_validation_errors: list[str] = Field(default_factory=list)
     finished: bool = False

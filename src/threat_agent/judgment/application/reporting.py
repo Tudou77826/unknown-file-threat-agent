@@ -7,10 +7,11 @@ from typing import Any, Callable, Protocol
 from pydantic import Field
 
 from ...contracts import InvestigationReport, ReportStatement
-from ...contracts.investigation import CandidateVerdict, Fact, Finding, Relation
+from ...contracts.investigation import CandidateVerdict
 from ...shared import StrictModel
 from ..domain.models import InvestigationState
 from ..domain.verdict import evaluate_verdict
+from .evidence_gate import gate_verdict
 
 
 PROMPT_VERSION = "investigation-report/1.0"
@@ -22,9 +23,7 @@ class ReportDraft(StrictModel):
     executive_summary: str = Field(min_length=1)
     current_situation: list[ReportStatement] = Field(default_factory=list)
     affected_scope: list[ReportStatement] = Field(default_factory=list)
-    attack_path: list[Relation] = Field(default_factory=list)
-    key_fact_refs: list[str] = Field(default_factory=list)
-    key_finding_refs: list[str] = Field(default_factory=list)
+    key_evidence: list[ReportStatement] = Field(default_factory=list)
     supporting_evidence_refs: list[str] = Field(default_factory=list)
     counter_evidence: list[ReportStatement] = Field(default_factory=list)
     unresolved_questions: list[str] = Field(default_factory=list)
@@ -45,18 +44,16 @@ def report_context(state: InvestigationState) -> dict[str, Any]:
         "query_results": [item.model_dump(mode="json") for item in state.tool_ledger.query_results],
         "entity_results": [item.model_dump(mode="json") for item in state.tool_ledger.entity_results],
         "metric_results": [item.model_dump(mode="json") for item in state.tool_ledger.metric_results],
-        "facts": [item.model_dump(mode="json") for item in state.facts],
-        "findings": [item.model_dump(mode="json") for item in state.findings],
-        "relations": [item.model_dump(mode="json") for item in state.relations],
         "tool_traces": [item.model_dump(mode="json") for item in state.tool_ledger.traces],
         "active_scenarios": state.active_scenarios,
         "instructions": [
             "returned_count=0 only means this query returned zero rows under its execution boundary",
             "judge data sufficiency yourself; the data layer provides no Coverage grade",
             "candidate entity relations may guide investigation but cannot be stated as confirmed",
-            "all material claims must cite a supplied Activity, EvidenceReference, Fact or Finding",
+            "all material claims must cite a supplied evidence_id or activity_id",
             "authorized_scope.allowed_domains are permissions, not proof that those domains were queried",
             "only query_results represent successful queries; failed tool traces must be stated as limitations",
+            "key_evidence is a list of ReportStatement; put each key judgment basis as one statement citing its evidence",
             "write all natural-language content in Simplified Chinese",
         ],
     }
@@ -75,15 +72,17 @@ class StructuredReportComposer:
         self.event_sink = event_sink or (lambda _kind, _message, _details=None: None)
         schema = json.dumps(ReportDraft.model_json_schema(), ensure_ascii=False)
         self.system_prompt = (
-            "你是未知文件安全调查的主研判模型。基于给定查询接口、实际执行边界、活动、实体关系、"
-            "确定性事实和发现，输出结构化简体中文调查报告。不得把查询空结果直接解释为行为未发生，"
+            "你是未知文件安全调查的主研判模型。基于给定查询接口、实际执行边界、活动与实体关系，"
+            "输出结构化简体中文调查报告。不得把查询空结果直接解释为行为未发生，"
             "不得引用输入外对象，不得把 candidate 关系写成已确认关系。最终威胁判断和数据充分性由你负责。"
             "只输出符合下列 ReportDraft JSON Schema 的 JSON 对象，不得增加字段：" + schema
         )
 
     def compose(self, state: InvestigationState) -> InvestigationReport:
         draft = self._generate(json.dumps(report_context(state), ensure_ascii=False))
-        return self._publish(state, ReportDraft.model_validate(draft), version=1)
+        model_draft = ReportDraft.model_validate(draft)
+        model_draft.verdict = gate_verdict(state, model_draft.verdict)
+        return self._publish(state, model_draft, version=1)
 
     def repair(self, state, report, errors):
         return self._sanitize_report(state, report, errors)
@@ -163,15 +162,6 @@ class StructuredReportComposer:
         return output
 
     def _publish(self, state, draft, *, version):
-        facts = {item.fact_id: item for item in state.facts}
-        findings = {item.finding_id: item for item in state.findings}
-        missing_fact_refs = sorted(set(draft.key_fact_refs) - set(facts))
-        missing_finding_refs = sorted(set(draft.key_finding_refs) - set(findings))
-        if missing_fact_refs or missing_finding_refs:
-            draft.limitations.append(
-                "模型引用了当前案件中不存在的结构化事实或发现，发布时已剔除："
-                f"facts={missing_fact_refs}, findings={missing_finding_refs}"
-            )
         run_id = str(state.raw_input.get("run_id") or "primary")
         digest = hashlib.sha256(f"{state.case_id}:{run_id}:{version}".encode()).hexdigest()[:16]
         return InvestigationReport(
@@ -182,9 +172,7 @@ class StructuredReportComposer:
             verdict=draft.verdict, threat_scenarios=draft.threat_scenarios,
             executive_summary=draft.executive_summary,
             current_situation=draft.current_situation, affected_scope=draft.affected_scope,
-            attack_path=draft.attack_path,
-            key_facts=[facts[ref] for ref in draft.key_fact_refs if ref in facts],
-            key_findings=[findings[ref] for ref in draft.key_finding_refs if ref in findings],
+            key_evidence=draft.key_evidence,
             supporting_evidence_refs=draft.supporting_evidence_refs,
             counter_evidence=draft.counter_evidence,
             unresolved_questions=draft.unresolved_questions,
@@ -255,6 +243,23 @@ class DeterministicReportComposer(StructuredReportComposer):
         verdict = state.verdict or evaluate_verdict(state)
         refs = sorted({ref for item in [*state.facts, *state.findings] for ref in item.evidence_refs})
         boundaries = [item.query_id for item in state.tool_ledger.query_results]
+        key_evidence = [
+            ReportStatement(
+                statement_id=item.fact_id,
+                text=f"[{item.fact_type}] {item.statement}",
+                supporting_refs=list(item.evidence_refs),
+            )
+            for item in state.facts
+        ]
+        key_evidence += [
+            ReportStatement(
+                statement_id=item.finding_id,
+                text=f"[{item.finding_type}] {item.statement}（置信度 {int(round(item.confidence * 100))}%）",
+                supporting_refs=list(item.evidence_refs),
+                limitations=list(item.limitations),
+            )
+            for item in state.findings
+        ]
         draft = ReportDraft(
             verdict=verdict,
             threat_scenarios=list(state.active_scenarios),
@@ -263,8 +268,7 @@ class DeterministicReportComposer(StructuredReportComposer):
                 statement_id="situation-1", text=verdict.summary,
                 supporting_refs=list(verdict.supporting_refs),
             )],
-            key_fact_refs=[item.fact_id for item in state.facts],
-            key_finding_refs=[item.finding_id for item in state.findings],
+            key_evidence=key_evidence,
             supporting_evidence_refs=refs,
             unresolved_questions=[item.question for item in state.evidence_gaps if item.status != "resolved"],
             query_boundary_refs=boundaries,

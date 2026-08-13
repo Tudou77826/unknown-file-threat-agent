@@ -84,6 +84,7 @@ class AppSettings(FrozenSettings):
     evidence_query: EvidenceQuerySettings
     judgment_model: ModelSettings
     response_model: ModelSettings
+    report_model: ModelSettings
     demo: DemoSettings
     presentation: PresentationSettings
 
@@ -137,6 +138,24 @@ class AppSettings(FrozenSettings):
                 temperature=get(f"{prefix}_MODEL_TEMPERATURE", 0),
             )
 
+        judgment_model = model("judgment")
+        response_model = model("response")
+        # Report generation reuses the judgment model identity, but is a heavy
+        # single-shot JSON output that deserves its own (larger) timeout and
+        # token budget. Only identity fields inherit from judgment.
+        report_model = ModelSettings(
+            api_key=judgment_model.api_key,
+            base_url=judgment_model.base_url,
+            model_name=judgment_model.model_name,
+            max_tokens=get("REPORT_MODEL_MAX_TOKENS", 8192),
+            timeout_seconds=get(
+                "REPORT_MODEL_TIMEOUT_SECONDS",
+                get("REPORT_MODEL_TIMEOUT", 300),
+            ),
+            max_retries=get("REPORT_MODEL_MAX_RETRIES", judgment_model.max_retries),
+            temperature=get("REPORT_MODEL_TEMPERATURE", 0),
+        )
+
         settings = cls(
             application=ApplicationSettings(
                 environment=get("THREAT_AGENT_ENV", "development"),
@@ -170,8 +189,9 @@ class AppSettings(FrozenSettings):
                 default_limit=get("EVIDENCE_QUERY_DEFAULT_LIMIT", 1000),
                 max_limit=get("EVIDENCE_QUERY_MAX_LIMIT", 5000),
             ),
-            judgment_model=model("judgment"),
-            response_model=model("response"),
+            judgment_model=judgment_model,
+            response_model=response_model,
+            report_model=report_model,
             demo=DemoSettings(
                 data_store_path=path(
                     "DEMO_DATA_STORE_PATH", PROJECT_ROOT / "outputs" / "demo-reference.sqlite"
@@ -225,3 +245,8 @@ def build_judgment_model(settings: AppSettings | None = None):
 def build_response_model(settings: AppSettings | None = None):
     loaded = settings or AppSettings.load()
     return build_chat_model(loaded.response_model)
+
+
+def build_report_model(settings: AppSettings | None = None):
+    loaded = settings or AppSettings.load()
+    return build_chat_model(loaded.report_model)

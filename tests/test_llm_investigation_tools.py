@@ -72,7 +72,7 @@ def _context() -> ToolRuntimeContext:
     )
 
 
-def test_gateway_exposes_only_four_data_tools_and_routes_typed_query(tmp_path: Path):
+def test_gateway_exposes_domain_data_tools_and_routes_typed_query(tmp_path: Path):
     store = _store(tmp_path)
     try:
         emitted = []
@@ -85,37 +85,34 @@ def test_gateway_exposes_only_four_data_tools_and_routes_typed_query(tmp_path: P
         )
         ledger = InvestigationToolLedger()
         assert gateway.tool_names == (
-            "query_activities", "explore_entity", "get_raw_records", "calculate_activity_metrics"
+            "query_process_activities", "query_network_activities", "query_socket_activities",
+            "query_file_activities", "query_service_activities", "query_package_activities",
+            "query_asset_activities", "explore_entity", "get_raw_records",
+            "calculate_activity_metrics",
         )
         result = gateway.invoke(
-            "query_activities",
-            {"activity_type": "process", "filters": {"operations": ["execute"]}},
+            "query_process_activities",
+            {"operations": ["execute"]},
             _context(), ledger,
         )
         assert result.execution_boundary.returned_count == 1
         assert ledger.authorized_activity_refs == [result.activities[0].activity_id]
         assert result.interface_definition.interface_id == "activity-query/process"
         assert emitted[0][0] == "tool"
-        assert emitted[0][2]["tool_name"] == "query_activities"
+        assert emitted[0][2]["tool_name"] == "query_process_activities"
         assert emitted[0][2]["returned_count"] == 1
         assert emitted[0][2]["duration_ms"] >= 0
     finally:
         store.close()
 
 
-def test_gateway_rejects_cross_domain_filters_and_scope_expansion(tmp_path: Path):
+def test_gateway_rejects_out_of_scope_host(tmp_path: Path):
     store = _store(tmp_path)
     try:
         gateway = InvestigationToolGateway(store, SQLiteActivityQueryAdapter(store))
         with pytest.raises(DataAccessError):
             gateway.invoke(
-                "query_activities",
-                {"activity_type": "process", "filters": {"protocols": ["tcp"]}},
-                _context(), InvestigationToolLedger(),
-            )
-        with pytest.raises(DataAccessError):
-            gateway.invoke(
-                "query_activities", {"activity_type": "process", "host_refs": ["host-2"]},
+                "query_process_activities", {"host_refs": ["host-2"]},
                 _context(), InvestigationToolLedger(),
             )
     finally:
@@ -132,7 +129,7 @@ def test_raw_and_metric_tools_require_activity_returned_in_same_run(tmp_path: Pa
                 "get_raw_records", {"activity_refs": ["activity-process-1"]}, _context(), ledger
             )
         query = gateway.invoke(
-            "query_activities", {"activity_type": "network"}, _context(), ledger
+            "query_network_activities", {}, _context(), ledger
         )
         ref = query.activities[0].activity_id
         raw = gateway.invoke("get_raw_records", {"activity_refs": [ref]}, _context(), ledger)
@@ -173,23 +170,26 @@ class _FakeModel:
         return self.payload[AIMessage]
 
 
-def test_data_tool_planner_can_only_select_four_tools_or_two_actions():
+def test_data_tool_planner_can_only_select_domain_tools_or_actions():
     state = _state()
     model = _FakeModel({AIMessage: AIMessage(content="", tool_calls=[{
-        "name": "query_activities",
-        "args": {"activity_type": "process", "entity_refs": ["process:host-1:10:1"]},
+        "name": "query_process_activities",
+        "args": {"entity_refs": ["process:host-1:10:1"]},
         "id": "call-native-1",
         "type": "tool_call",
     }])})
     planner = StructuredDataToolPlanner(model)
     action = planner.plan(state)
     assert isinstance(action, DataToolRequest)
-    assert action.tool_name == "query_activities"
+    assert action.tool_name == "query_process_activities"
     assert action.arguments["entity_refs"] == ["process:host-1:10:1"]
     assert action.tool_call_id == "call-native-1"
     schemas = {tool.name: tool.args_schema.model_json_schema() for tool in model.bound_tools}
-    assert "entity_refs" in schemas["query_activities"]["properties"]
-    assert "entity_id" not in schemas["query_activities"]["properties"]
+    # Process tool exposes process fields only; no activity_type, no foreign fields.
+    assert "entity_refs" in schemas["query_process_activities"]["properties"]
+    assert "process_refs" in schemas["query_process_activities"]["properties"]
+    assert "activity_type" not in schemas["query_process_activities"]["properties"]
+    assert "endpoint_refs" not in schemas["query_process_activities"]["properties"]
 
 
 def test_data_tool_planner_stops_repeated_tool_loop_before_model_call():
@@ -225,7 +225,7 @@ def test_report_validator_rejects_unknown_refs_scope_and_candidate_relations(tmp
         state.raw_input.update({"tenant_id": "tenant-a", "run_id": "run-a"})
         gateway = InvestigationToolGateway(store, SQLiteActivityQueryAdapter(store))
         process = gateway.invoke(
-            "query_activities", {"activity_type": "process"}, _context(), state.tool_ledger
+            "query_process_activities", {}, _context(), state.tool_ledger
         )
         entity_id = next(
             item.entity_id for item in store.list_entities("tenant-a") if item.entity_type == "process"

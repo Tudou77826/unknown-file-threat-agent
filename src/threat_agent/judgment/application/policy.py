@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from ..domain.models import AnalysisRequest, EvidenceRequest, FinishRequest, InvestigationAction, InvestigationState, ScopeRequest
+from ..domain.models import AnalysisRequest, DataToolRequest, EvidenceRequest, FinishRequest, InvestigationAction, InvestigationState, ScopeRequest
 from ..adapters.tools import ToolRegistry
 
 
@@ -31,11 +31,30 @@ def _contains_host(value, host_id: str) -> bool:
     return False
 
 
-def validate_action(action: InvestigationAction, state: InvestigationState, registry: ToolRegistry) -> None:
-    if state.budget.iterations_used >= state.budget.max_iterations:
+def validate_action(
+    action: InvestigationAction,
+    state: InvestigationState,
+    registry: ToolRegistry,
+    *,
+    data_tool_mode: bool = False,
+) -> None:
+    if (
+        state.budget.iterations_used >= state.budget.max_iterations
+        and not isinstance(action, FinishRequest)
+    ):
         raise PolicyError("Iteration budget exhausted")
     evidence_by_id = {e.evidence_id: e for e in state.evidence}
     gaps_by_id = {g.gap_id: g for g in state.evidence_gaps}
+
+    if isinstance(action, DataToolRequest):
+        if action.tool_name not in {
+            "query_process_activities", "query_network_activities", "query_socket_activities",
+            "query_file_activities", "query_service_activities", "query_package_activities",
+            "query_asset_activities", "explore_entity", "get_raw_records", "calculate_activity_metrics",
+        }:
+            raise PolicyError(f"Unknown LLM data tool: {action.tool_name}")
+        if state.budget.tool_calls_used >= state.budget.max_tool_calls:
+            raise PolicyError("Tool-call budget exhausted")
 
     if isinstance(action, (EvidenceRequest, AnalysisRequest)):
         tool = registry.get(action.tool_name)
@@ -137,6 +156,8 @@ def validate_action(action: InvestigationAction, state: InvestigationState, regi
             raise PolicyError("Scope request end_time exceeds the approved case window")
 
     if isinstance(action, FinishRequest):
+        if data_tool_mode:
+            return
         pending = [
             item.obligation_id for item in state.analysis_obligations
             if item.required_for_closure and item.status in {"pending", "running"}

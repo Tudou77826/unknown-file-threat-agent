@@ -70,6 +70,7 @@ class JudgmentResult(ContractModel):
     findings: list[Finding] = Field(default_factory=list)
     relations: list[Relation] = Field(default_factory=list)
     evidence_refs: list[str] = Field(default_factory=list)
+    asserted_host_refs: list[str] = Field(default_factory=list)
     coverage: dict[str, Coverage] = Field(default_factory=dict)
     active_scenarios: list[str] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)

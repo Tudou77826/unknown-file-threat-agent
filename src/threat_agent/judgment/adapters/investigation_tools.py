@@ -10,22 +10,28 @@ from typing import Any, Callable
 
 from ...contracts import (
     ActivityMetricResult,
+    AssetActivitiesInput,
     AssetActivityQuery,
     CalculateActivityMetricsInput,
     EntityExplorationResult,
     ExploreEntityInput,
     ExtensionActivityQuery,
+    FileActivitiesInput,
     FileActivityQuery,
     GetRawRecordsInput,
     InvestigationToolLedger,
     InvestigationToolTrace,
+    NetworkActivitiesInput,
     NetworkActivityQuery,
+    PackageActivitiesInput,
     PackageActivityQuery,
+    ProcessActivitiesInput,
     ProcessActivityQuery,
-    QueryActivitiesInput,
     RawRecordResult,
     RawRecordView,
+    ServiceActivitiesInput,
     ServiceActivityQuery,
+    SocketActivitiesInput,
     SocketActivityQuery,
     ToolRuntimeContext,
 )
@@ -43,24 +49,34 @@ _QUERY_CLASSES = {
     "extension": ExtensionActivityQuery,
 }
 
-
-_FILTERS = {
-    "process": {"source_event_types", "process_refs", "operations", "executable"},
-    "network": {"source_event_types", "process_refs", "endpoint_refs", "protocols"},
-    "socket": {"source_event_types", "process_refs", "socket_refs"},
-    "file": {"source_event_types", "file_refs", "process_refs", "operations"},
-    "service": {"source_event_types", "service_refs", "operations"},
-    "package": {"source_event_types", "package_refs", "file_refs"},
-    "asset": {"source_event_types", "asset_refs"},
-    "extension": {"source_event_types", "extension_schemas"},
+# Each domain tool has a fixed input schema whose fields are exactly the ones
+# the domain query accepts. The domain is encoded in the tool name, so there is
+# no "cross-domain rejection": fields of another domain simply do not exist.
+_DOMAIN_TOOLS = {
+    "query_process_activities": ("process", ProcessActivitiesInput),
+    "query_network_activities": ("network", NetworkActivitiesInput),
+    "query_socket_activities": ("socket", SocketActivitiesInput),
+    "query_file_activities": ("file", FileActivitiesInput),
+    "query_service_activities": ("service", ServiceActivitiesInput),
+    "query_package_activities": ("package", PackageActivitiesInput),
+    "query_asset_activities": ("asset", AssetActivitiesInput),
 }
 
 
 class InvestigationToolGateway:
-    """Four stable LLM tools over typed data-foundation capabilities."""
+    """Stable LLM tools over typed data-foundation capabilities."""
 
     tool_names = (
-        "query_activities", "explore_entity", "get_raw_records", "calculate_activity_metrics"
+        "query_process_activities",
+        "query_network_activities",
+        "query_socket_activities",
+        "query_file_activities",
+        "query_service_activities",
+        "query_package_activities",
+        "query_asset_activities",
+        "explore_entity",
+        "get_raw_records",
+        "calculate_activity_metrics",
     )
 
     def __init__(
@@ -141,17 +157,11 @@ class InvestigationToolGateway:
             details["returned_count"] = len(result.records)
         return {key: value for key, value in details.items() if value is not None}
 
-    def query_activities(self, raw, context, ledger):
-        request = QueryActivitiesInput.model_validate(raw)
-        unsupported = sorted(set(request.filters) - _FILTERS[request.activity_type])
-        if unsupported:
-            raise DataAccessError(
-                f"Unsupported filters for {request.activity_type}: {unsupported}"
-            )
+    def _query_domain(self, activity_type: str, request, context, ledger):
         fingerprint = hashlib.sha256(
             f"{context.run_id}:{len(ledger.query_results)}:{request.model_dump_json()}".encode()
         ).hexdigest()[:16]
-        query = _QUERY_CLASSES[request.activity_type](
+        query = _QUERY_CLASSES[activity_type](
             tenant_id=context.tenant_id,
             case_id=context.case_id,
             source_identity="investigation-tool-gateway",
@@ -164,14 +174,57 @@ class InvestigationToolGateway:
             end_time=request.end_time,
             cursor=request.cursor,
             limit=request.limit,
-            **request.filters,
+            source_event_types=request.source_event_types,
+            **{
+                key: value
+                for key, value in request.model_dump().items()
+                if key
+                not in {
+                    "host_refs",
+                    "entity_refs",
+                    "start_time",
+                    "end_time",
+                    "cursor",
+                    "limit",
+                    "source_event_types",
+                }
+            },
         )
-        result = getattr(self.query_adapter, f"query_{request.activity_type}")(query)
+        result = getattr(self.query_adapter, f"query_{activity_type}")(query)
         ledger.query_results.append(result)
         ledger.authorized_activity_refs = sorted(set(ledger.authorized_activity_refs) | {
             item.activity_id for item in result.activities
         })
         return result
+
+    def query_process_activities(self, raw, context, ledger):
+        request = ProcessActivitiesInput.model_validate(raw)
+        return self._query_domain("process", request, context, ledger)
+
+    def query_network_activities(self, raw, context, ledger):
+        request = NetworkActivitiesInput.model_validate(raw)
+        return self._query_domain("network", request, context, ledger)
+
+    def query_socket_activities(self, raw, context, ledger):
+        request = SocketActivitiesInput.model_validate(raw)
+        return self._query_domain("socket", request, context, ledger)
+
+    def query_file_activities(self, raw, context, ledger):
+        request = FileActivitiesInput.model_validate(raw)
+        return self._query_domain("file", request, context, ledger)
+
+    def query_service_activities(self, raw, context, ledger):
+        request = ServiceActivitiesInput.model_validate(raw)
+        return self._query_domain("service", request, context, ledger)
+
+    def query_package_activities(self, raw, context, ledger):
+        request = PackageActivitiesInput.model_validate(raw)
+        return self._query_domain("package", request, context, ledger)
+
+    def query_asset_activities(self, raw, context, ledger):
+        request = AssetActivitiesInput.model_validate(raw)
+        return self._query_domain("asset", request, context, ledger)
+
 
     def explore_entity(self, raw, context, ledger):
         request = ExploreEntityInput.model_validate(raw)

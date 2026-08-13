@@ -9,14 +9,12 @@ from typing import Any
 from ..case_management import CaseGraph, build_case_read_model, create_memory_checkpointer, create_sqlite_checkpointer, initialize_state
 from ..contracts import CaseReadModel
 from ..data_foundation import FixtureEvidenceRepository, JsonlEventRepository
-from ..judgment import DeterministicPlanner, JudgmentGraph, StructuredJudgmentPlanner, ToolRegistry
+from ..judgment import DeterministicPlanner, JudgmentGraph, ToolRegistry
 from ..judgment.domain.models import InvestigationState
 from ..presentation import case_read_payload
 from ..case_management.application.reporting import write_reports
-from ..response_advisory import DeterministicResponsePlanner, ResponseGraph, StructuredResponsePlanner
-from .settings import AppSettings, build_judgment_model, build_response_model
-
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
+from ..response_advisory import DeterministicResponsePlanner, ResponseGraph
+from .settings import AppSettings
 
 
 @dataclass(frozen=True)
@@ -36,7 +34,6 @@ def _interrupt_value(result: dict[str, Any]) -> dict[str, Any] | None:
 
 def run_platform_case(
     case_dir: Path,
-    mode: str = "deterministic",
     output_dir: Path | None = None,
     *,
     tenant_id: str = "default",
@@ -46,6 +43,12 @@ def run_platform_case(
     approve_response: bool = False,
     settings: AppSettings | None = None,
 ) -> PlatformRun:
+    """Run a case through the deterministic (offline) investigation path.
+
+    Online AI judgment runs through the demo service (data-tool path), not this
+    entry point.
+    """
+
     settings = settings or AppSettings.load()
     raw = json.loads((case_dir / "input.json").read_text(encoding="utf-8"))
     raw.setdefault("tenant_id", tenant_id)
@@ -65,13 +68,8 @@ def run_platform_case(
         query_default_limit=settings.evidence_query.default_limit,
         query_max_limit=settings.evidence_query.max_limit,
     )
-    if mode in {"llm", "deepagents"}:
-        settings.require_models()
-        judgment_planner = StructuredJudgmentPlanner(build_judgment_model(settings), registry)
-        response_planner = StructuredResponsePlanner(build_response_model(settings))
-    else:
-        judgment_planner = DeterministicPlanner()
-        response_planner = DeterministicResponsePlanner()
+    judgment_planner = DeterministicPlanner()
+    response_planner = DeterministicResponsePlanner()
     judgment_graph = JudgmentGraph(
         registry,
         judgment_planner,
@@ -141,9 +139,12 @@ def run_platform_case(
 
 
 def run_case(case_dir: Path, mode: str = "deterministic", output_dir: Path | None = None):
-    """Compatibility entry returning InvestigationState through the platform graph."""
+    """Compatibility entry returning InvestigationState through the platform graph.
 
-    return run_platform_case(case_dir, mode, output_dir).state
+    ``mode`` is accepted for backward compatibility; only deterministic is supported.
+    """
+
+    return run_platform_case(case_dir, output_dir).state
 
 
 def main() -> None:
@@ -152,12 +153,6 @@ def main() -> None:
         "--case",
         default=None,
         help="Case directory containing input.json and event data",
-    )
-    parser.add_argument(
-        "--mode",
-        choices=["deterministic", "llm", "deepagents"],
-        default=None,
-        help="Use 'llm' for both planning loops; 'deepagents' is a compatibility alias",
     )
     parser.add_argument("--tenant", default=None)
     parser.add_argument("--run-id", default=None)
@@ -168,7 +163,6 @@ def main() -> None:
     args = parser.parse_args()
     overrides = {
         "THREAT_AGENT_DEFAULT_CASE_DIR": args.case,
-        "THREAT_AGENT_MODE": args.mode,
         "THREAT_AGENT_DEFAULT_TENANT": args.tenant,
         "THREAT_AGENT_DEFAULT_RUN_ID": args.run_id,
         "THREAT_AGENT_OUTPUT_DIR": args.output,
@@ -178,7 +172,6 @@ def main() -> None:
     settings = AppSettings.load(cli_overrides=overrides)
     result = run_platform_case(
         settings.application.default_case_dir,
-        settings.application.mode,
         settings.application.output_dir,
         tenant_id=settings.application.default_tenant,
         run_id=settings.application.default_run_id,
