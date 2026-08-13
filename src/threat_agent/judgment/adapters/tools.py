@@ -10,25 +10,7 @@ from ...contracts import EvidenceQuery
 from ...data_foundation import EvidenceQueryPort, RepositoryEvidenceQueryAdapter
 from ..domain.models import EvidenceBundle, FactFindingBundle, InvestigationState
 from ..application.orchestration import score_tool
-from ..application.native_tool_calling import (
-    ActivateScenarioInput,
-    AnalyzeEvidenceInput,
-    DomainEvidenceQueryInput,
-    FinishInvestigationInput,
-    RequestScopeExpansionInput,
-)
 from ...data_foundation.adapters.repository import EvidenceRepository
-
-
-# Domain tools are the fixed, cache-stable surface the LLM sees. Each maps to a
-# single data domain; the gap -> evidence_type resolution stays deterministic.
-DOMAIN_TOOL_DOMAINS: dict[str, str] = {
-    "query_process_evidence": "process",
-    "query_file_evidence": "file",
-    "query_network_evidence": "network",
-    "query_persistence_evidence": "persistence",
-    "query_reputation_evidence": "reputation",
-}
 
 
 @dataclass(frozen=True)
@@ -63,8 +45,6 @@ class ToolRegistry:
             else RepositoryEvidenceQueryAdapter(repository)  # type: ignore[arg-type]
         )
         self._tools: dict[str, ToolDefinition] = {}
-        self._domain_tools: dict[str, str] = dict(DOMAIN_TOOL_DOMAINS)
-        self._domain_evidence_types: dict[str, frozenset[str]] = {}
         evidence_specs = [
             ("query_process_execution", "process", {"process_exec"}, "Find executions of the investigated file"),
             ("query_process_relations", "process", {"process_parent_relation"}, "Find parent-child relations for scoped process instances"),
@@ -123,7 +103,6 @@ class ToolRegistry:
             "additionalProperties": False,
         }
         for name, domain, provided, description in evidence_specs:
-            self._domain_evidence_types.setdefault(domain, set()).update(provided)
             self.register(ToolDefinition(
                 name=name,
                 kind="evidence",
@@ -349,57 +328,3 @@ class ToolRegistry:
             evidence_refs=list(parameters.get("evidence_refs") or []),
             parameters=parameters,
         )
-
-    # -- Native domain tools -------------------------------------------------
-    # The LLM sees a fixed set of domain tools (stable schema -> cache friendly).
-    # The gap -> evidence_type resolution stays deterministic and lives here.
-
-    def domain_tool_names(self) -> tuple[str, ...]:
-        return tuple(self._domain_tools)
-
-    def native_tool_specs(self) -> list[tuple[str, type, str]]:
-        return [
-            ("query_process_evidence", DomainEvidenceQueryInput, "查询进程域证据，解决进程执行、进程树、子进程命令等调查问题"),
-            ("query_file_evidence", DomainEvidenceQueryInput, "查询文件域证据，解决文件来源、敏感访问、归档、加密等调查问题"),
-            ("query_network_evidence", DomainEvidenceQueryInput, "查询网络域证据，解决外联、DNS、数据传输等调查问题"),
-            ("query_persistence_evidence", DomainEvidenceQueryInput, "查询持久化域证据，解决持久化配置、破坏备份、服务停用等调查问题"),
-            ("query_reputation_evidence", DomainEvidenceQueryInput, "查询信誉与基线证据，解决软件来源、批准端点、备份基线等反证问题"),
-            ("analyze_evidence", AnalyzeEvidenceInput, "对已收集证据运行确定性分析，产出事实与发现"),
-            ("activate_scenario", ActivateScenarioInput, "依据已存在证据动态激活一个已审核的调查场景模板"),
-            ("request_scope_expansion", RequestScopeExpansionInput, "发现授权范围外的相关主机时发起范围扩大审批"),
-            ("finish_investigation", FinishInvestigationInput, "证据足以形成结论时结束调查并生成报告"),
-        ]
-
-    def domain_for_tool(self, tool_name: str) -> str:
-        return self._domain_tools[tool_name]
-
-    def eligible_gap_ids(self, state: InvestigationState) -> dict[str, list[str]]:
-        """Return, per domain, the open gaps that still need evidence in it."""
-        collected = {e.evidence_type for e in state.evidence if e.status.value == "available"}
-        open_gaps = [
-            gap for gap in state.evidence_gaps
-            if gap.status in {"open", "querying", "evidence_collected", "partially_resolved"}
-        ]
-        result: dict[str, list[str]] = {domain: [] for domain in self._domain_tools.values()}
-        for gap in open_gaps:
-            for domain in self._domain_tools.values():
-                domain_types = set(self._domain_evidence_types.get(domain, set()))
-                missing = (set(gap.required_evidence_types) & domain_types) - collected
-                if missing:
-                    result[domain].append(gap.gap_id)
-        return result
-
-    def resolve_domain_gap(self, state: InvestigationState, domain: str, gap_id: str) -> frozenset[str]:
-        gap = next((item for item in state.evidence_gaps if item.gap_id == gap_id), None)
-        if gap is None:
-            raise KeyError(f"Unknown evidence gap: {gap_id}")
-        types = set(gap.required_evidence_types) & set(self._domain_evidence_types.get(domain, set()))
-        if not types:
-            raise ValueError(f"Gap {gap_id} is not addressable from domain {domain}")
-        return frozenset(types)
-
-    def invoke_domain_evidence(self, state: InvestigationState, tool_name: str, gap_id: str, parameters: dict[str, Any]) -> tuple[EvidenceBundle, frozenset[str]]:
-        domain = self._domain_tools[tool_name]
-        evidence_types = self.resolve_domain_gap(state, domain, gap_id)
-        query_parameters = {key: value for key, value in parameters.items() if value is not None}
-        return self._query(domain, evidence_types, state, query_parameters), evidence_types

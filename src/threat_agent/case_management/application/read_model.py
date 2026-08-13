@@ -53,6 +53,7 @@ def build_case_read_model(
         findings=_dump(state.findings),
         hypotheses=_dump(state.hypotheses),
         evidence_roles=_dump(state.evidence_roles),
+        interpretations=_dump(state.interpretations),
         coverage=state.coverage,
         analysis_obligations=_dump(state.analysis_obligations),
         evidence_gaps=_dump(state.evidence_gaps),

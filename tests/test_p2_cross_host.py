@@ -1,31 +1,16 @@
 from pathlib import Path
 
 import pytest
-from langchain_core.messages import AIMessage
 
 from threat_agent.bootstrap.cli import run_case
 from threat_agent.case_management import initialize_state
 from threat_agent.judgment.domain.models import ScopeRequest, VerdictLevel
 from threat_agent.judgment.application.policy import PolicyError, validate_action
-from threat_agent.judgment.application.planner import StructuredJudgmentPlanner
+from threat_agent.judgment.application.planner import DeepAgentsPlanner
 from threat_agent.data_foundation.adapters.repository import JsonlEventRepository
 from threat_agent.judgment.adapters.tools import ToolRegistry
 
 ROOT = Path(__file__).resolve().parents[1]
-
-
-class _ScopeModel:
-    model_name = "fake-native-model"
-
-    def __init__(self, tool_calls):
-        self.tool_calls = tool_calls
-
-    def bind_tools(self, tools, **_kwargs):
-        self.bound_tools = tools
-        return self
-
-    def invoke(self, _messages):
-        return AIMessage(content="", tool_calls=self.tool_calls)
 
 
 def run(name):
@@ -83,18 +68,21 @@ def test_deep_planner_can_submit_but_not_approve_grounded_scope_request():
     repository = JsonlEventRepository(case_dir)
     registry = ToolRegistry(repository)
     state.evidence.extend(registry.invoke("query_file_transfer_across_hosts", state, {}).evidence)
-    planner = StructuredJudgmentPlanner(_ScopeModel([{
-        "name": "request_scope_expansion",
-        "args": {
-            "objective": "The successful transfer directly identifies deny-02 as the minimal candidate host.",
+    planner = DeepAgentsPlanner.__new__(DeepAgentsPlanner)
+    planner.registry = registry
+    planner._generate = lambda _instruction: {
+        "tool_name": "__scope__",
+        "target_hypothesis_id": "hyp-cross-host-001",
+        "target_evidence_role_id": "role-cross-host-lead",
+        "target_gap_id": "gap-cross-host-lead",
+        "decision_summary": "The successful transfer directly identifies deny-02 as the minimal candidate host.",
+        "scope_request": {
             "requested_host_ids": ["deny-02"],
             "reason_type": "file_transfer",
             "reason_evidence_refs": ["deny-transfer"],
             "requested_domains": ["process", "file", "network"],
         },
-        "id": "call-scope-1",
-        "type": "tool_call",
-    }]), registry)
+    }
     action = planner.plan(state)
     assert isinstance(action, ScopeRequest)
     assert action.requested_host_ids == ["deny-02"]
@@ -109,18 +97,19 @@ def test_deep_scope_proposal_is_normalized_to_evidence_refs_and_domains():
     repository = JsonlEventRepository(case_dir)
     registry = ToolRegistry(repository)
     state.evidence.extend(registry.invoke("query_file_transfer_across_hosts", state, {}).evidence)
-    planner = StructuredJudgmentPlanner(_ScopeModel([{
-        "name": "request_scope_expansion",
-        "args": {
-            "objective": "The cited transfer identifies the minimal candidate host for investigation.",
+    planner = DeepAgentsPlanner.__new__(DeepAgentsPlanner)
+    planner.registry = registry
+    planner._generate = lambda _instruction: {
+        "tool_name": "__scope__",
+        "decision_summary": "The cited transfer identifies the minimal candidate host for investigation.",
+        "scope_request": {
             "requested_host_ids": ["deny-02"],
             "reason_evidence_refs": ["deny-transfer", "finding-cross-host-lead-001"],
             "requested_domains": ["file", "process", "host_asset", "invented"],
         },
-        "id": "call-scope-2",
-        "type": "tool_call",
-    }]), registry)
+    }
     action = planner.plan(state)
     assert action.reason_evidence_refs == ["deny-transfer"]
     assert action.requested_domains == ["file", "process", "reputation"]
+    assert state.planner_decisions[-1].repaired is True
     validate_action(action, state, registry)

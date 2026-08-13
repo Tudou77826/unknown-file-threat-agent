@@ -1,11 +1,9 @@
 import json
 from pathlib import Path
 
-from langchain_core.messages import AIMessage
-
 from threat_agent.bootstrap.cli import run_case
 from threat_agent.case_management import initialize_state
-from threat_agent.judgment.application.planner import StructuredJudgmentPlanner
+from threat_agent.judgment.application.planner import DeepAgentsPlanner
 from threat_agent.case_management.application.reporting import evaluation_payload, report_payload, write_reports
 from threat_agent.data_foundation.adapters.repository import JsonlEventRepository
 from threat_agent.judgment.application.state import apply_evidence_bundle
@@ -21,20 +19,6 @@ def setup_case(name: str):
     state = initialize_state(raw)
     registry = ToolRegistry(JsonlEventRepository(case_dir))
     return state, registry
-
-
-class _DecisionModel:
-    model_name = "fake-native-model"
-
-    def __init__(self, tool_calls):
-        self.tool_calls = tool_calls
-
-    def bind_tools(self, tools, **_kwargs):
-        self.bound_tools = tools
-        return self
-
-    def invoke(self, _messages):
-        return AIMessage(content="", tool_calls=self.tool_calls)
 
 
 def test_analyzer_only_consumes_authorized_evidence_refs():
@@ -61,21 +45,24 @@ def test_negative_analysis_outcome_is_preserved_for_benign_remote_command_gap():
     assert any("No inbound-command-outbound" in item for item in gap.limitations)
 
 
-def test_native_planner_records_structured_semantic_decision():
+def test_deep_planner_records_structured_semantic_decision():
     state, registry = setup_case("c2_malicious")
-    planner = StructuredJudgmentPlanner(_DecisionModel([{
-        "name": "query_process_evidence",
-        "args": {"gap_id": "gap-execution"},
-        "id": "call-exec-1",
-        "type": "tool_call",
-    }]), registry)
+    planner = DeepAgentsPlanner.__new__(DeepAgentsPlanner)
+    planner.registry = registry
+    planner._generate = lambda _instruction: {
+        "tool_name": "query_process_execution",
+        "target_hypothesis_id": "hyp-c2-001",
+        "target_evidence_role_id": "role-execution",
+        "target_gap_id": "gap-execution",
+        "decision_summary": "Independent execution evidence is required before runtime behavior attribution.",
+    }
 
     action = planner.plan(state)
 
-    assert action.tool_name == "query_process_evidence"
+    assert action.tool_name == "query_process_execution"
     decision = state.planner_decisions[-1]
-    assert decision.decision_type == "investigate"
-    assert decision.selected_tool == "query_process_evidence"
+    assert decision.target_hypothesis_id == "hyp-c2-001"
+    assert decision.target_evidence_role_id == "role-execution"
     assert decision.target_gap_id == "gap-execution"
     assert decision.repaired is False
 

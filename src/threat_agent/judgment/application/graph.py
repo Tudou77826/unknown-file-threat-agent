@@ -8,7 +8,6 @@ from langgraph.graph import END, START, StateGraph
 
 from ..domain.models import (
     AnalysisRequest,
-    DataToolRequest,
     Entity,
     EvidenceBundle,
     EvidenceRequest,
@@ -16,7 +15,6 @@ from ..domain.models import (
     FinishRequest,
     InvestigationAction,
     InvestigationState,
-    ScenarioActivationRequest,
     ScopeExpansion,
     ScopeRequest,
     ToolCall,
@@ -24,7 +22,6 @@ from ..domain.models import (
 )
 from ...contracts import KnowledgeQuery, KnowledgeResult
 from ...knowledge import KnowledgeRetrievalPort, NullKnowledgeRetriever
-from ..domain.scenarios import activate_scenario
 from .orchestration import (
     add_repair_action,
     apply_pending_repair,
@@ -35,11 +32,10 @@ from .planner import Planner
 from .policy import PolicyError, validate_action
 from .state import apply_analysis_bundle, apply_evidence_bundle
 from ..adapters.tools import ToolRegistry
-from ..adapters.investigation_tools import InvestigationToolGateway
 from ..domain.verdict import evaluate_verdict, validate_verdict
 
 
-Route = Literal["plan", "execute", "scope", "activate", "finish", "retry", "continue", "end"]
+Route = Literal["plan", "execute", "scope", "finish", "retry", "continue", "end"]
 
 
 class JudgmentGraphState(TypedDict, total=False):
@@ -60,16 +56,12 @@ class JudgmentGraph:
         checkpointer: Any = None,
         scope_approval_mode: Literal["legacy", "defer"] = "legacy",
         knowledge_retriever: KnowledgeRetrievalPort | None = None,
-        data_tool_gateway: InvestigationToolGateway | None = None,
-        report_composer: Any = None,
         recursion_limit: int = 1000,
     ):
         self.registry = registry
         self.planner = planner
         self.scope_approval_mode = scope_approval_mode
         self.knowledge_retriever = knowledge_retriever or NullKnowledgeRetriever()
-        self.data_tool_gateway = data_tool_gateway
-        self.report_composer = report_composer
         self.recursion_limit = recursion_limit
         builder = StateGraph(JudgmentGraphState)
         builder.add_node("load_knowledge_context", self._load_knowledge_context)
@@ -77,7 +69,6 @@ class JudgmentGraph:
         builder.add_node("plan_action", self._plan_action)
         builder.add_node("validate_action", self._validate_action)
         builder.add_node("execute_action", self._execute_action)
-        builder.add_node("activate_scenario", self._activate_scenario)
         builder.add_node("handle_scope", self._handle_scope)
         builder.add_node("evaluate_verdict", self._evaluate_verdict)
         builder.add_edge(START, "load_knowledge_context")
@@ -85,7 +76,7 @@ class JudgmentGraph:
         builder.add_conditional_edges(
             "prepare_iteration",
             lambda value: value["route"],
-            {"plan": "plan_action", "finish": "evaluate_verdict", "end": END},
+            {"plan": "plan_action", "end": END},
         )
         builder.add_edge("plan_action", "validate_action")
         builder.add_conditional_edges(
@@ -93,7 +84,6 @@ class JudgmentGraph:
             lambda value: value["route"],
             {
                 "execute": "execute_action",
-                "activate": "activate_scenario",
                 "scope": "handle_scope",
                 "finish": "evaluate_verdict",
                 "retry": "prepare_iteration",
@@ -101,11 +91,6 @@ class JudgmentGraph:
         )
         builder.add_conditional_edges(
             "execute_action",
-            lambda value: value["route"],
-            {"continue": "prepare_iteration", "end": END},
-        )
-        builder.add_conditional_edges(
-            "activate_scenario",
             lambda value: value["route"],
             {"continue": "prepare_iteration", "end": END},
         )
@@ -185,7 +170,12 @@ class JudgmentGraph:
             )
         )
         if state.budget.iterations_used > state.budget.max_iterations:
-            return {"investigation": state, "action": None, "route": "finish"}
+            state.verdict = evaluate_verdict(state)
+            state.verdict.limitations.append(
+                "Investigation stopped because the iteration budget was exhausted"
+            )
+            state.finished = True
+            return {"investigation": state, "action": None, "route": "end"}
         return {"investigation": state, "action": None, "route": "plan"}
 
     def _plan_action(self, graph_state: JudgmentGraphState) -> JudgmentGraphState:
@@ -204,10 +194,7 @@ class JudgmentGraph:
         if action is None:
             raise RuntimeError("Planner produced no investigation action")
         try:
-            validate_action(
-                action, state, self.registry,
-                data_tool_mode=bool(getattr(self.planner, "uses_data_tools", False)),
-            )
+            validate_action(action, state, self.registry)
         except (PolicyError, KeyError) as first_error:
             repair_record = add_repair_action(
                 state,
@@ -222,10 +209,7 @@ class JudgmentGraph:
             if repair is not None:
                 try:
                     action = repair(state, action, str(first_error))
-                    validate_action(
-                        action, state, self.registry,
-                        data_tool_mode=bool(getattr(self.planner, "uses_data_tools", False)),
-                    )
+                    validate_action(action, state, self.registry)
                     repair_record.status = "applied"
                     repair_record.attempts = 1
                 except Exception as repair_error:
@@ -243,37 +227,9 @@ class JudgmentGraph:
             route: Route = "finish"
         elif isinstance(action, ScopeRequest):
             route = "scope"
-        elif isinstance(action, ScenarioActivationRequest):
-            route = "activate"
         else:
             route = "execute"
         return {"investigation": state, "action": action, "route": route}
-
-    def _activate_scenario(self, graph_state: JudgmentGraphState) -> JudgmentGraphState:
-        state = graph_state["investigation"].model_copy(deep=True)
-        action = graph_state.get("action")
-        if not isinstance(action, ScenarioActivationRequest):
-            raise RuntimeError("Scenario activation node requires ScenarioActivationRequest")
-        activated = activate_scenario(
-            state,
-            action.scenario,
-            list(action.reason_refs),
-        )
-        state.tool_calls.append(
-            ToolCall(
-                call_id=f"call-{uuid.uuid4().hex[:10]}",
-                tool_name="activate_scenario",
-                action_type="scenario_activation",
-                status="success" if activated else "denied",
-                objective=action.objective,
-                parameters={
-                    "scenario": action.scenario,
-                    "reason_refs": action.reason_refs,
-                },
-            )
-        )
-        state.budget.tool_calls_used += 1
-        return {"investigation": state, "action": None, "route": "continue"}
 
     def _handle_scope(self, graph_state: JudgmentGraphState) -> JudgmentGraphState:
         state = graph_state["investigation"].model_copy(deep=True)
@@ -379,13 +335,11 @@ class JudgmentGraph:
     def _execute_action(self, graph_state: JudgmentGraphState) -> JudgmentGraphState:
         state = graph_state["investigation"].model_copy(deep=True)
         action = graph_state.get("action")
-        if not isinstance(action, (EvidenceRequest, AnalysisRequest, DataToolRequest)):
-            raise RuntimeError("Execution node requires an evidence, analysis or data-tool request")
+        if not isinstance(action, (EvidenceRequest, AnalysisRequest)):
+            raise RuntimeError("Execution node requires an evidence or analysis request")
         call_parameters = (
             {"evidence_refs": sorted(set(action.evidence_refs))}
             if isinstance(action, AnalysisRequest)
-            else action.arguments
-            if isinstance(action, DataToolRequest)
             else {"gap_id": action.gap_id, **action.parameters}
         )
         call = ToolCall(
@@ -411,46 +365,15 @@ class JudgmentGraph:
                     if gap.gap_id in obligation.gap_ids:
                         gap.status = "analyzing"
         try:
-            if isinstance(action, DataToolRequest):
-                if self.data_tool_gateway is None:
-                    raise PolicyError("LLM data-tool gateway is not configured")
-                from ...contracts import ToolRuntimeContext
-                self.data_tool_gateway.invoke(
-                    action.tool_name,
-                    action.arguments,
-                    ToolRuntimeContext(
-                        tenant_id=str(state.raw_input.get("tenant_id") or "default"),
-                        case_id=state.case_id,
-                        run_id=str(state.raw_input.get("run_id") or "primary"),
-                        scope=state.scope,
-                    ),
-                    state.tool_ledger,
-                    tool_call_id=action.tool_call_id,
-                    model_message=action.model_message,
-                )
-                state.budget.tool_calls_used += 1
-                state.tool_calls.append(call)
-                return {"investigation": state, "action": None, "route": "continue"}
-            domain_tool = isinstance(action, EvidenceRequest) and action.tool_name in self.registry.domain_tool_names()
-            domain_requested_types: frozenset[str] | None = None
-            if domain_tool:
-                result, domain_requested_types = self.registry.invoke_domain_evidence(
-                    state, action.tool_name, action.gap_id, action.parameters
-                )
-            else:
-                invocation_parameters = (
-                    action.parameters
-                    if isinstance(action, EvidenceRequest)
-                    else {"evidence_refs": sorted(set(action.evidence_refs))}
-                )
-                result = self.registry.invoke(action.tool_name, state, invocation_parameters)
+            invocation_parameters = (
+                action.parameters
+                if isinstance(action, EvidenceRequest)
+                else {"evidence_refs": sorted(set(action.evidence_refs))}
+            )
+            result = self.registry.invoke(action.tool_name, state, invocation_parameters)
             state.budget.tool_calls_used += 1
             if isinstance(result, EvidenceBundle):
-                requested_types = (
-                    set(domain_requested_types)
-                    if domain_requested_types is not None
-                    else self.registry.get(action.tool_name).provides_evidence_types
-                )
+                requested_types = self.registry.get(action.tool_name).provides_evidence_types
                 apply_evidence_bundle(state, result, self.registry, requested_types)
                 state.evidence_packs.append(
                     build_evidence_pack(
@@ -497,24 +420,6 @@ class JudgmentGraph:
             call.status, call.error = "denied", str(exc)
         except Exception as exc:
             call.status, call.error = "error", f"{type(exc).__name__}: {exc}"
-            if isinstance(action, DataToolRequest) and self.data_tool_gateway is not None:
-                from ...contracts import InvestigationToolTrace
-                state.tool_ledger.traces.append(InvestigationToolTrace(
-                    sequence=len(state.tool_ledger.traces) + 1,
-                    tool_name=action.tool_name,
-                    arguments=action.arguments,
-                    result_type="ToolError",
-                    result={"error_type": type(exc).__name__, "error_message": str(exc)},
-                    tool_call_id=action.tool_call_id,
-                    model_message=action.model_message,
-                ))
-                self.data_tool_gateway.event_sink("tool_error", "数据工具调用失败", {
-                    "tool_name": action.tool_name,
-                    "tool_call_id": action.tool_call_id,
-                    "arguments": action.arguments,
-                    "error_type": type(exc).__name__,
-                    "error_message": str(exc),
-                })
             add_repair_action(
                 state,
                 repair_type=(
@@ -565,20 +470,6 @@ class JudgmentGraph:
                 return {"investigation": state, "action": None, "route": "continue"}
             state.verdict.limitations.extend(errors)
             state.verdict.level = "insufficient_evidence"
-        if self.report_composer is not None:
-            report = self.report_composer.compose(state)
-            report_errors = self.report_composer.validate(state, report)
-            attempts = 0
-            while report_errors and attempts < state.budget.max_verdict_repairs:
-                attempts += 1
-                report = self.report_composer.repair(state, report, report_errors)
-                report_errors = self.report_composer.validate(state, report)
-            state.report_validation_errors = list(report_errors)
-            if report_errors:
-                report.limitations.extend(report_errors)
-                report.verdict.level = "insufficient_evidence"
-            state.investigation_report = report
-            state.verdict = report.verdict
         state.finished = True
         return {"investigation": state, "action": None, "route": "end"}
 
