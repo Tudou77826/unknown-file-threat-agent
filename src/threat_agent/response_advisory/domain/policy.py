@@ -14,11 +14,7 @@ def validate_response_proposal(
     errors: list[str] = []
     if not proposal.actions:
         errors.append("Response proposal contains no candidate actions")
-    valid_refs = {
-        *judgment.evidence_refs,
-        *(item.fact_id for item in judgment.facts),
-        *(item.finding_id for item in judgment.findings),
-    }
+    valid_refs = set(judgment.evidence_refs)
     action_ids: set[str] = set()
     for action in proposal.actions:
         if action.action_id in action_ids:

@@ -31,6 +31,7 @@ _EVENT_TYPE = {
     "response": "model",
     "tool": "tool",
     "evidence": "tool",
+    "round": "tool",
     "graph": "graph",
     "verdict": "graph",
     "result": "run",
@@ -51,12 +52,39 @@ _STAGE_BY_KIND = {
     "decision": "investigating",
     "tool": "investigating",
     "evidence": "investigating",
+    "round": "investigating",
     "verdict": "judgment",
     "report": "reporting",
     "response": "response_advisory",
     "approval": "approval",
     "result": "publishing",
     "complete": "published",
+}
+
+# Default workflow node for each event kind. Ambiguous kinds (thinking, repair,
+# approval) are overridden by an explicit `node` in the event details.
+_NODE_BY_KIND = {
+    "run": "intake",
+    "graph": "intake",
+    "decision": "plan",
+    "tool_message": "validate",
+    "tool": "execute",
+    "tool_error": "execute",
+    "round": "execute",
+    "report": "compose",
+    "validation": "gate",
+    "verdict": "gate",
+    "response": "advise",
+    "result": "done",
+    "complete": "done",
+    "error": "error",
+}
+
+# model_input / model_output events carry a `phase`; map it to a workflow node.
+_PHASE_TO_NODE = {
+    "judgment_planning": "plan",
+    "judgment_report": "compose",
+    "response_advisory": "advise",
 }
 
 
@@ -177,7 +205,6 @@ class DemoRunService:
                 dataset_id=dataset_id,
                 profile_id=profile_id,
                 settings=self.settings,
-                mode="llm",
                 emit=emit,
                 run_id=run_id,
             )
@@ -273,6 +300,14 @@ class DemoRunService:
         duration_ms = safe_details.pop("duration_ms", None)
         token_usage = safe_details.pop("token_usage", {})
         retry_count = safe_details.pop("retry_count", 0)
+        explicit_node = safe_details.pop("node", None)
+        phase = safe_details.get("phase")
+        node = (
+            (str(explicit_node) if explicit_node else "")
+            or _PHASE_TO_NODE.get(phase, "")
+            or _NODE_BY_KIND.get(kind, "")
+            or stage
+        )
         event_type = _EVENT_TYPE.get(kind, "run")
         if event_type == "model":
             model = (
@@ -299,6 +334,7 @@ class DemoRunService:
             sequence=sequence,
             event_type=event_type,
             stage=stage,
+            node=node,
             duration_ms=duration_ms,
             token_usage=token_usage,
             retry_count=retry_count,

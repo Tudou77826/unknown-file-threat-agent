@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, SystemMessage
 
 from threat_agent.case_management import initialize_state
 from threat_agent.contracts import (
@@ -24,7 +24,7 @@ from threat_agent.data_foundation import (
 )
 from threat_agent.judgment import InvestigationToolGateway
 from threat_agent.judgment.application.data_tool_planner import DataToolSelection, StructuredDataToolPlanner
-from threat_agent.judgment.application.reporting import DeterministicReportComposer, ReportDraft, StructuredReportComposer
+from threat_agent.judgment.application.reporting import ReportDraft, StructuredReportComposer
 from threat_agent.judgment.domain.models import DataToolRequest, FinishRequest, ToolCall
 
 
@@ -179,7 +179,9 @@ def test_data_tool_planner_can_only_select_domain_tools_or_actions():
         "type": "tool_call",
     }])})
     planner = StructuredDataToolPlanner(model)
-    action = planner.plan(state)
+    actions = planner.plan(state)
+    assert isinstance(actions, list) and len(actions) == 1
+    action = actions[0]
     assert isinstance(action, DataToolRequest)
     assert action.tool_name == "query_process_activities"
     assert action.arguments["entity_refs"] == ["process:host-1:10:1"]
@@ -192,29 +194,45 @@ def test_data_tool_planner_can_only_select_domain_tools_or_actions():
     assert "endpoint_refs" not in schemas["query_process_activities"]["properties"]
 
 
-def test_data_tool_planner_stops_repeated_tool_loop_before_model_call():
+def test_data_tool_planner_returns_all_planned_tool_calls_in_order():
     state = _state()
-    state.budget.iterations_used = 4
-    for index in range(3):
-        state.tool_calls.append(ToolCall(
-            call_id=f"call-{index}", tool_name="get_raw_records",
-            action_type="data_tool_request", status="success",
-            objective="读取已查询活动对应的原始记录并核验关键字段",
-        ))
-    planner = StructuredDataToolPlanner(_FakeModel({}))
-    action = planner.plan(state)
-    assert isinstance(action, FinishRequest)
-    assert "没有增加新的数据能力" in action.objective
+    model = _FakeModel({AIMessage: AIMessage(content="", tool_calls=[
+        {"name": "query_process_activities", "args": {"host_refs": ["host-1"]}, "id": "call-1", "type": "tool_call"},
+        {"name": "query_file_activities", "args": {"file_refs": ["file-a"]}, "id": "call-2", "type": "tool_call"},
+    ])})
+    planner = StructuredDataToolPlanner(model)
+    actions = planner.plan(state)
+    assert [a.tool_name for a in actions] == ["query_process_activities", "query_file_activities"]
+    assert all(isinstance(a, DataToolRequest) for a in actions)
+    assert [a.tool_call_id for a in actions] == ["call-1", "call-2"]
 
 
-def test_data_tool_planner_has_hard_online_iteration_cap():
+def test_data_tool_planner_orders_finish_last_and_finishes_without_tool_calls():
     state = _state()
-    state.budget.max_iterations = 48
-    state.budget.iterations_used = 12
-    planner = StructuredDataToolPlanner(_FakeModel({}))
-    action = planner.plan(state)
-    assert isinstance(action, FinishRequest)
-    assert "轮次上限" in action.objective
+    model = _FakeModel({AIMessage: AIMessage(content="", tool_calls=[
+        {"name": "finish_investigation", "args": {"objective": "现有证据已经充分，可以结束调查"}, "id": "call-f", "type": "tool_call"},
+        {"name": "query_process_activities", "args": {"host_refs": ["host-1"]}, "id": "call-q", "type": "tool_call"},
+    ])})
+    planner = StructuredDataToolPlanner(model)
+    actions = planner.plan(state)
+    assert isinstance(actions[-1], FinishRequest)
+    assert isinstance(actions[0], DataToolRequest)
+
+    model2 = _FakeModel({AIMessage: AIMessage(content="", tool_calls=[])})
+    actions2 = StructuredDataToolPlanner(model2).plan(state)
+    assert len(actions2) == 1 and isinstance(actions2[0], FinishRequest)
+
+
+def test_data_tool_planner_appends_round_reminder_after_threshold():
+    state = _state()
+    state.budget.iterations_used = 16
+    state.budget.max_iterations = 35
+    model = _FakeModel({AIMessage: AIMessage(content="", tool_calls=[])})
+    planner = StructuredDataToolPlanner(model)
+    messages = planner._messages(state)
+    reminder = [m for m in messages if isinstance(m, SystemMessage) and "system_remind" in m.content]
+    assert len(reminder) == 1
+    assert "16/35" in reminder[0].content
 
 
 def test_report_validator_rejects_unknown_refs_scope_and_candidate_relations(tmp_path: Path):
@@ -254,16 +272,6 @@ def test_report_validator_rejects_unknown_refs_scope_and_candidate_relations(tmp
         assert any("候选关系" in item for item in errors)
     finally:
         store.close()
-
-
-def test_offline_report_composer_publishes_chinese_contract():
-    state = _state()
-    state.verdict = CandidateVerdict(
-        level="insufficient_evidence", threat_type="unknown", summary="当前证据不足以完成定性"
-    )
-    report = DeterministicReportComposer().compose(state)
-    assert report.executive_summary == "当前证据不足以完成定性"
-    assert DeterministicReportComposer().validate(state, report) == []
 
 
 def test_structured_report_repair_sanitizes_references_without_calling_model():

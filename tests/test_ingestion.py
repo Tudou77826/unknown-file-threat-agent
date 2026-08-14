@@ -13,9 +13,10 @@ def test_ppt_fields_and_detail_string_are_supported():
     file_entity = next(x for x in state.entities if x.entity_type == "file")
     assert file_entity.attributes["sha256"] == "a" * 64
     assert file_entity.attributes["path"] == "/tmp/.cache/sysupd"
-    chain = next(x for x in state.evidence if x.evidence_type == "upstream_process_chain")
-    assert chain.data["tree_direct_parent_to_root"][0]["processName"] == "bash"
-    assert chain.data["tree_direct_parent_to_root"][1]["processName"] == "sshd"
+    process = next(x for x in state.entities if x.entity_type == "process")
+    chain = process.attributes["tree_direct_parent_to_root"]
+    assert chain[0]["processName"] == "bash"
+    assert chain[1]["processName"] == "sshd"
 
 
 def test_missing_anchor_is_rejected():

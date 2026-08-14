@@ -1,1 +1,0 @@
-{"event_id":"xh-context","event_type":"host_asset_context","domain":"reputation","source_system":"cmdb","observed_at":"2026-04-23T03:21:30Z","host_id":"server-03","subject_refs":["host:server-03"],"data":{"host_id":"server-03","approved_deployment":false,"asset_role":"database"}}

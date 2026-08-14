@@ -1,1 +1,0 @@
-{"event_id":"dep-context","event_type":"host_asset_context","domain":"reputation","source_system":"cmdb","observed_at":"2026-04-23T03:21:30Z","host_id":"deploy-02","subject_refs":["host:deploy-02"],"data":{"host_id":"deploy-02","approved_deployment":true,"deployment_id":"DEP-2026-88","asset_role":"application"}}

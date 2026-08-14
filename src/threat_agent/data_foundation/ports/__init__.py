@@ -1,4 +1,4 @@
-from .evidence_query import DataAccessError, EvidenceQueryPort
+from .evidence_query import DataAccessError
 from .ingestion import ActivityIngestionStore, SourceParser
 from .activity_query import (
     AssetActivityQueryPort, ExtensionActivityQueryPort, FileActivityQueryPort,
@@ -7,7 +7,7 @@ from .activity_query import (
 )
 
 __all__ = [
-    "ActivityIngestionStore", "DataAccessError", "EvidenceQueryPort", "SourceParser",
+    "ActivityIngestionStore", "DataAccessError", "SourceParser",
     "ProcessActivityQueryPort", "NetworkActivityQueryPort", "SocketActivityQueryPort",
     "FileActivityQueryPort", "ServiceActivityQueryPort", "PackageActivityQueryPort",
     "AssetActivityQueryPort", "ExtensionActivityQueryPort",

@@ -1,2 +1,0 @@
-{"process":{"status":"partial","limitations":["exec audit stream is missing"]},"file":{"status":"available"},"network":{"status":"unavailable","limitations":["network telemetry was not enabled"]},"persistence":{"status":"unavailable","limitations":["configuration audit data is outside retention"]},"reputation":{"status":"empty"}}
-

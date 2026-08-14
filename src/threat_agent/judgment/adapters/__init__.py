@@ -1,3 +1,3 @@
-from .tools import ToolRegistry
+from .investigation_tools import InvestigationToolGateway
 
-__all__ = ["ToolRegistry"]
+__all__ = ["InvestigationToolGateway"]

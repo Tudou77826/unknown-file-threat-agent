@@ -1,1 +1,0 @@
-{"event_id":"partial-baseline","event_type":"authorized_batch_baseline","domain":"reputation","source_system":"change-management","observed_at":"2026-04-23T03:21:20Z","host_id":"ransom-partial-01","subject_refs":["process:ransom-partial-01:8200:1776914444221"],"data":{"root_process_ref":"process:ransom-partial-01:8200:1776914444221","approved":false}}

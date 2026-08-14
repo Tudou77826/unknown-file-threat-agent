@@ -1,1 +1,0 @@
-{"File_hash":"2222222222222222222222222222222222222222222222222222222222222222","File_path":"/tmp/failed-locker","Sub_asset":"ransom-partial-01","discovery_time":1776914444221,"Recent_time":1776915300000,"Process_create_time":1776914444221,"Investigation_scenarios":["ransomware"],"Detail":{"context":[{"pid":"8200","path":"/tmp/failed-locker","processStartTime":1776914444221}]}}

@@ -35,7 +35,7 @@ class FakeRunService:
         return Payload()
 
 
-def test_full_demo_proves_data_quality_changes_judgment(tmp_path):
+def test_full_demo_shows_data_readiness_by_profile(tmp_path):
     settings = AppSettings.load(
         environ={
             "THREAT_AGENT_MODE": "deterministic",
@@ -46,14 +46,9 @@ def test_full_demo_proves_data_quality_changes_judgment(tmp_path):
     )
     comparisons = build_all_comparisons(settings)
     malicious = comparisons["c2-malicious-reference"]
-    benign = comparisons["c2-benign-reference"]
     assert [len(item.readiness.answerable_questions) for item in malicious.profiles] == [0, 2, 4, 5]
-    assert [item.case.judgment.verdict.level.value for item in malicious.profiles] == [
-        "insufficient_evidence", "insufficient_evidence", "confirmed_malicious", "confirmed_malicious"
-    ]
-    assert [item.case.judgment.verdict.level.value for item in benign.profiles] == [
-        "insufficient_evidence", "insufficient_evidence", "likely_malicious", "benign"
-    ]
+    # Readiness is derived from profile visibility; no verdict is computed.
+    assert all(item.case.judgment is None for item in malicious.profiles)
     assert malicious.fixed_conditions["rag_adapter"] == "null"
 
     app = create_app(InMemoryCaseReadStore(), InMemoryDemoComparisonStore(comparisons))

@@ -60,6 +60,7 @@ class OperationalEvent(ContractModel):
     sequence: int = Field(ge=1)
     event_type: Literal["graph", "model", "tool", "validation", "run", "error"]
     stage: str = Field(min_length=1)
+    node: str = Field(default="")
     duration_ms: float | None = Field(default=None, ge=0)
     token_usage: dict[str, int] = Field(default_factory=dict)
     retry_count: int = Field(default=0, ge=0)

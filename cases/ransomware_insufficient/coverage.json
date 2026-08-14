@@ -1,1 +1,0 @@
-{"process":{"status":"available"},"file":{"status":"unavailable","limitations":["file-event telemetry was not retained"]},"network":{"status":"available"},"persistence":{"status":"unavailable","limitations":["backup and service audit sources were unavailable"]},"reputation":{"status":"unavailable","limitations":["change-management baseline did not cover the asset"]}}

@@ -9,74 +9,70 @@ from ...contracts import (
     EvidenceStatus,
     ReadinessQuestion,
 )
-from ...judgment.domain.models import EvidenceRole, InvestigationState
 
 
-EVIDENCE_CAPABILITIES: dict[str, tuple[str, tuple[str, ...]]] = {
-    "process_exec": ("process", ("edr-process",)),
-    "process_parent_relation": ("process", ("edr-process",)),
-    "child_process_exec": ("process", ("auditd-execve",)),
-    "network_connection": ("network", ("edr-network",)),
-    "socket_io": ("network", ("ebpf-socket",)),
-    "systemd_event": ("persistence", ("auditd-file", "package-manager", "systemd-journal")),
-    "package_provenance": ("reputation", ("rpm-inventory",)),
-    "approved_endpoint": ("reputation", ("cmdb-baseline",)),
+# Static investigation questions the demo presents. Each maps the data sources
+# required to answer it; readiness is derived purely from the profile's visible
+# sources, not from any running investigation state.
+READINESS_QUESTIONS: dict[str, tuple[str, tuple[str, ...]]] = {
+    "role-execution": ("这个未知文件是否真的运行过？", ("edr-process",)),
+    "role-attribution": ("后续行为是否由该文件产生？", ("edr-process",)),
+    "role-c2-behavior": ("它是否外联并接收远程命令？", ("edr-network", "ebpf-socket", "auditd-execve")),
+    "role-persistence": ("它是否建立了持续驻留机制？", ("auditd-file", "package-manager", "systemd-journal")),
+    "role-counter-evidence": ("它是否可能是批准的合法软件？", ("rpm-inventory", "cmdb-baseline")),
+}
+
+SOURCE_DOMAINS: dict[str, str] = {
+    "edr-process": "process",
+    "auditd-execve": "process",
+    "edr-network": "network",
+    "ebpf-socket": "network",
+    "auditd-file": "file",
+    "package-manager": "file",
+    "systemd-journal": "persistence",
+    "rpm-inventory": "reputation",
+    "cmdb-baseline": "reputation",
 }
 
 
-def _question(role: EvidenceRole, profile: DataProfile) -> ReadinessQuestion:
+def _question(question_id: str, question: str, sources: tuple[str, ...], profile: DataProfile) -> ReadinessQuestion:
     visible = set(profile.visible_sources)
-    type_ready: list[bool] = []
-    domains: list[str] = []
-    sources: list[str] = []
-    limitations: list[str] = []
-    for evidence_type in role.required_evidence_types:
-        capability = EVIDENCE_CAPABILITIES.get(evidence_type)
-        if capability is None:
-            type_ready.append(False)
-            limitations.append(f"No data-capability mapping exists for {evidence_type}")
-            continue
-        domain, candidates = capability
-        domains.append(domain)
-        sources.extend(candidates)
-        type_ready.append(bool(visible.intersection(candidates)))
-    ready_count = sum(type_ready)
-    if type_ready and (
-        (role.requirement_mode == "all" and ready_count == len(type_ready))
-        or (role.requirement_mode == "any" and ready_count > 0)
-    ):
-        status = "answerable"
-    elif ready_count:
-        status = "partially_answerable"
-        limitations.append("Only part of the required evidence capability is exposed")
-    else:
-        status = "blocked"
-        limitations.append("None of the required evidence sources is exposed")
+    present = [source for source in sources if source in visible]
+    status = (
+        "answerable" if len(present) == len(sources)
+        else "partially_answerable" if present
+        else "blocked"
+    )
+    limitations = []
+    if status != "answerable":
+        limitations.append(f"Missing data sources: {sorted(set(sources) - set(present))}")
     return ReadinessQuestion(
-        question_id=role.role_id,
-        question=role.question,
-        evidence_role_ids=[role.role_id],
-        required_domains=list(dict.fromkeys(domains)),
-        required_sources=list(dict.fromkeys(sources)),
+        question_id=question_id,
+        question=question,
+        evidence_role_ids=[question_id],
+        required_domains=[SOURCE_DOMAINS.get(source, "unknown") for source in sources],
+        required_sources=list(sources),
         status=status,
         limitations=limitations,
     )
 
 
 def evaluate_data_readiness(
-    state: InvestigationState,
     profile: DataProfile,
     *,
+    case_id: str,
     tenant_id: str,
     run_id: str,
 ) -> DataReadinessReport:
     """Explain which investigation questions the selected data profile can support.
 
-    This evaluator is deterministic and descriptive. It does not modify investigation
-    state or infer a threat verdict.
+    Deterministic and descriptive: derived purely from profile.visible_sources.
     """
 
-    questions = [_question(role, profile) for role in state.evidence_roles]
+    questions = [
+        _question(question_id, question, sources, profile)
+        for question_id, (question, sources) in READINESS_QUESTIONS.items()
+    ]
     by_domain: dict[str, list] = defaultdict(list)
     for rule in profile.coverage_rules:
         for domain in rule.domains:
@@ -107,7 +103,7 @@ def evaluate_data_readiness(
     recommended = [f"Connect or expose data source: {source}" for source in missing_sources]
     return DataReadinessReport(
         tenant_id=tenant_id,
-        case_id=state.case_id,
+        case_id=case_id,
         source_identity="case-management/data-readiness",
         run_id=run_id,
         profile_id=profile.profile_id,

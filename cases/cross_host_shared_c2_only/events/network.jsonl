@@ -1,1 +1,0 @@
-{"event_id":"shared-endpoint","event_type":"internal_connection","domain":"network","source_system":"netflow","observed_at":"2026-04-23T03:21:00Z","host_id":"shared-01","subject_refs":["host:shared-01","host:shared-02","endpoint:198.51.100.9:443"],"data":{"source_host_id":"shared-01","related_host_id":"shared-02","shared_endpoint":"198.51.100.9:443","direct_file_transfer":false}}

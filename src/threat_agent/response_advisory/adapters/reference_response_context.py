@@ -12,21 +12,7 @@ class ReferenceAssetLookup(Protocol):
 
 
 def _host_ids(judgment: JudgmentResult) -> list[str]:
-    hosts: list[str] = []
-    refs = [
-        ref
-        for item in [*judgment.facts, *judgment.findings]
-        for ref in item.subject_refs
-    ]
-    for ref in refs:
-        parts = ref.split(":")
-        if parts[0] == "host" and len(parts) > 1:
-            hosts.append(parts[1])
-        elif parts[0] in {"file", "process"} and len(parts) > 1:
-            hosts.append(parts[1])
-    # Online path has no facts/findings subjects; hosts come from the scope.
-    hosts.extend(judgment.asserted_host_refs)
-    return list(dict.fromkeys(hosts))
+    return list(dict.fromkeys(judgment.asserted_host_refs))
 
 
 class ReferenceResponseContextAdapter:

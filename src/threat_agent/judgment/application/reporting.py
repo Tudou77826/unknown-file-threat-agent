@@ -9,8 +9,8 @@ from pydantic import Field
 from ...contracts import InvestigationReport, ReportStatement
 from ...contracts.investigation import CandidateVerdict
 from ...shared import StrictModel
+from ...shared.llm import invoke_llm
 from ..domain.models import InvestigationState
-from ..domain.verdict import evaluate_verdict
 from .evidence_gate import gate_verdict
 
 
@@ -40,12 +40,10 @@ def report_context(state: InvestigationState) -> dict[str, Any]:
         "case_id": state.case_id,
         "authorized_scope": state.scope.model_dump(mode="json"),
         "entities": [item.model_dump(mode="json") for item in state.entities],
-        "upstream_evidence": [item.model_dump(mode="json") for item in state.evidence],
         "query_results": [item.model_dump(mode="json") for item in state.tool_ledger.query_results],
         "entity_results": [item.model_dump(mode="json") for item in state.tool_ledger.entity_results],
         "metric_results": [item.model_dump(mode="json") for item in state.tool_ledger.metric_results],
         "tool_traces": [item.model_dump(mode="json") for item in state.tool_ledger.traces],
-        "active_scenarios": state.active_scenarios,
         "instructions": [
             "returned_count=0 only means this query returned zero rows under its execution boundary",
             "judge data sufficiency yourself; the data layer provides no Coverage grade",
@@ -79,8 +77,7 @@ class StructuredReportComposer:
         )
 
     def compose(self, state: InvestigationState) -> InvestigationReport:
-        draft = self._generate(json.dumps(report_context(state), ensure_ascii=False))
-        model_draft = ReportDraft.model_validate(draft)
+        model_draft = self._generate(json.dumps(report_context(state), ensure_ascii=False))
         model_draft.verdict = gate_verdict(state, model_draft.verdict)
         return self._publish(state, model_draft, version=1)
 
@@ -88,20 +85,25 @@ class StructuredReportComposer:
         return self._sanitize_report(state, report, errors)
 
     @staticmethod
+    @staticmethod
+    def _known_refs(state):
+        refs = set(state.tool_ledger.authorized_activity_refs)
+        for result in state.tool_ledger.query_results:
+            refs.update(item.evidence_id for item in result.evidence_references)
+            refs.update(item.activity_id for item in result.activities)
+        for result in state.tool_ledger.entity_results:
+            if result.identity is not None:
+                refs.add(result.identity.entity_id)
+            refs.update(item.relation_id for item in result.resolved_relations)
+            refs.update(item.relation_id for item in result.candidate_relations)
+        return refs
+
+    @staticmethod
     def _sanitize_report(state, report, errors):
         """Repair contract references locally; this must not require another LLM call."""
-        known_evidence = {item.evidence_id for item in state.evidence}
-        known_evidence |= {
-            ref.evidence_id for result in state.tool_ledger.query_results
-            for ref in result.evidence_references
-        }
-        known_evidence |= set(state.tool_ledger.authorized_activity_refs)
-        allowed_refs = known_evidence | {item.fact_id for item in state.facts}
-        allowed_refs |= {item.finding_id for item in state.findings}
-        allowed_refs |= {item.relation_id for item in state.relations}
+        allowed_refs = StructuredReportComposer._known_refs(state)
         allowed_boundaries = {item.query_id for item in state.tool_ledger.query_results}
-        allowed_relations = {item.relation_id for item in state.relations}
-        allowed_relations |= {
+        allowed_relations = {
             item.relation_id for result in state.tool_ledger.entity_results
             for item in result.resolved_relations
         }
@@ -109,7 +111,7 @@ class StructuredReportComposer:
         repaired.report_version += 1
         repaired.verdict.supporting_refs = [ref for ref in repaired.verdict.supporting_refs if ref in allowed_refs]
         repaired.verdict.contradicting_refs = [ref for ref in repaired.verdict.contradicting_refs if ref in allowed_refs]
-        for statement in [*repaired.current_situation, *repaired.affected_scope, *repaired.counter_evidence]:
+        for statement in [*repaired.current_situation, *repaired.affected_scope, *repaired.counter_evidence, *repaired.key_evidence]:
             statement.supporting_refs = [ref for ref in statement.supporting_refs if ref in allowed_refs]
         repaired.supporting_evidence_refs = [ref for ref in repaired.supporting_evidence_refs if ref in allowed_refs]
         repaired.query_boundary_refs = [ref for ref in repaired.query_boundary_refs if ref in allowed_boundaries]
@@ -134,32 +136,62 @@ class StructuredReportComposer:
         }, ensure_ascii=False))
         return self._publish(state, ReportDraft.model_validate(draft), version=report.report_version + 1)
 
-    def _generate(self, instruction: str):
-        # Transport retries are owned by the configured chat model. Retrying the
-        # whole report call here multiplied a 60-second provider timeout into a
-        # several-minute period with no new operational event.
+    def _generate(self, instruction: str) -> ReportDraft:
+        # A single large JSON via json_mode; the model can occasionally return
+        # malformed/truncated JSON, so the parse is retried with corrective
+        # feedback through the shared graded-retry layer.
         messages = [
             {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": instruction},
         ]
-        self.event_sink("model_input", "研判报告模型输入", {
-            "phase": "judgment_report",
-            "messages": messages,
-        })
-        try:
-            output = self.structured_model.invoke(messages)
-        except Exception as error:
-            self.event_sink("model_output", "研判报告模型调用失败", {
+
+        def invoke_once() -> ReportDraft:
+            return ReportDraft.model_validate(self.structured_model.invoke(messages))
+
+        def build_feedback(_attempt: int, error: Exception):
+            return {
+                "role": "user",
+                "content": (
+                    "The previous output was not valid ReportDraft JSON. Return only a "
+                    "complete JSON object matching the schema, without truncation or "
+                    f"extra fields. Parse error: {str(error)[:800]}"
+                ),
+            }
+
+        def on_attempt(attempt: int) -> None:
+            self.event_sink("model_input", "研判报告模型输入", {
                 "phase": "judgment_report",
-                "error_type": type(error).__name__,
-                "error_message": str(error),
+                "attempt": attempt,
+                "messages": messages,
             })
-            raise
-        self.event_sink("model_output", "研判报告模型输出", {
-            "phase": "judgment_report",
-            "output": output.model_dump(mode="json") if hasattr(output, "model_dump") else output,
-        })
-        return output
+
+        def on_output(_attempt: int, output: ReportDraft) -> None:
+            self.event_sink("model_output", "研判报告模型输出", {
+                "phase": "judgment_report",
+                "output": output.model_dump(mode="json"),
+            })
+
+        def on_failure(attempt: int, error: Exception, kind: str) -> None:
+            self.event_sink(
+                "model_output",
+                "研判报告模型输出校验失败" if kind == "parse" else "研判报告模型调用失败",
+                {
+                    "phase": "judgment_report",
+                    "attempt": attempt,
+                    "error_type": type(error).__name__,
+                    "error_message": str(error),
+                },
+            )
+
+        return invoke_llm(
+            invoke_once,
+            messages=messages,
+            build_feedback=build_feedback,
+            on_attempt=on_attempt,
+            on_output=on_output,
+            on_failure=on_failure,
+            parse_max_attempts=3,
+        )
 
     def _publish(self, state, draft, *, version):
         run_id = str(state.raw_input.get("run_id") or "primary")
@@ -187,15 +219,7 @@ class StructuredReportComposer:
 
     @staticmethod
     def validate(state, report):
-        known_evidence = {item.evidence_id for item in state.evidence}
-        known_evidence |= {
-            ref.evidence_id for result in state.tool_ledger.query_results
-            for ref in result.evidence_references
-        }
-        known_evidence |= set(state.tool_ledger.authorized_activity_refs)
-        known_facts = {item.fact_id for item in state.facts}
-        known_findings = {item.finding_id for item in state.findings}
-        known_relations = {item.relation_id for item in state.relations}
+        allowed_refs = StructuredReportComposer._known_refs(state)
         candidate_relations = {
             item.relation_id for result in state.tool_ledger.entity_results
             for item in result.candidate_relations
@@ -205,10 +229,9 @@ class StructuredReportComposer:
             for item in result.resolved_relations
         }
         known_boundaries = {item.query_id for item in state.tool_ledger.query_results}
-        allowed_refs = known_evidence | known_facts | known_findings | known_relations
         cited = set(report.supporting_evidence_refs)
         cited |= set(report.verdict.supporting_refs) | set(report.verdict.contradicting_refs)
-        for statement in [*report.current_situation, *report.affected_scope, *report.counter_evidence]:
+        for statement in [*report.current_situation, *report.affected_scope, *report.counter_evidence, *report.key_evidence]:
             cited |= set(statement.supporting_refs)
         errors = []
         unknown = sorted(cited - allowed_refs)
@@ -227,59 +250,7 @@ class StructuredReportComposer:
         candidate_as_confirmed = sorted(set(report.confirmed_relation_refs) & candidate_relations)
         if candidate_as_confirmed:
             errors.append(f"候选关系不能作为确认关系发布: {candidate_as_confirmed}")
-        unknown_confirmed = sorted(set(report.confirmed_relation_refs) - resolved_relations - known_relations)
+        unknown_confirmed = sorted(set(report.confirmed_relation_refs) - resolved_relations)
         if unknown_confirmed:
             errors.append(f"报告确认了未知关系: {unknown_confirmed}")
         return errors
-
-
-class DeterministicReportComposer(StructuredReportComposer):
-    """Offline report composer used to verify publication and repair semantics."""
-
-    def __init__(self):
-        self.model_name = "deterministic-report-composer/1.0"
-
-    def compose(self, state):
-        verdict = state.verdict or evaluate_verdict(state)
-        refs = sorted({ref for item in [*state.facts, *state.findings] for ref in item.evidence_refs})
-        boundaries = [item.query_id for item in state.tool_ledger.query_results]
-        key_evidence = [
-            ReportStatement(
-                statement_id=item.fact_id,
-                text=f"[{item.fact_type}] {item.statement}",
-                supporting_refs=list(item.evidence_refs),
-            )
-            for item in state.facts
-        ]
-        key_evidence += [
-            ReportStatement(
-                statement_id=item.finding_id,
-                text=f"[{item.finding_type}] {item.statement}（置信度 {int(round(item.confidence * 100))}%）",
-                supporting_refs=list(item.evidence_refs),
-                limitations=list(item.limitations),
-            )
-            for item in state.findings
-        ]
-        draft = ReportDraft(
-            verdict=verdict,
-            threat_scenarios=list(state.active_scenarios),
-            executive_summary=verdict.summary,
-            current_situation=[ReportStatement(
-                statement_id="situation-1", text=verdict.summary,
-                supporting_refs=list(verdict.supporting_refs),
-            )],
-            key_evidence=key_evidence,
-            supporting_evidence_refs=refs,
-            unresolved_questions=[item.question for item in state.evidence_gaps if item.status != "resolved"],
-            query_boundary_refs=boundaries,
-            asserted_host_refs=list(state.scope.host_ids),
-            asserted_start=state.scope.start_time,
-            asserted_end=state.scope.end_time,
-            limitations=list(verdict.limitations),
-        )
-        return self._publish(state, draft, version=1)
-
-    def repair(self, state, report, errors):
-        repaired = self.compose(state)
-        repaired.report_version = report.report_version + 1
-        return repaired

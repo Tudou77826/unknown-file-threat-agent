@@ -62,6 +62,30 @@ _DOMAIN_TOOLS = {
     "query_asset_activities": ("asset", AssetActivitiesInput),
 }
 
+# The model occasionally emits the literal string "null" (or "none"/"") for an
+# optional filter it does not want to use. Downstream strong-typed filtering
+# treats a non-empty string as a real value, so "null" would silently filter
+# every row out. Normalize those tokens to None before validation.
+_NULL_LIKE = {"", "null", "none", "undefined", "nan"}
+
+
+def _normalize_null_values(value: Any) -> Any:
+    if isinstance(value, str):
+        return None if value.strip().lower() in _NULL_LIKE else value
+    if isinstance(value, list):
+        return [item for item in (_normalize_null_values(v) for v in value) if item is not None]
+    if isinstance(value, dict):
+        return {
+            key: item
+            for key, val in value.items()
+            if (item := _normalize_null_values(val)) is not None
+        }
+    return value
+
+
+def _normalize_arguments(arguments: dict[str, Any]) -> dict[str, Any]:
+    return _normalize_null_values(arguments) or {}
+
 
 class InvestigationToolGateway:
     """Stable LLM tools over typed data-foundation capabilities."""
@@ -101,6 +125,7 @@ class InvestigationToolGateway:
     ) -> Any:
         if tool_name not in self.tool_names:
             raise KeyError(f"Unknown investigation data tool: {tool_name}")
+        arguments = _normalize_arguments(dict(arguments or {}))
         handler = getattr(self, tool_name)
         started = time.perf_counter()
         result = handler(arguments, context, ledger)
@@ -114,6 +139,7 @@ class InvestigationToolGateway:
             model_message=model_message or {},
         ))
         event_details = self._event_details(tool_name, arguments, result)
+        event_details["node"] = "execute"
         event_details["arguments"] = arguments
         event_details["result"] = result.model_dump(mode="json")
         event_details["tool_call_id"] = tool_call_id
@@ -129,9 +155,12 @@ class InvestigationToolGateway:
 
     @staticmethod
     def _event_details(tool_name: str, arguments: dict[str, Any], result: Any) -> dict[str, Any]:
+        # The domain is fixed by the tool name; arguments no longer carry an
+        # activity_type field after the feature-09 split.
+        domain = _DOMAIN_TOOLS.get(tool_name, (None, None))[0]
         details: dict[str, Any] = {
             "tool_name": tool_name,
-            "activity_type": arguments.get("activity_type"),
+            "activity_type": domain,
             "operation": arguments.get("operation"),
         }
         if hasattr(result, "query_id"):
@@ -228,13 +257,14 @@ class InvestigationToolGateway:
 
     def explore_entity(self, raw, context, ledger):
         request = ExploreEntityInput.model_validate(raw)
-        identity = self.store.get_entity(context.tenant_id, request.entity_ref)
+        identity = self._resolve_identity(context.tenant_id, request.entity_ref)
         if identity is None:
             raise DataAccessError("Unknown entity reference")
+        entity_id = identity.entity_id
         relations = self.store.find_relations(
-            context.tenant_id, request.entity_ref, request.relation_direction
+            context.tenant_id, entity_id, request.relation_direction
         ) if "relations" in request.include else []
-        alias_refs = {item.source_id for item in identity.aliases}
+        alias_refs = {item.source_id for item in identity.aliases} | {entity_id}
         timeline = []
         if "timeline" in request.include:
             for activity in self.store.list_activities(context.tenant_id):
@@ -262,6 +292,23 @@ class InvestigationToolGateway:
             set(ledger.authorized_activity_refs) | {item.activity_id for item in page}
         )
         return result
+
+    def _resolve_identity(self, tenant_id: str, ref: str):
+        """Resolve an entity by entity_id first, then by alias source_id.
+
+        Activity results expose aliases (e.g. ``process:host:pid:start``) while
+        relations and identities are keyed by platform entity_id. Accept either.
+        Host refs may appear as ``host:server-01`` (subject_ref) or ``server-01``
+        (host_ref alias), so also retry with the ``host:`` prefix stripped.
+        """
+        for candidate in {ref, ref[5:] if ref.startswith("host:") else ref}:
+            identity = self.store.get_entity(tenant_id, candidate)
+            if identity is not None:
+                return identity
+            for identity in self.store.list_entities(tenant_id):
+                if any(alias.source_id == candidate for alias in identity.aliases):
+                    return identity
+        return None
 
     def get_raw_records(self, raw, context, ledger):
         request = GetRawRecordsInput.model_validate(raw)

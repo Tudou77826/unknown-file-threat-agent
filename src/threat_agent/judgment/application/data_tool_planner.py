@@ -19,6 +19,7 @@ from ...contracts import (
     SocketActivitiesInput,
 )
 from ...shared import StrictModel
+from ...shared.llm import invoke_llm
 from ..domain.models import (
     DataToolRequest,
     FinishRequest,
@@ -30,7 +31,7 @@ from .native_tool_calling import (
     FinishInvestigationInput,
     RequestScopeExpansionInput,
     build_native_tools,
-    parse_tool_call,
+    parse_tool_calls,
     serialize_messages,
 )
 
@@ -47,6 +48,10 @@ class DataToolSelection(StrictModel):
     objective: str = Field(default="执行下一步受控数据调查", min_length=10)
     arguments: dict[str, Any] = Field(default_factory=dict)
     scope_request: dict[str, Any] | None = None
+
+
+# After this many iterations, append a session-round reminder to the model.
+REMINDER_THRESHOLD = 15
 
 
 def investigation_tools() -> list:
@@ -96,13 +101,14 @@ class StructuredDataToolPlanner:
             self.tools,
             tool_choice="required",
             strict=True,
-            parallel_tool_calls=False,
             extra_body={"thinking": {"type": "disabled"}},
         )
         self.event_sink = event_sink or (lambda _kind, _message, _details=None: None)
         self.system_prompt = (
-            "你是未知文件安全调查的取证规划器。根据案件证据和历次工具返回，每轮只调用一个已注册工具。"
+            "你是未知文件安全调查的取证规划器。根据案件证据和历次工具返回，规划下一步调查动作，"
+            "可以一次规划多个工具调用（按顺序执行）。"
             "工具参数必须严格遵循已注册 JSON Schema，不要自行创造字段。"
+            "不需要的过滤字段直接省略，不要填写 \"null\"、\"none\" 或空字符串。"
             "租户、案件、run_id 和授权 Scope 由系统注入，不得作为工具参数提交。"
             "空结果只代表该次查询在执行边界内返回零条，不能据此断言行为没有发生。"
             "候选关系只能用于继续调查，不能当作已确认事实。"
@@ -111,10 +117,7 @@ class StructuredDataToolPlanner:
             "当进一步查询没有信息增益时调用 finish_investigation。"
         )
 
-    def plan(self, state: InvestigationState) -> InvestigationAction:
-        forced_finish = self._convergence_guard(state)
-        if forced_finish is not None:
-            return forced_finish
+    def plan(self, state: InvestigationState) -> list[InvestigationAction]:
         messages = self._messages(state)
         self.event_sink("model_input", "研判模型输入", {
             "phase": "judgment_planning",
@@ -126,16 +129,17 @@ class StructuredDataToolPlanner:
                 for tool in self.tools
             ],
         })
-        try:
-            response = self.bound_model.invoke(messages)
-        except Exception as error:
-            self.event_sink("model_output", "研判模型调用失败", {
-                "phase": "judgment_planning",
-                "iteration": state.budget.iterations_used,
-                "error_type": type(error).__name__,
-                "error_message": str(error),
-            })
-            raise
+        response = invoke_llm(
+            lambda: self.bound_model.invoke(messages),
+            on_failure=lambda _attempt, error, _kind: self.event_sink(
+                "model_output", "研判模型调用失败", {
+                    "phase": "judgment_planning",
+                    "iteration": state.budget.iterations_used,
+                    "error_type": type(error).__name__,
+                    "error_message": str(error),
+                }
+            ),
+        )
         if not isinstance(response, AIMessage):
             response = AIMessage(content=getattr(response, "content", str(response)))
         self.event_sink("model_output", "研判模型输出", {
@@ -149,54 +153,53 @@ class StructuredDataToolPlanner:
             "invalid_tool_calls": response.invalid_tool_calls,
         })
         if not response.tool_calls:
-            return self._finish(state, "模型未请求新的数据工具，使用现有调查结果生成研判报告")
-        name, arguments, call_id = parse_tool_call(response)
-        if not call_id:
-            call_id = f"tool-call-{state.budget.iterations_used}"
-        call = response.tool_calls[0]
-        if name in {
+            return [self._finish(state, "模型未请求新的数据工具，使用现有调查结果生成研判报告")]
+
+        data_tool_names = {
             "query_process_activities", "query_network_activities", "query_socket_activities",
             "query_file_activities", "query_service_activities", "query_package_activities",
             "query_asset_activities", "explore_entity", "get_raw_records", "calculate_activity_metrics",
-        }:
-            return DataToolRequest(
-                tool_name=name,
-                objective=self._objective(name),
-                arguments=arguments,
-                tool_call_id=call_id,
-                model_message={
-                    "content": response.content,
-                    "tool_call": call,
-                    "additional_kwargs": response.additional_kwargs,
-                    "response_metadata": response.response_metadata,
-                    "usage_metadata": response.usage_metadata,
-                },
-            )
-        if name == "request_scope_expansion":
-            return ScopeRequest(**arguments)
-        if name == "finish_investigation":
-            return FinishRequest(**arguments)
-        raise ValueError(f"Model requested an unregistered tool: {name}")
+        }
+        actions: list[InvestigationAction] = []
+        for index, (name, arguments, call_id) in enumerate(parse_tool_calls(response)):
+            if not call_id:
+                call_id = f"tool-call-{state.budget.iterations_used}-{index}"
+            if name in data_tool_names:
+                actions.append(DataToolRequest(
+                    tool_name=name,
+                    objective=self._objective(name),
+                    arguments=arguments,
+                    tool_call_id=call_id,
+                    model_message={
+                        "content": response.content,
+                        "tool_call": {"name": name, "args": arguments, "id": call_id, "type": "tool_call"},
+                        "additional_kwargs": response.additional_kwargs,
+                        "response_metadata": response.response_metadata,
+                        "usage_metadata": response.usage_metadata,
+                    },
+                ))
+            elif name == "request_scope_expansion":
+                actions.append(ScopeRequest(**arguments))
+            elif name == "finish_investigation":
+                actions.append(FinishRequest(**arguments))
+            else:
+                raise ValueError(f"Model requested an unregistered tool: {name}")
+        return self._order_actions(actions)
 
-    def repair(self, state, invalid_action, validation_error):
-        self.event_sink("tool_message", "工具调用校验失败", {
-            "phase": "judgment_planning",
-            "tool_call_id": getattr(invalid_action, "tool_call_id", None),
-            "tool_name": getattr(invalid_action, "tool_name", None),
-            "error": validation_error,
-        })
-        return self.plan(state)
+    @staticmethod
+    def _order_actions(actions: list[InvestigationAction]) -> list[InvestigationAction]:
+        # finish_investigation must run last: if the model mixed it with other
+        # calls, move it to the end so remaining queries still execute first.
+        finish = [item for item in actions if isinstance(item, FinishRequest)]
+        others = [item for item in actions if not isinstance(item, FinishRequest)]
+        return others + finish
 
     def _messages(self, state: InvestigationState) -> list[Any]:
         context = {
             "case_id": state.case_id,
             "authorized_scope": state.scope.model_dump(mode="json"),
             "entities": [item.model_dump(mode="json") for item in state.entities],
-            "upstream_evidence": [item.model_dump(mode="json") for item in state.evidence],
-            "open_questions": [
-                {"gap_id": item.gap_id, "question": item.question, "status": item.status}
-                for item in state.evidence_gaps if item.status != "resolved"
-            ],
+            "claims": [item.model_dump(mode="json") for item in state.claims],
             "budget": state.budget.model_dump(mode="json"),
         }
         messages: list[Any] = [
@@ -218,6 +221,10 @@ class StructuredDataToolPlanner:
                 name=trace.tool_name,
                 status="error" if trace.result_type == "ToolError" else "success",
             ))
+        if state.budget.iterations_used > REMINDER_THRESHOLD:
+            messages.append(SystemMessage(content=(
+                f"{{system_remind}}可用会话轮次：{state.budget.iterations_used}/{state.budget.max_iterations} {{/system_remind}}"
+            )))
         return messages
 
     @staticmethod
@@ -237,21 +244,4 @@ class StructuredDataToolPlanner:
 
     @classmethod
     def _finish(cls, state: InvestigationState, objective: str) -> FinishRequest:
-        return FinishRequest(
-            objective=objective,
-            resolved_gap_ids=[item.gap_id for item in state.evidence_gaps if item.status == "resolved"],
-            unresolved_gap_ids=[item.gap_id for item in state.evidence_gaps if item.status != "resolved"],
-        )
-
-    @classmethod
-    def _convergence_guard(cls, state: InvestigationState) -> FinishRequest | None:
-        calls = state.tool_calls
-        reason = None
-        if state.budget.iterations_used >= min(state.budget.max_iterations, 12):
-            reason = "已达到在线调查轮次上限，使用现有查询结果生成研判报告"
-        elif len(calls) >= 2 and all(item.status in {"denied", "error"} for item in calls[-2:]) \
-                and calls[-1].tool_name == calls[-2].tool_name:
-            reason = "同一数据工具连续失败，停止重复请求并在报告中说明限制"
-        elif len(calls) >= 3 and len({item.tool_name for item in calls[-3:]}) == 1:
-            reason = "连续调查动作没有增加新的数据能力，使用现有结果形成报告"
-        return cls._finish(state, reason) if reason else None
+        return FinishRequest(objective=objective)

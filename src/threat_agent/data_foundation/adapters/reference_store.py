@@ -11,13 +11,9 @@ from ...contracts import (
     Coverage,
     DataProfile,
     Evidence,
-    EvidenceBundle,
-    EvidenceQuery,
-    EvidenceStatus,
     ReferenceAsset,
     ReferenceDatasetMetadata,
 )
-from ..ports.evidence_query import DataAccessError
 
 
 SCHEMA_VERSION = "1"
@@ -342,110 +338,3 @@ class SQLiteReferenceDataStore:
         ).fetchone()
         return int(row["count"])
 
-
-class SQLiteEvidenceQueryAdapter:
-    def __init__(
-        self,
-        store: SQLiteReferenceDataStore,
-        *,
-        dataset_id: str,
-        dataset_version: str,
-        visible_sources: set[str] | None = None,
-        profile: DataProfile | None = None,
-    ):
-        self.store = store
-        self.dataset_id = dataset_id
-        self.dataset_version = dataset_version
-        if profile is not None and profile.dataset_version != dataset_version:
-            raise ValueError("Profile dataset_version does not match adapter dataset")
-        self.profile = profile
-        self.visible_sources = set(profile.visible_sources) if profile else visible_sources
-
-    def query_evidence(self, query: EvidenceQuery) -> EvidenceBundle:
-        if query.domain not in query.scope.allowed_domains:
-            raise DataAccessError(f"Domain {query.domain!r} is outside the authorized scope")
-        placeholders = ",".join("?" for _ in query.evidence_types)
-        sql = (
-            "SELECT payload_json FROM evidence WHERE dataset_id=? AND dataset_version=? "
-            f"AND case_id=? AND domain=? AND evidence_type IN ({placeholders})"
-        )
-        args: list[Any] = [
-            self.dataset_id,
-            self.dataset_version,
-            query.case_id,
-            query.domain,
-            *query.evidence_types,
-        ]
-        rows = self.store.connection.execute(sql, args).fetchall()
-        evidence = [Evidence.model_validate_json(row["payload_json"]) for row in rows]
-        if self.visible_sources is not None:
-            evidence = [item for item in evidence if item.source_system in self.visible_sources]
-        requested_host = str(query.parameters.get("host_id") or "")
-        if requested_host and requested_host not in query.scope.host_ids:
-            raise DataAccessError(f"Host {requested_host!r} is outside the authorized scope")
-        start = query.scope.start_time
-        end = query.scope.end_time
-        filtered: list[Evidence] = []
-        for item in evidence:
-            values = set(item.subject_refs) | set(_strings(item.data))
-            if requested_host and requested_host not in values and item.data.get("host_id") != requested_host:
-                continue
-            if start and item.observed_at and item.observed_at < start:
-                continue
-            if end and item.observed_at and item.observed_at > end:
-                continue
-            filtered.append(item)
-        filtered.sort(key=lambda item: (item.observed_at is None, item.observed_at, item.evidence_id))
-        filtered = filtered[: query.limit]
-        coverage_rows = self.store.connection.execute(
-            "SELECT source_id, payload_json FROM coverage WHERE dataset_id=? AND dataset_version=? AND case_id=? AND domain=?",
-            (self.dataset_id, self.dataset_version, query.case_id, query.domain),
-        ).fetchall()
-        coverage_items = [
-            (row["source_id"], Coverage.model_validate_json(row["payload_json"]))
-            for row in coverage_rows
-            if self.visible_sources is None or row["source_id"] in self.visible_sources
-        ]
-        profile_rules = (
-            [rule for rule in self.profile.coverage_rules if query.domain in rule.domains]
-            if self.profile
-            else []
-        )
-        visible_rules = [
-            rule for rule in profile_rules if rule.source_id in (self.visible_sources or set())
-        ]
-        if self.profile is not None:
-            if visible_rules:
-                completeness_order = {"complete": 3, "partial": 2, "unknown": 1, "unavailable": 0}
-                best = max(visible_rules, key=lambda item: completeness_order[item.completeness])
-                coverage = Coverage(
-                    domain=query.domain,
-                    status=best.status,
-                    source_system=best.source_id,
-                    completeness=best.completeness,
-                    limitations=list(best.limitations),
-                )
-            else:
-                coverage = Coverage(
-                    domain=query.domain,
-                    status=EvidenceStatus.UNAVAILABLE,
-                    completeness="unavailable",
-                    limitations=["The selected data profile does not expose this domain"],
-                )
-        else:
-            coverage = coverage_items[0][1] if coverage_items else Coverage(
-                domain=query.domain,
-                status=EvidenceStatus.UNAVAILABLE,
-                completeness="unavailable",
-                limitations=["Reference dataset does not expose this data source"],
-            )
-        if not filtered and coverage.status == EvidenceStatus.AVAILABLE:
-            status = EvidenceStatus.EMPTY
-        else:
-            status = coverage.status
-        return EvidenceBundle(
-            status=status,
-            evidence=filtered,
-            coverage=coverage,
-            limitations=list(coverage.limitations),
-        )

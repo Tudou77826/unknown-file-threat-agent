@@ -36,7 +36,7 @@ class GraphSettings(FrozenSettings):
 
 
 class JudgmentBudgetSettings(FrozenSettings):
-    max_iterations: int = Field(default=48, ge=1, le=500)
+    max_iterations: int = Field(default=30, ge=1, le=500)
     max_tool_calls: int = Field(default=60, ge=1, le=1000)
     max_scope_expansions: int = Field(default=2, ge=0, le=20)
     max_repair_actions: int = Field(default=8, ge=0, le=100)
@@ -176,7 +176,7 @@ class AppSettings(FrozenSettings):
                 recursion_limit=get("THREAT_AGENT_GRAPH_RECURSION_LIMIT", 1000)
             ),
             judgment_budget=JudgmentBudgetSettings(
-                max_iterations=get("JUDGMENT_MAX_ITERATIONS", 48),
+                max_iterations=get("JUDGMENT_MAX_ITERATIONS", 30),
                 max_tool_calls=get("JUDGMENT_MAX_TOOL_CALLS", 60),
                 max_scope_expansions=get("JUDGMENT_MAX_SCOPE_EXPANSIONS", 2),
                 max_repair_actions=get("JUDGMENT_MAX_REPAIR_ACTIONS", 8),

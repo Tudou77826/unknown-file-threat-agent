@@ -2,7 +2,7 @@
 
 from .case import InitialCase
 from .evidence import Coverage, Entity, Evidence, EvidenceBundle, EvidenceQuery, EvidenceStatus, Scope
-from .investigation import CandidateVerdict, Fact, Finding, JudgmentResult, Relation, VerdictLevel
+from .investigation import CandidateVerdict, JudgmentResult, VerdictLevel
 from .knowledge import KnowledgeCitation, KnowledgeQuery, KnowledgeResult
 from .presentation import CaseReadModel
 from .response import ResponseAction, ResponsePlan
@@ -101,9 +101,6 @@ __all__ = [
     "Evidence",
     "EvidenceBundle",
     "EvidenceStatus",
-    "Fact",
-    "Finding",
-    "Relation",
     "Scope",
     "VerdictLevel",
     "DataProfile",

@@ -1,8 +1,0 @@
-{
-  "process": {"status": "available"},
-  "file": {"status": "available"},
-  "network": {"status": "available"},
-  "persistence": {"status": "available"},
-  "reputation": {"status": "available"}
-}
-

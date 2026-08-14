@@ -22,7 +22,6 @@ dependencies = [
 dev = ["pytest>=8"]
 
 [project.scripts]
-threat-agent = "threat_agent.bootstrap.cli:main"
 threat-agent-demo = "threat_agent.bootstrap.demo:main"
 
 [tool.setuptools.packages.find]

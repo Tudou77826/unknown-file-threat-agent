@@ -5,9 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from threat_agent.contracts import DatasetManifest, EvidenceQuery, ProcessActivityQuery, Scope
+from threat_agent.contracts import DatasetManifest, ProcessActivityQuery, Scope
 from threat_agent.data_foundation import (
-    ActivityEvidenceQueryAdapter,
     BatchIngestionService,
     DataAccessError,
     ReferenceEventParser,
@@ -122,24 +121,5 @@ def test_scope_expansion_is_rejected_instead_of_silently_applied(tmp_path: Path)
     try:
         with pytest.raises(DataAccessError):
             SQLiteActivityQueryAdapter(store).query_process(_query(host_refs=["host-2"]))
-    finally:
-        store.close()
-
-
-def test_offline_test_projection_preserves_analyzer_shape_without_quality_claim(tmp_path: Path):
-    store = SQLiteActivityStore(tmp_path / "activities.sqlite")
-    try:
-        _seed(store)
-        adapter = ActivityEvidenceQueryAdapter(SQLiteActivityQueryAdapter(store), run_id="run-a")
-        result = adapter.query_evidence(EvidenceQuery(
-            tenant_id="tenant-a", case_id="case-a", query_id="test-projection-query",
-            domain="process", evidence_types=["process_exec"], scope=_scope(), limit=10,
-        ))
-        assert len(result.evidence) == 2
-        assert {item.evidence_type for item in result.evidence} == {"process_exec"}
-        assert result.coverage.completeness == "unknown"
-        assert result.coverage.limitations == [
-            "Offline deterministic-test projection; no data quality assessment"
-        ]
     finally:
         store.close()

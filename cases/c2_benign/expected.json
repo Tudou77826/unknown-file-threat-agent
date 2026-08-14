@@ -1,5 +1,0 @@
-{
-  "verdict": "benign",
-  "threat_type": "unknown",
-  "required_findings": ["legitimate_software_explanation"]
-}

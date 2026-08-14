@@ -8,19 +8,20 @@ from typing import Any, Callable
 
 from ..case_management import CaseGraph, build_case_read_model, create_memory_checkpointer, initialize_state
 from ..case_management.application import evaluate_data_readiness
-from ..contracts import Coverage, DemoComparisonReadModel, ProfileComparisonItem
+from ..contracts import CaseReadModel, DemoComparisonReadModel, ProfileComparisonItem
 from ..data_foundation.adapters import (
-    ActivityEvidenceQueryAdapter, SQLiteActivityQueryAdapter, SQLiteActivityStore,
+    SQLiteActivityQueryAdapter, SQLiteActivityStore,
     SQLiteReferenceDataStore,
 )
 from ..data_foundation.application import initialize_reference_demo, reference_activity_store_path
 from ..judgment import (
-    DeterministicPlanner, DeterministicReportComposer, InvestigationToolGateway,
-    JudgmentGraph, StructuredDataToolPlanner, StructuredReportComposer, ToolRegistry,
+    InvestigationToolGateway,
+    JudgmentGraph, StructuredDataToolPlanner, StructuredReportComposer,
 )
+from ..judgment.application.tool_observation import ToolObservationSummarizer
 from ..presentation import InMemoryCaseReadStore, InMemoryDemoComparisonStore
 from ..presentation.api.routes import create_app
-from ..response_advisory import DeterministicResponsePlanner, ResponseGraph, StructuredResponsePlanner
+from ..response_advisory import ResponseGraph, StructuredResponsePlanner
 from ..response_advisory.adapters import ReferenceResponseContextAdapter
 from .settings import AppSettings, PROJECT_ROOT, build_judgment_model, build_report_model, build_response_model
 
@@ -51,63 +52,68 @@ def localize_verdict(judgment) -> None:
     judgment.verdict.summary = VERDICT_SUMMARY_ZH.get(level, judgment.verdict.summary)
 
 
-class ObservableEvidenceQuery:
-    def __init__(self, delegate, emit: EventSink):
-        self.delegate = delegate
-        self.emit = emit
-
-    def query_evidence(self, query):
-        self.emit("tool", f"查询 {query.domain} 数据", {
-            "query_id": query.query_id,
-            "evidence_types": query.evidence_types,
-        })
-        result = self.delegate.query_evidence(query)
-        self.emit("evidence", f"数据查询返回 {len(result.evidence)} 条记录", {
-            "status": result.status.value,
-            "domain": query.domain,
-            "evidence_ids": [item.evidence_id for item in result.evidence[:8]],
-        })
-        return result
-
-
 class ObservableJudgmentPlanner:
-    def __init__(self, delegate, emit: EventSink):
+    def __init__(self, delegate, emit: EventSink, observation_summarizer=None):
         self.delegate = delegate
         self.emit = emit
         self.uses_data_tools = bool(getattr(delegate, "uses_data_tools", False))
+        self.observation_summarizer = observation_summarizer
+        self._summarized_trace_count = 0
 
     def plan(self, state):
+        self._summarize_previous_round(state)
         self.emit("thinking", "研判模型正在选择下一步调查动作", {
+            "node": "plan",
             "iteration": state.budget.iterations_used,
-            "open_gaps": [gap.gap_id for gap in state.evidence_gaps if gap.status == "open"][:8],
         })
         started = time.perf_counter()
-        action = self.delegate.plan(state)
+        actions = list(self.delegate.plan(state))
         duration_ms = round((time.perf_counter() - started) * 1000, 3)
-        decision = state.planner_decisions[-1] if state.planner_decisions else None
-        self.emit("decision", f"研判模型选择：{action.action_type}", {
-            "tool_name": getattr(action, "tool_name", None),
-            "objective": action.objective,
-            "decision_summary": decision.decision_summary if decision else action.objective,
-            "fallback_used": decision.fallback_used if decision else False,
-            "duration_ms": duration_ms,
-        })
-        return action
+        for action in actions:
+            self.emit("decision", f"研判模型选择：{action.action_type}", {
+                "node": "plan",
+                "tool_name": getattr(action, "tool_name", None),
+                "objective": action.objective,
+                "duration_ms": duration_ms,
+            })
+        return actions
 
-    def repair(self, state, invalid_action, validation_error):
-        self.emit("repair", "结构化动作未通过校验，研判模型正在修复", {
-            "validation_error": validation_error,
+    def _summarize_previous_round(self, state) -> None:
+        """Emit one round-level observation for the tools executed last round.
+
+        The unit of observation is the round, not the individual tool, so this
+        performs a single LLM call aggregating the round's results.
+        """
+        if self.observation_summarizer is None:
+            return
+        traces = state.tool_ledger.traces
+        new_traces = traces[self._summarized_trace_count:]
+        if not new_traces:
+            return
+        round_num = max(1, state.budget.iterations_used - 1)
+        items = [(trace.tool_name, trace.result) for trace in new_traces]
+        try:
+            summary = self.observation_summarizer.summarize_round(items)
+        except Exception:
+            summary = None
+        self._summarized_trace_count = len(traces)
+        self.emit("round", f"第 {round_num} 轮调查完成", {
+            "node": "execute",
+            "round": round_num,
+            "tool_names": [trace.tool_name for trace in new_traces],
+            "observation": summary,
         })
-        return self.delegate.repair(state, invalid_action, validation_error)
 
 
 class ObservableReportComposer:
     def __init__(self, delegate, emit: EventSink):
         self.delegate = delegate
         self.emit = emit
+        self._verdict_emitted = False
 
     def compose(self, state):
         self.emit("thinking", "研判模型正在综合证据并形成正式报告", {
+            "node": "compose",
             "query_count": len(state.tool_ledger.query_results),
             "activity_count": len(state.tool_ledger.authorized_activity_refs),
         })
@@ -115,16 +121,28 @@ class ObservableReportComposer:
         report = self.delegate.compose(state)
         duration_ms = round((time.perf_counter() - started) * 1000, 3)
         self.emit("report", "研判模型已生成正式调查报告", {
+            "node": "compose",
             "report_id": report.report_id,
             "report_version": report.report_version,
             "verdict": report.verdict.level.value,
             "duration_ms": duration_ms,
         })
+        level = report.verdict.level.value
+        if not self._verdict_emitted:
+            self._verdict_emitted = True
+            self.emit("verdict", f"研判结论：{VERDICT_LABEL_ZH.get(level, level)}", {
+                "node": "gate",
+                "verdict": level,
+                "summary": VERDICT_SUMMARY_ZH.get(level, report.verdict.summary),
+                "supporting_refs": report.verdict.supporting_refs,
+                "contradicting_refs": report.verdict.contradicting_refs,
+            })
         return report
 
     def validate(self, state, report):
         errors = self.delegate.validate(state, report)
         self.emit("validation", "调查报告发布校验完成", {
+            "node": "gate",
             "passed": not errors,
             "error_count": len(errors),
         })
@@ -132,6 +150,7 @@ class ObservableReportComposer:
 
     def repair(self, state, report, errors):
         self.emit("repair", "研判模型正在修复报告引用或范围问题", {
+            "node": "gate",
             "error_count": len(errors),
         })
         return self.delegate.repair(state, report, errors)
@@ -141,16 +160,11 @@ class ObservableResponsePlanner:
     def __init__(self, delegate, emit: EventSink):
         self.delegate = delegate
         self.emit = emit
+        self._response_emitted = False
 
     def propose(self, judgment, knowledge, validation_errors, response_context=None):
-        level = judgment.verdict.level.value
-        self.emit("verdict", f"研判结论：{VERDICT_LABEL_ZH.get(level, level)}", {
-            "verdict": level,
-            "summary": VERDICT_SUMMARY_ZH.get(level, judgment.verdict.summary),
-            "supporting_refs": judgment.verdict.supporting_refs,
-            "contradicting_refs": judgment.verdict.contradicting_refs,
-        })
         self.emit("thinking", "处置模型正在结合研判结果与资产上下文生成建议", {
+            "node": "advise",
             "verdict": judgment.verdict.level.value,
             "validation_errors": validation_errors,
         })
@@ -159,10 +173,13 @@ class ObservableResponsePlanner:
             judgment, knowledge, validation_errors, response_context
         )
         duration_ms = round((time.perf_counter() - started) * 1000, 3)
-        self.emit("response", f"处置模型生成 {len(proposal.actions)} 项建议", {
-            "action_types": [item.action_type for item in proposal.actions],
-            "duration_ms": duration_ms,
-        })
+        if not self._response_emitted:
+            self._response_emitted = True
+            self.emit("response", f"处置模型生成 {len(proposal.actions)} 项建议", {
+                "node": "advise",
+                "action_types": [item.action_type for item in proposal.actions],
+                "duration_ms": duration_ms,
+            })
         return proposal
 
 
@@ -182,7 +199,6 @@ def run_demo_profile(
     case_id: str | None = None,
     profile_id: str,
     settings: AppSettings,
-    mode: str = "deterministic",
     emit: EventSink | None = None,
     run_id: str | None = None,
 ) -> ProfileComparisonItem:
@@ -202,58 +218,32 @@ def run_demo_profile(
     state.budget.max_iterations = settings.judgment_budget.max_iterations
     state.budget.max_tool_calls = settings.judgment_budget.max_tool_calls
     state.budget.max_scope_expansions = settings.judgment_budget.max_scope_expansions
-    state.budget.max_repair_actions = settings.judgment_budget.max_repair_actions
     state.budget.max_verdict_repairs = settings.judgment_budget.max_verdict_repairs
     effective_run_id = run_id or f"demo-{dataset_id}-{profile.level}"
     state.raw_input["run_id"] = effective_run_id
-    completeness_order = {"complete": 3, "partial": 2, "unknown": 1, "unavailable": 0}
-    test_coverage = {}
-    for domain in {domain for rule in profile.coverage_rules for domain in rule.domains}:
-        candidates = [rule for rule in profile.coverage_rules if domain in rule.domains]
-        best = max(candidates, key=lambda item: completeness_order[item.completeness])
-        test_coverage[domain] = Coverage(
-            domain=domain, status=best.status, source_system=best.source_id,
-            completeness=best.completeness, limitations=list(best.limitations),
-        )
+
+    settings.require_models()
     activity_store = SQLiteActivityStore(reference_activity_store_path(store.path, dataset_id))
-    base_query_port = ActivityEvidenceQueryAdapter(
-        SQLiteActivityQueryAdapter(activity_store, visible_sources=set(profile.visible_sources)),
-        run_id=effective_run_id,
-        test_coverage_by_domain=test_coverage,
-    )
-    query_port = ObservableEvidenceQuery(base_query_port, emit) if mode == "llm" else base_query_port
-    registry = ToolRegistry(
-        query_port,
-        query_default_limit=settings.evidence_query.default_limit,
-        query_max_limit=settings.evidence_query.max_limit,
-    )
-    if mode == "llm":
-        settings.require_models()
-        judgment_model = build_judgment_model(settings)
-        judgment_planner = ObservableJudgmentPlanner(
-            StructuredDataToolPlanner(judgment_model, emit), emit
-        )
-        report_composer = ObservableReportComposer(
-            StructuredReportComposer(build_report_model(settings), emit), emit
-        )
-        response_planner = ObservableResponsePlanner(
-            StructuredResponsePlanner(build_response_model(settings), emit), emit
-        )
-    else:
-        judgment_planner = DeterministicPlanner()
-        report_composer = DeterministicReportComposer()
-        response_planner = DeterministicResponsePlanner()
     activity_query_adapter = SQLiteActivityQueryAdapter(
         activity_store, visible_sources=set(profile.visible_sources)
     )
+    judgment_planner = ObservableJudgmentPlanner(
+        StructuredDataToolPlanner(build_judgment_model(settings), emit), emit,
+        observation_summarizer=ToolObservationSummarizer(build_judgment_model(settings)),
+    )
+    report_composer = ObservableReportComposer(
+        StructuredReportComposer(build_report_model(settings), emit), emit
+    )
+    response_planner = ObservableResponsePlanner(
+        StructuredResponsePlanner(build_response_model(settings), emit), emit
+    )
     judgment_graph = JudgmentGraph(
-        registry,
         judgment_planner,
         scope_approval_mode="defer",
         data_tool_gateway=InvestigationToolGateway(
             activity_store,
             activity_query_adapter,
-            event_sink=emit if mode == "llm" else None,
+            event_sink=emit,
         ),
         report_composer=report_composer,
         recursion_limit=settings.graph.recursion_limit,
@@ -276,13 +266,15 @@ def run_demo_profile(
         recursion_limit=settings.graph.recursion_limit,
     )
     emit("graph", "LangGraph 调查流程已启动", {
+        "node": "intake",
         "profile": profile.profile_id,
-        "planner_mode": mode,
+        "planner_mode": "llm",
     })
     result = graph.start(state, tenant_id="demo", run_id=effective_run_id)
     while (request := _interrupt_value(result)) is not None:
         if request.get("kind") == "scope_approval":
             emit("approval", "演示策略拒绝扩大调查范围", {
+                "node": "scope",
                 "approval_kind": "scope", "approved": False,
                 "request_ref": request.get("expansion_id"),
             })
@@ -292,6 +284,7 @@ def run_demo_profile(
             )
         elif request.get("kind") == "response_approval":
             emit("approval", "演示策略不批准执行高影响处置", {
+                "node": "approve",
                 "approval_kind": "response", "approved": False,
                 "request_ref": request.get("case_id"),
             })
@@ -311,16 +304,15 @@ def run_demo_profile(
         response_plan=result.get("response_plan"),
         approval_status=result.get("approval_status"),
     )
-    if mode == "llm" and read_model.judgment is not None:
+    if read_model.judgment is not None:
         localize_verdict(read_model.judgment)
     readiness = evaluate_data_readiness(
-        completed, profile, tenant_id="demo", run_id=effective_run_id
+        profile, case_id=case_id, tenant_id="demo", run_id=effective_run_id
     )
     level = read_model.judgment.verdict.level.value
     emit("result", f"案件处理完成：{VERDICT_LABEL_ZH.get(level, level)}", {
+        "node": "done",
         "summary": read_model.judgment.verdict.summary,
-        "fact_count": len(read_model.facts),
-        "finding_count": len(read_model.findings),
         "answerable_questions": len(readiness.answerable_questions),
     })
     return ProfileComparisonItem(
@@ -357,30 +349,27 @@ def run_demo_comparison(
         raise RuntimeError(
             f"Configured demo profile is not present in {dataset_id}: {settings.demo.data_profile}"
         )
+    # Readiness is derived purely from each profile's visible sources; no
+    # investigation is run here. AI investigation is triggered on demand.
     profiles = [
-        run_demo_profile(
-            store,
-            dataset_id=dataset_id,
-            dataset_version=metadata.dataset_version,
-            case_id=row["case_id"],
+        ProfileComparisonItem(
             profile_id=profile.profile_id,
-            settings=settings,
-            mode="deterministic",
+            level=profile.level,
+            readiness=evaluate_data_readiness(
+                profile,
+                case_id=row["case_id"],
+                tenant_id="demo",
+                run_id=f"demo-{dataset_id}-{profile.level}",
+            ),
+            case=CaseReadModel(
+                tenant_id="demo",
+                case_id=row["case_id"],
+                source_identity="demo-readiness",
+                lifecycle_status="not_investigated",
+            ),
         )
         for profile in data_profiles
     ]
-    previous_facts: set[str] = set()
-    previous_findings: set[str] = set()
-    enriched: list[ProfileComparisonItem] = []
-    for item in profiles:
-        fact_ids = {str(value["fact_id"]) for value in item.case.facts}
-        finding_ids = {str(value["finding_id"]) for value in item.case.findings}
-        enriched.append(item.model_copy(update={
-            "new_fact_ids": sorted(fact_ids - previous_facts),
-            "new_finding_ids": sorted(finding_ids - previous_findings),
-        }))
-        previous_facts = fact_ids
-        previous_findings = finding_ids
     return DemoComparisonReadModel(
         dataset_id=dataset_id,
         dataset_version=metadata.dataset_version,
@@ -393,11 +382,11 @@ def run_demo_comparison(
             "content_digest": metadata.content_digest,
             "random_seed": metadata.random_seed,
             "default_focus_profile": settings.demo.data_profile,
-            "judgment_planner": "deterministic",
-            "response_planner": "deterministic",
+            "judgment_planner": "structured-data-tool",
+            "response_planner": "structured",
             "rag_adapter": "null",
         },
-        profiles=enriched,
+        profiles=profiles,
     )
 
 
