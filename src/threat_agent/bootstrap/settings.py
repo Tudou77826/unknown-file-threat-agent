@@ -57,6 +57,7 @@ class ModelSettings(FrozenSettings):
     base_url: str = "https://api.siliconflow.cn/v1"
     model_name: str | None = None
     max_tokens: int = Field(default=512, ge=1, le=32768)
+    context_window_tokens: int = Field(default=100000, ge=1024, le=1000000)
     timeout_seconds: float = Field(default=240, gt=0, le=1800)
     max_retries: int = Field(default=2, ge=0, le=10)
     temperature: float = Field(default=0, ge=0, le=2)
@@ -122,6 +123,7 @@ class AppSettings(FrozenSettings):
         common_api_key = get("THREAT_AGENT_API_KEY", None, "SILICONFLOW_API_KEY")
         common_base_url = get("THREAT_AGENT_API_BASE", "https://api.siliconflow.cn/v1")
         common_model_name = get("MODEL_NAME")
+        common_context_window = get("MODEL_CONTEXT_WINDOW_TOKENS", 100000)
 
         def model(role: str) -> ModelSettings:
             prefix = role.upper()
@@ -130,6 +132,9 @@ class AppSettings(FrozenSettings):
                 base_url=get(f"{prefix}_MODEL_API_BASE", common_base_url),
                 model_name=get(f"{prefix}_MODEL_NAME", common_model_name),
                 max_tokens=get(f"{prefix}_MODEL_MAX_TOKENS", 512),
+                context_window_tokens=get(
+                    f"{prefix}_MODEL_CONTEXT_WINDOW_TOKENS", common_context_window
+                ),
                 timeout_seconds=get(
                     f"{prefix}_MODEL_TIMEOUT_SECONDS",
                     get(f"{prefix}_MODEL_TIMEOUT", 240),
@@ -148,6 +153,9 @@ class AppSettings(FrozenSettings):
             base_url=judgment_model.base_url,
             model_name=judgment_model.model_name,
             max_tokens=get("REPORT_MODEL_MAX_TOKENS", 8192),
+            context_window_tokens=get(
+                "REPORT_MODEL_CONTEXT_WINDOW_TOKENS", common_context_window
+            ),
             timeout_seconds=get(
                 "REPORT_MODEL_TIMEOUT_SECONDS",
                 get("REPORT_MODEL_TIMEOUT", 300),

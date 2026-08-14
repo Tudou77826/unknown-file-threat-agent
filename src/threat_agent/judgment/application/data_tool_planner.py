@@ -20,6 +20,7 @@ from ...contracts import (
 )
 from ...shared import StrictModel
 from ...shared.llm import invoke_llm
+from ...shared.tokenizer import estimate_messages_tokens
 from ..domain.models import (
     DataToolRequest,
     FinishRequest,
@@ -52,6 +53,43 @@ class DataToolSelection(StrictModel):
 
 # After this many iterations, append a session-round reminder to the model.
 REMINDER_THRESHOLD = 15
+
+# Context compaction triggers once total estimated input reaches this fraction
+# of the model's context window.
+COMPACTION_TRIGGER_PCT = 0.70
+
+# Keep this many most-recent tool traces as raw text after compaction; older
+# traces are folded into the LLM-written progress summary.
+KEEP_RECENT_TRACES = 6
+
+# Tool name -> activity_type for progress projection and budget accounting.
+_TOOL_TO_ACTIVITY_TYPE = {
+    "query_process_activities": "process",
+    "query_network_activities": "network",
+    "query_socket_activities": "socket",
+    "query_file_activities": "file",
+    "query_service_activities": "service",
+    "query_package_activities": "package",
+    "query_asset_activities": "asset",
+}
+
+# Authorized permission domain -> the concrete activity_types it covers. Used
+# to derive "unqueried" domains in the progress projection.
+_DOMAIN_TO_ACTIVITY_TYPES = {
+    "process": ["process"],
+    "network": ["network", "socket"],
+    "file": ["file"],
+    "persistence": ["service"],
+    "reputation": ["package", "asset"],
+}
+
+_COMPACTION_SYSTEM_PROMPT = (
+    "你是安全调查的上下文压缩器。把一段旧的调查历史压缩成结构化的调查进展摘要，"
+    "尽可能保留有价值的信息：查了哪些数据领域及关键发现、发现的关键证据（谁、对什么、"
+    "做了什么，保留 evidence_id/activity_id）、已确认或候选的实体关系、以及尚未查证或待确认的缺口。"
+    "必须继承上一版摘要中已经记录的内容，再并入新增工具历史里的信息，不得从头重写而丢失旧信息。"
+    "只输出结构化的中文摘要，不要输出无关内容。"
+)
 
 
 def investigation_tools() -> list:
@@ -95,8 +133,16 @@ class StructuredDataToolPlanner:
 
     uses_data_tools = True
 
-    def __init__(self, model: Any, event_sink: Callable | None = None):
+    def __init__(
+        self,
+        model: Any,
+        event_sink: Callable | None = None,
+        *,
+        context_window_tokens: int = 100000,
+        output_reserve_tokens: int = 4096,
+    ):
         self.tools = investigation_tools()
+        self.model = model
         self.bound_model = model.bind_tools(
             self.tools,
             tool_choice="required",
@@ -104,6 +150,12 @@ class StructuredDataToolPlanner:
             extra_body={"thinking": {"type": "disabled"}},
         )
         self.event_sink = event_sink or (lambda _kind, _message, _details=None: None)
+        self.context_window_tokens = context_window_tokens
+        self.output_reserve_tokens = output_reserve_tokens
+        # Compaction state, persisted on the planner instance across rounds
+        # within a single investigation run.
+        self._compaction_summary = ""
+        self._replay_from = 0
         self.system_prompt = (
             "你是未知文件安全调查的取证规划器。根据案件证据和历次工具返回，规划下一步调查动作，"
             "可以一次规划多个工具调用（按顺序执行）。"
@@ -195,37 +247,188 @@ class StructuredDataToolPlanner:
         return others + finish
 
     def _messages(self, state: InvestigationState) -> list[Any]:
-        context = {
+        # Message layout (prefix-cache friendly):
+        #   [0] system_prompt                 — byte-stable
+        #   [1] case_context (no budget)      — byte-stable
+        #   [2] progress summary (optional)   — written once, replaced only on compaction
+        #   [3..] raw tool call pairs         — most-recent traces, kept verbatim
+        #   [last] dynamic state message      — changes each round, recomputed only
+        prefix = [
+            SystemMessage(content=self.system_prompt),
+            HumanMessage(content=json.dumps(self._case_context(state), ensure_ascii=False)),
+        ]
+        dynamic = self._build_dynamic_state(state)
+        self._maybe_compact(state, prefix, dynamic)
+        tool_history = self._build_tool_history(state)
+        return prefix + tool_history + dynamic
+
+    def _case_context(self, state: InvestigationState) -> dict[str, Any]:
+        """Byte-stable case context: no budget/round/progress fields."""
+        return {
             "case_id": state.case_id,
             "authorized_scope": state.scope.model_dump(mode="json"),
             "entities": [item.model_dump(mode="json") for item in state.entities],
             "claims": [item.model_dump(mode="json") for item in state.claims],
-            "budget": state.budget.model_dump(mode="json"),
         }
-        messages: list[Any] = [
-            SystemMessage(content=self.system_prompt),
-            HumanMessage(content=json.dumps(context, ensure_ascii=False)),
+
+    def _compaction_threshold_tokens(self) -> int:
+        return int(COMPACTION_TRIGGER_PCT * self.context_window_tokens)
+
+    def _maybe_compact(
+        self,
+        state: InvestigationState,
+        prefix: list[Any],
+        dynamic: list[Any],
+    ) -> None:
+        """Compress old tool history once total input crosses the trigger.
+
+        Raw history is replayed verbatim below the threshold; only when the
+        whole message list reaches 70% of the window do we fold the oldest
+        traces into an LLM-written summary.
+        """
+        traces = state.tool_ledger.traces
+        # Nothing to fold if the un-summarized span is already small enough.
+        if len(traces) - self._replay_from <= KEEP_RECENT_TRACES:
+            return
+        current = prefix + self._build_tool_history(state) + dynamic
+        if estimate_messages_tokens(current) < self._compaction_threshold_tokens():
+            return
+        self._compact(state)
+
+    def _compact(self, state: InvestigationState) -> None:
+        traces = state.tool_ledger.traces
+        keep_from = max(self._replay_from, len(traces) - KEEP_RECENT_TRACES)
+        if keep_from <= self._replay_from:
+            return
+        to_compact = traces[self._replay_from:keep_from]
+        summary = self._generate_summary(self._compaction_summary, to_compact)
+        if summary:
+            self._compaction_summary = summary
+            self._replay_from = keep_from
+
+    def _generate_summary(self, previous: str, traces: list) -> str | None:
+        items = [
+            {
+                "tool": trace.tool_name,
+                "arguments": trace.arguments,
+                "result": trace.result,
+            }
+            for trace in traces
         ]
-        for trace in state.tool_ledger.traces[-12:]:
+        payload = json.dumps(
+            {"previous_summary": previous or None, "new_tool_history": items},
+            ensure_ascii=False,
+        )
+        messages = [
+            {"role": "system", "content": _COMPACTION_SYSTEM_PROMPT},
+            {"role": "user", "content": payload},
+        ]
+
+        def invoke_once() -> str:
+            response = self.model.invoke(messages)
+            content = getattr(response, "content", "")
+            if isinstance(content, list):
+                content = "".join(str(part) for part in content)
+            return str(content or "").strip()
+
+        try:
+            text = invoke_llm(
+                invoke_once,
+                parse_max_attempts=1,
+                transport_max_attempts=2,
+                transport_backoff=1.0,
+            )
+        except Exception:
+            # Compaction is best-effort: on failure keep history verbatim and
+            # retry on a later round. Never drop information silently.
+            return None
+        return text or None
+
+    def _build_tool_history(self, state: InvestigationState) -> list[Any]:
+        """Replay tool history: summary first, then recent raw traces verbatim."""
+        messages: list[Any] = []
+        if self._compaction_summary:
+            messages.append(SystemMessage(content=self._compaction_summary))
+        for trace in state.tool_ledger.traces[self._replay_from:]:
             call_id = trace.tool_call_id or f"trace-{trace.sequence}"
-            messages.append(AIMessage(content=trace.model_message.get("content", ""), tool_calls=[{
-                "name": trace.tool_name,
-                "args": trace.arguments,
-                "id": call_id,
-                "type": "tool_call",
-            }], additional_kwargs=dict(trace.model_message.get("additional_kwargs") or {}),
-                response_metadata=dict(trace.model_message.get("response_metadata") or {})))
-            messages.append(ToolMessage(
+            ai = AIMessage(
+                content=trace.model_message.get("content", ""),
+                tool_calls=[{
+                    "name": trace.tool_name,
+                    "args": trace.arguments,
+                    "id": call_id,
+                    "type": "tool_call",
+                }],
+                additional_kwargs=dict(trace.model_message.get("additional_kwargs") or {}),
+                response_metadata=dict(trace.model_message.get("response_metadata") or {}),
+            )
+            tool = ToolMessage(
                 content=json.dumps(trace.result, ensure_ascii=False),
                 tool_call_id=call_id,
                 name=trace.tool_name,
                 status="error" if trace.result_type == "ToolError" else "success",
-            ))
-        if state.budget.iterations_used > REMINDER_THRESHOLD:
-            messages.append(SystemMessage(content=(
-                f"{{system_remind}}可用会话轮次：{state.budget.iterations_used}/{state.budget.max_iterations} {{/system_remind}}"
-            )))
+            )
+            messages.append(ai)
+            messages.append(tool)
         return messages
+
+    def _build_dynamic_state(self, state: InvestigationState) -> list[Any]:
+        """Assemble the trailing per-round state message (budget + progress + reminder)."""
+        progress = self._build_progress(state)
+        parts: list[str] = [json.dumps(progress, ensure_ascii=False)]
+        if state.budget.iterations_used > REMINDER_THRESHOLD:
+            parts.append(
+                f"{{system_remind}}可用会话轮次：{state.budget.iterations_used}/{state.budget.max_iterations} {{/system_remind}}"
+            )
+        return [SystemMessage(content="\n".join(parts))]
+
+    def _build_progress(self, state: InvestigationState) -> dict[str, Any]:
+        """Deterministic progress projection derived from the tool ledger."""
+        queried: dict[str, dict[str, int]] = {}
+        explored: dict[str, dict[str, int]] = {}
+        for trace in state.tool_ledger.traces:
+            activity_type = _TOOL_TO_ACTIVITY_TYPE.get(trace.tool_name)
+            if activity_type is not None:
+                bucket = queried.setdefault(activity_type, {"queries": 0, "returned": 0})
+                bucket["queries"] += 1
+                bucket["returned"] += self._trace_returned_count(trace.result)
+            elif trace.tool_name == "explore_entity":
+                ref = (trace.arguments or {}).get("entity_ref")
+                if ref:
+                    bucket = explored.setdefault(ref, {"resolved": 0, "candidate": 0})
+                    result = trace.result
+                    if isinstance(result, dict):
+                        bucket["resolved"] += len(result.get("resolved_relations") or [])
+                        bucket["candidate"] += len(result.get("candidate_relations") or [])
+
+        all_authorized: list[str] = []
+        for domain in state.scope.allowed_domains:
+            all_authorized.extend(_DOMAIN_TO_ACTIVITY_TYPES.get(domain, [domain]))
+        unqueried = sorted(set(all_authorized) - set(queried))
+
+        return {
+            "round": state.budget.iterations_used,
+            "queried_domains": queried,
+            "unqueried_domains": unqueried,
+            "explored_entities": explored,
+            "evidence_refs": len(state.tool_ledger.authorized_activity_refs),
+            "authorized_scope": {
+                "host_ids": state.scope.host_ids,
+                "allowed_domains": state.scope.allowed_domains,
+            },
+        }
+
+    @staticmethod
+    def _trace_returned_count(result: dict[str, Any]) -> int:
+        if not isinstance(result, dict):
+            return 0
+        boundary = result.get("execution_boundary") or {}
+        if isinstance(boundary, dict) and "returned_count" in boundary:
+            return int(boundary["returned_count"] or 0)
+        if "returned_count" in result:
+            return int(result["returned_count"] or 0)
+        activities = result.get("activities") or result.get("timeline") or []
+        return len(activities) if isinstance(activities, list) else 0
 
     @staticmethod
     def _objective(name: str) -> str:

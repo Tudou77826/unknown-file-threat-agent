@@ -47,6 +47,53 @@ _ACTIVITY_FIELDS = (
 )
 
 
+def brief_result(result: Any) -> Any:
+    """Downsize a tool result to its salient fields for context embedding.
+
+    This is the deterministic "summary degradation" used by the planner when
+    replaying tool history: it keeps only the fields that carry investigation
+    signal (executable, command line, endpoints, relations, …) and drops raw
+    large blobs. Returns the original value unchanged when the shape is not a
+    known query result.
+    """
+    data = result.model_dump(mode="json") if hasattr(result, "model_dump") else result
+    if not isinstance(data, dict):
+        return data
+    # Activity query result: surface only the salient fields per activity.
+    activities = data.get("activities")
+    if isinstance(activities, list):
+        brief = []
+        for activity in activities[:10]:
+            if isinstance(activity, dict):
+                brief.append(
+                    {
+                        key: activity[key]
+                        for key in _ACTIVITY_FIELDS
+                        if activity.get(key) is not None
+                    }
+                )
+        boundary = data.get("execution_boundary") or {}
+        return {
+            "returned_count": boundary.get("returned_count"),
+            "activities": brief,
+        }
+    # Entity exploration: timeline is the salient part.
+    timeline = data.get("timeline")
+    if isinstance(timeline, list):
+        brief = []
+        for activity in timeline[:10]:
+            if isinstance(activity, dict):
+                brief.append(
+                    {
+                        key: activity[key]
+                        for key in _ACTIVITY_FIELDS
+                        if activity.get(key) is not None
+                    }
+                )
+        return {"returned_count": data.get("returned_count"), "timeline": brief}
+    return data
+
+
 class ToolObservationSummarizer:
     """Produce a one-sentence observation for a whole investigation round."""
 
@@ -61,7 +108,7 @@ class ToolObservationSummarizer:
         """
         briefs: list[dict[str, Any]] = []
         for tool_name, result in items:
-            brief = self._brief(result)
+            brief = brief_result(result)
             if brief is not None:
                 briefs.append({"tool": tool_name, "result": brief})
         if not briefs:
@@ -91,42 +138,3 @@ class ToolObservationSummarizer:
         except Exception:
             return None
         return text or None
-
-    @staticmethod
-    def _brief(result: Any) -> Any | None:
-        data = result.model_dump(mode="json") if hasattr(result, "model_dump") else result
-        if not isinstance(data, dict):
-            return data
-        # Activity query result: surface only the salient fields per activity.
-        activities = data.get("activities")
-        if isinstance(activities, list):
-            brief = []
-            for activity in activities[:10]:
-                if isinstance(activity, dict):
-                    brief.append(
-                        {
-                            key: activity[key]
-                            for key in _ACTIVITY_FIELDS
-                            if activity.get(key) is not None
-                        }
-                    )
-            boundary = data.get("execution_boundary") or {}
-            return {
-                "returned_count": boundary.get("returned_count"),
-                "activities": brief,
-            }
-        # Entity exploration: timeline is the salient part.
-        timeline = data.get("timeline")
-        if isinstance(timeline, list):
-            brief = []
-            for activity in timeline[:10]:
-                if isinstance(activity, dict):
-                    brief.append(
-                        {
-                            key: activity[key]
-                            for key in _ACTIVITY_FIELDS
-                            if activity.get(key) is not None
-                        }
-                    )
-            return {"returned_count": data.get("returned_count"), "timeline": brief}
-        return data

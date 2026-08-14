@@ -228,7 +228,13 @@ def run_demo_profile(
         activity_store, visible_sources=set(profile.visible_sources)
     )
     judgment_planner = ObservableJudgmentPlanner(
-        StructuredDataToolPlanner(build_judgment_model(settings), emit), emit,
+        StructuredDataToolPlanner(
+            build_judgment_model(settings),
+            emit,
+            context_window_tokens=settings.judgment_model.context_window_tokens,
+            output_reserve_tokens=settings.judgment_model.max_tokens,
+        ),
+        emit,
         observation_summarizer=ToolObservationSummarizer(build_judgment_model(settings)),
     )
     report_composer = ObservableReportComposer(
