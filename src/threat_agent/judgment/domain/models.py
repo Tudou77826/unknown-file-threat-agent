@@ -24,8 +24,8 @@ class Budget(StrictModel):
     max_tool_calls: int = 60
     iterations_used: int = 0
     tool_calls_used: int = 0
-    max_verdict_repairs: int = 2
-    verdict_repairs_used: int = 0
+    max_report_rejudgments: int = 2
+    report_rejudgments_used: int = 0
 
 
 class ToolCall(StrictModel):

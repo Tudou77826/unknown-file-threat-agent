@@ -40,7 +40,7 @@ class JudgmentBudgetSettings(FrozenSettings):
     max_iterations: int = Field(default=30, ge=1, le=500)
     max_tool_calls: int = Field(default=60, ge=1, le=1000)
     max_repair_actions: int = Field(default=8, ge=0, le=100)
-    max_verdict_repairs: int = Field(default=2, ge=0, le=20)
+    max_report_rejudgments: int = Field(default=2, ge=0, le=20)
 
 
 class ResponseBudgetSettings(FrozenSettings):
@@ -188,7 +188,10 @@ class AppSettings(FrozenSettings):
                 max_iterations=get("JUDGMENT_MAX_ITERATIONS", 30),
                 max_tool_calls=get("JUDGMENT_MAX_TOOL_CALLS", 60),
                 max_repair_actions=get("JUDGMENT_MAX_REPAIR_ACTIONS", 8),
-                max_verdict_repairs=get("JUDGMENT_MAX_VERDICT_REPAIRS", 2),
+                max_report_rejudgments=get(
+                    "JUDGMENT_MAX_REPORT_REJUDGMENTS",
+                    get("JUDGMENT_MAX_VERDICT_REPAIRS", 2),
+                ),
             ),
             response_budget=ResponseBudgetSettings(
                 max_iterations=get("RESPONSE_MAX_ITERATIONS", 3)

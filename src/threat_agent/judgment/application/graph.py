@@ -44,6 +44,10 @@ class JudgmentGraph:
         run_id: str = "primary",
         data_tool_gateway=None,
         report_composer=None,
+        report_validator=None,
+        report_coordinator=None,
+        fallback_builder=None,
+        report_publisher=None,
         recursion_limit: int = 1000,
     ):
         self.planner = planner
@@ -51,6 +55,10 @@ class JudgmentGraph:
         self.run_id = run_id
         self.data_tool_gateway = data_tool_gateway
         self.report_composer = report_composer
+        self.report_validator = report_validator
+        self.report_coordinator = report_coordinator
+        self.fallback_builder = fallback_builder
+        self.report_publisher = report_publisher
         self.recursion_limit = recursion_limit
         builder = StateGraph(JudgmentGraphState)
         builder.add_node("prepare_iteration", self._prepare_iteration)
@@ -233,18 +241,66 @@ class JudgmentGraph:
     def _evaluate_verdict(self, graph_state: JudgmentGraphState) -> JudgmentGraphState:
         state = graph_state["investigation"].model_copy(deep=True)
         if self.report_composer is not None:
-            report = self.report_composer.compose(state)
-            report_errors = self.report_composer.validate(state, report)
-            attempts = 0
-            while report_errors and attempts < state.budget.max_verdict_repairs:
-                attempts += 1
-                report = self.report_composer.repair(state, report, report_errors)
-                report_errors = self.report_composer.validate(state, report)
-            state.report_validation_errors = list(report_errors)
+            # Publish first, expose second: state.investigation_report and
+            # state.verdict are only written after a report (grounded or
+            # fallback) has actually been published.
+            report = self._publish_report(state)
             state.investigation_report = report
             state.verdict = report.verdict
         state.finished = True
         return {"investigation": state, "action": None, "route": "end"}
+
+    def _publish_report(self, state: InvestigationState):
+        """Orchestrate the report stages; implement none of them inline.
+
+        Stages per Feature 14: draft -> grounding validation -> constrained
+        rejudgment within budget -> cited-evidence gate -> final consistency ->
+        publish grounded or fallback. Reference filtering, evidence capability
+        math and fallback field assembly live in the collaborators.
+        """
+        from .evidence_gate import gate_verdict
+        from .report_repair import ReportRepairCoordinator
+        from .report_validation import ReportGroundingValidator
+        from .reporting import DeterministicFallbackBuilder, ReportPublisher
+
+        composer = self.report_composer
+        validator = self.report_validator or ReportGroundingValidator()
+        coordinator = self.report_coordinator or ReportRepairCoordinator(
+            composer, validator
+        )
+        fallback_builder = self.fallback_builder or DeterministicFallbackBuilder()
+        publisher = self.report_publisher or ReportPublisher(
+            tenant_id=self.tenant_id,
+            run_id=self.run_id,
+            model_name=str(getattr(composer, "model_name", "unknown")),
+        )
+
+        draft = composer.compose_draft(state)
+        outcome = coordinator.evaluate(
+            state, draft, max_rejudgments=state.budget.max_report_rejudgments
+        )
+        draft = outcome.draft
+        state.budget.report_rejudgments_used = outcome.rejudgments_used
+
+        issues = outcome.issues
+        if not issues:
+            gated_verdict = gate_verdict(state, draft.verdict)
+            draft = draft.model_copy(update={"verdict": gated_verdict})
+            # Final consistency after the deterministic gate (downgrade adds a
+            # limitation; grounding must still hold on the gated draft).
+            issues = validator.validate(state, draft)
+
+        if issues:
+            state.report_validation_errors = [
+                f"{issue.code}@{issue.location}" for issue in issues
+            ]
+            fallback_draft = fallback_builder.build_draft(state, issues)
+            return publisher.publish(
+                state, fallback_draft, publication_status="fallback"
+            )
+
+        state.report_validation_errors = []
+        return publisher.publish(state, draft, publication_status="grounded")
 
     @staticmethod
     def _record_rejected(state: InvestigationState, action: InvestigationAction, error: str) -> None:

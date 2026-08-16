@@ -57,7 +57,12 @@ class StructuredResponsePlanner:
                     "approval class, rollback steps, verification steps, and resolvable "
                     "judgment references. approval_class must be exactly one of none, "
                     "operator, security_lead, business_owner. Never claim that an action "
-                    "was executed. JSON schema: "
+                    "was executed. "
+                    "If judgment.publication_status is 'fallback', the verdict did not "
+                    "survive grounding validation: only propose re-analysis, additional "
+                    "data collection or manual review, and never isolation, blocking, "
+                    "quarantine or deletion. "
+                    "JSON schema: "
                     + json.dumps(ResponseProposal.model_json_schema(), ensure_ascii=False)
                 ),
             },

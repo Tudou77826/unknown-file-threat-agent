@@ -34,3 +34,6 @@ class JudgmentResult(ContractModel):
     asserted_host_refs: list[str] = Field(default_factory=list)
     coverage: dict[str, Coverage] = Field(default_factory=dict)
     limitations: list[str] = Field(default_factory=list)
+    # Mirrors the published report's publication_status so downstream
+    # consumers (response advisory, presentation) never parse limitation text.
+    publication_status: Literal["grounded", "fallback"] = "grounded"

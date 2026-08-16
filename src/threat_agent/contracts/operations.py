@@ -18,11 +18,18 @@ class ReportStatement(StrictModel):
     limitations: list[str] = Field(default_factory=list)
 
 
+ReportPublicationStatus = Literal["grounded", "fallback"]
+
+
 class InvestigationReport(ContractModel):
     report_id: str = Field(min_length=1)
     report_version: int = Field(ge=1)
     run_id: str = Field(min_length=1)
     verdict: CandidateVerdict
+    # grounded: every blocking validation passed before publication.
+    # fallback: deterministic insufficient-evidence report published after the
+    # rejudgment budget was exhausted; carries no safety assertions.
+    publication_status: ReportPublicationStatus = "grounded"
     threat_scenarios: list[str] = Field(default_factory=list)
     executive_summary: str = Field(min_length=1)
     current_situation: list[ReportStatement] = Field(default_factory=list)

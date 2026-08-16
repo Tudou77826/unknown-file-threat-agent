@@ -10,4 +10,4 @@
 
 ## 状态
 
-产品方向已确认，设计完成，实施计划待审批。
+产品方向已确认。已实施：`ReportGroundingValidator`（8 个稳定问题码）、`ReportRepairCoordinator`（授权证据白名单重新研判）、`VerdictEvidenceGate`（能力只从 Verdict 实际引用计算）、`ReportPublisher`（唯一正式报告构造点）与 `DeterministicFallbackBuilder`（`fallback + insufficient_evidence` 兜底）；`_sanitize_report` 静默修复路径删除；`publication_status` 进入契约并约束 Response Advisory 高影响建议与 Presentation 展示。单元与架构测试通过；LLM 检测回归待带模型环境运行。

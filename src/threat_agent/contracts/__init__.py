@@ -38,6 +38,7 @@ from .operations import (
     InvestigationRun,
     InvestigationRunReadModel,
     OperationalEvent,
+    ReportPublicationStatus,
     ReportStatement,
 )
 from .ingestion import DatasetManifest, IngestionFailure, IngestionReport
@@ -135,6 +136,7 @@ __all__ = [
     "QueryInterfaceDefinition",
     "QueryScopeSnapshot",
     "InvestigationReport",
+    "ReportPublicationStatus",
     "InvestigationCreateRequest",
     "InvestigationRun",
     "InvestigationRunReadModel",

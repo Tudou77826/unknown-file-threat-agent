@@ -21,9 +21,15 @@ from threat_agent.data_foundation import (
     SQLiteActivityQueryAdapter,
     SQLiteActivityStore,
 )
-from threat_agent.judgment import BoundaryViolationError, InvestigationToolGateway
+from threat_agent.judgment import (
+    BoundaryViolationError,
+    InvestigationToolGateway,
+    ReportGroundingValidator,
+    ReportRepairCoordinator,
+    StructuredReportComposer,
+)
 from threat_agent.judgment.application.data_tool_planner import DataToolSelection, StructuredDataToolPlanner
-from threat_agent.judgment.application.reporting import ReportDraft, StructuredReportComposer
+from threat_agent.judgment.application.report_draft import ReportDraft
 from threat_agent.judgment.domain.models import DataToolRequest, FinishRequest, ToolCall
 
 
@@ -241,7 +247,7 @@ def test_data_tool_planner_appends_round_reminder_after_threshold():
     assert "16/35" in reminder[0].content
 
 
-def test_report_validator_rejects_unknown_refs_scope_and_candidate_relations(tmp_path: Path):
+def test_grounding_validator_locates_unknown_refs_scope_and_candidate_relations(tmp_path: Path):
     store = _store(tmp_path)
     try:
         state = _state()
@@ -269,36 +275,88 @@ def test_report_validator_rejects_unknown_refs_scope_and_candidate_relations(tmp
             query_boundary_refs=[process.query_id], asserted_host_refs=["host-2"],
             confirmed_relation_refs=[candidate],
         )
-        composer = StructuredReportComposer(_FakeModel({ReportDraft: draft}))
-        report = composer.compose(state)
-        errors = composer.validate(state, report)
-        assert any("未知对象" in item for item in errors)
-        assert any("超出授权 Scope" in item for item in errors)
-        assert any("候选关系" in item for item in errors)
+        issues = ReportGroundingValidator().validate(state, draft)
+        codes = {issue.code for issue in issues}
+        assert "unknown_evidence_ref" in codes
+        assert "host_assertion_out_of_scope" in codes
+        assert "relation_not_confirmed" in codes
+        assert all(issue.blocking for issue in issues)
+        locations = {issue.location for issue in issues}
+        assert "current_situation[s1].supporting_refs" in locations
+        assert "asserted_host_refs" in locations
+        # The verdict itself cites valid run evidence and stays clean.
+        assert "verdict.supporting_refs" not in locations
     finally:
         store.close()
 
 
-def test_structured_report_repair_sanitizes_references_without_calling_model():
-    state = _state()
-    draft = ReportDraft(
-        verdict=CandidateVerdict(
-            level="suspicious",
-            threat_type="unknown",
-            summary="存在需要继续调查的活动",
-            supporting_refs=["invented-ref"],
-        ),
-        executive_summary="存在需要继续调查的活动",
-        supporting_evidence_refs=["invented-ref"],
-        query_boundary_refs=["invented-query"],
-        asserted_host_refs=["outside-host"],
-    )
-    composer = StructuredReportComposer(_FakeModel({ReportDraft: draft}))
-    report = composer.compose(state)
-    repaired = composer.repair(state, report, composer.validate(state, report))
-    assert repaired.report_version == 2
-    assert repaired.verdict.supporting_refs == []
-    assert repaired.supporting_evidence_refs == []
-    assert repaired.query_boundary_refs == []
-    assert repaired.asserted_host_refs == []
-    assert composer.validate(state, repaired) == []
+class _QueueModel:
+    """Serve different structured outputs for compose and each rejudge."""
+
+    model_name = "fake-model"
+
+    def __init__(self, outputs):
+        self.outputs = list(outputs)
+        self.calls: list[dict] = []
+
+    def with_structured_output(self, _schema, **_kwargs):
+        outer = self
+
+        class _Bound:
+            def invoke(self, messages):
+                outer.calls.append(messages)
+                return outer.outputs.pop(0)
+
+        return _Bound()
+
+
+def test_repair_coordinator_rejudges_against_whitelist_and_may_change_conclusion(tmp_path: Path):
+    store = _store(tmp_path)
+    try:
+        state = _state()
+        state.scope = _context().scope
+        state.raw_input.update({"tenant_id": "tenant-a", "run_id": "run-a"})
+        gateway = InvestigationToolGateway(store, SQLiteActivityQueryAdapter(store), _boundary())
+        process = gateway.invoke("query_process_activities", {}, _context(), state.tool_ledger)
+        activity_ref = process.activities[0].activity_id
+        broken = ReportDraft(
+            verdict=CandidateVerdict(
+                level="suspicious", threat_type="unknown",
+                summary="引用了不存在证据的结论",
+                supporting_refs=["invented-ref"],
+            ),
+            executive_summary="引用了不存在证据的结论",
+            supporting_evidence_refs=["invented-ref"],
+            query_boundary_refs=["invented-query"],
+            asserted_host_refs=["outside-host"],
+        )
+        repaired = ReportDraft(
+            verdict=CandidateVerdict(
+                level="insufficient_evidence", threat_type="unknown",
+                summary="原引用无效且无其他可引用证据，改为证据不足",
+                supporting_refs=[],
+            ),
+            executive_summary="原引用无效且无其他可引用证据，结论为证据不足。",
+            current_situation=[ReportStatement(
+                statement_id="s1", text="本次运行仅返回一条进程活动",
+                supporting_refs=[activity_ref],
+            )],
+            query_boundary_refs=[process.query_id],
+            asserted_host_refs=["host-1"],
+        )
+        model = _QueueModel([repaired])
+        composer = StructuredReportComposer(model)
+        coordinator = ReportRepairCoordinator(composer)
+        outcome = coordinator.evaluate(state, broken, max_rejudgments=2)
+        assert outcome.issues == []
+        assert outcome.rejudgments_used == 1
+        assert not outcome.exhausted
+        assert outcome.draft.verdict.level.value == "insufficient_evidence"
+        # The rejudge prompt may only carry whitelisted evidence and IDs.
+        import json as _json
+        rejudge_instruction = _json.loads(model.calls[-1][-1]["content"])
+        citable = rejudge_instruction["authorized_evidence"]["citable_activity_ids"]
+        assert "invented-ref" not in citable
+        assert activity_ref in citable
+    finally:
+        store.close()

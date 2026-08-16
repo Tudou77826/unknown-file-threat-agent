@@ -22,7 +22,12 @@ from ..data_foundation.adapters import (
 from ..data_foundation.application import initialize_reference_demo, reference_activity_store_path
 from ..judgment import (
     InvestigationToolGateway,
-    JudgmentGraph, StructuredDataToolPlanner, StructuredReportComposer,
+    JudgmentGraph,
+    ReportGroundingValidator,
+    ReportPublisher,
+    ReportRepairCoordinator,
+    StructuredDataToolPlanner,
+    StructuredReportComposer,
 )
 from ..judgment.application.tool_observation import ToolObservationSummarizer
 from ..presentation import InMemoryCaseReadStore, InMemoryDemoComparisonStore
@@ -112,54 +117,59 @@ class ObservableJudgmentPlanner:
 
 
 class ObservableReportComposer:
+    """Emit workflow events around draft composition and rejudgment."""
+
+    def __init__(self, delegate, emit: EventSink):
+        self.delegate = delegate
+        self.emit = emit
+        self.model_name = getattr(delegate, "model_name", "unknown")
+
+    def compose_draft(self, state):
+        self.emit("thinking", "研判模型正在综合证据并形成报告草稿", {
+            "node": "compose",
+            "query_count": len(state.tool_ledger.query_results),
+            "activity_count": len(state.tool_ledger.authorized_activity_refs),
+        })
+        return self.delegate.compose_draft(state)
+
+    def rejudge(self, state, previous_draft, issues, *, attempt):
+        self.emit("thinking", f"研判模型正在按授权证据白名单重新研判（第 {attempt} 次）", {
+            "node": "gate",
+            "attempt": attempt,
+            "issue_codes": sorted({issue.code for issue in issues}),
+        })
+        return self.delegate.rejudge(state, previous_draft, issues, attempt=attempt)
+
+
+class ObservableReportPublisher:
+    """Emit publication events; reports become visible to observers only here."""
+
     def __init__(self, delegate, emit: EventSink):
         self.delegate = delegate
         self.emit = emit
         self._verdict_emitted = False
 
-    def compose(self, state):
-        self.emit("thinking", "研判模型正在综合证据并形成正式报告", {
-            "node": "compose",
-            "query_count": len(state.tool_ledger.query_results),
-            "activity_count": len(state.tool_ledger.authorized_activity_refs),
-        })
-        started = time.perf_counter()
-        report = self.delegate.compose(state)
-        duration_ms = round((time.perf_counter() - started) * 1000, 3)
-        self.emit("report", "研判模型已生成正式调查报告", {
+    def publish(self, state, draft, *, publication_status):
+        report = self.delegate.publish(state, draft, publication_status=publication_status)
+        level = report.verdict.level.value
+        self.emit("report", "正式调查报告已发布" if publication_status == "grounded" else "已发布证据不足兜底报告", {
             "node": "compose",
             "report_id": report.report_id,
-            "report_version": report.report_version,
-            "verdict": report.verdict.level.value,
-            "duration_ms": duration_ms,
+            "publication_status": publication_status,
+            "verdict": level,
+            "rejudgments_used": state.budget.report_rejudgments_used,
         })
-        level = report.verdict.level.value
         if not self._verdict_emitted:
             self._verdict_emitted = True
             self.emit("verdict", f"研判结论：{VERDICT_LABEL_ZH.get(level, level)}", {
                 "node": "gate",
                 "verdict": level,
+                "publication_status": publication_status,
                 "summary": VERDICT_SUMMARY_ZH.get(level, report.verdict.summary),
                 "supporting_refs": report.verdict.supporting_refs,
                 "contradicting_refs": report.verdict.contradicting_refs,
             })
         return report
-
-    def validate(self, state, report):
-        errors = self.delegate.validate(state, report)
-        self.emit("validation", "调查报告发布校验完成", {
-            "node": "gate",
-            "passed": not errors,
-            "error_count": len(errors),
-        })
-        return errors
-
-    def repair(self, state, report, errors):
-        self.emit("repair", "研判模型正在修复报告引用或范围问题", {
-            "node": "gate",
-            "error_count": len(errors),
-        })
-        return self.delegate.repair(state, report, errors)
 
 
 class ObservableResponsePlanner:
@@ -225,7 +235,7 @@ def run_demo_profile(
     )
     state.budget.max_iterations = settings.judgment_budget.max_iterations
     state.budget.max_tool_calls = settings.judgment_budget.max_tool_calls
-    state.budget.max_verdict_repairs = settings.judgment_budget.max_verdict_repairs
+    state.budget.max_report_rejudgments = settings.judgment_budget.max_report_rejudgments
     effective_run_id = run_id or f"demo-{dataset_id}-{profile.level}"
     state.raw_input["run_id"] = effective_run_id
 
@@ -272,6 +282,17 @@ def run_demo_profile(
             event_sink=emit,
         ),
         report_composer=report_composer,
+        report_coordinator=ReportRepairCoordinator(
+            report_composer, ReportGroundingValidator(), event_sink=emit,
+        ),
+        report_publisher=ObservableReportPublisher(
+            ReportPublisher(
+                tenant_id=tenant_id,
+                run_id=effective_run_id,
+                model_name=report_composer.model_name,
+            ),
+            emit,
+        ),
         recursion_limit=settings.graph.recursion_limit,
     )
     response_graph = ResponseGraph(

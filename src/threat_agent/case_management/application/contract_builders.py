@@ -27,4 +27,9 @@ def build_judgment_result(
         evidence_refs=evidence_refs,
         asserted_host_refs=list(state.scope.host_ids),
         limitations=list(state.verdict.limitations),
+        publication_status=(
+            state.investigation_report.publication_status
+            if state.investigation_report is not None
+            else "grounded"
+        ),
     )

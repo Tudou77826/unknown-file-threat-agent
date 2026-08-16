@@ -20,6 +20,7 @@ from threat_agent.contracts.activity import (
     ProcessActivity,
 )
 from threat_agent.judgment.application.evidence_gate import (
+    cited_capabilities,
     collect_capabilities,
     gate_verdict,
 )
@@ -84,10 +85,10 @@ def _with_activities(state, activities):
     return state
 
 
-def _verdict(level, threat_type):
+def _verdict(level, threat_type, supporting_refs=None):
     return CandidateVerdict(
         level=level, threat_type=threat_type, summary="测试结论",
-        supporting_refs=[], contradicting_refs=[], limitations=[],
+        supporting_refs=list(supporting_refs or []), contradicting_refs=[], limitations=[],
     )
 
 
@@ -101,14 +102,50 @@ def test_collect_capabilities_observes_execution_network_and_file_change():
     assert caps == {"execution", "network", "file_change"}
 
 
-def test_confirmed_backdoor_c2_kept_when_floor_met():
+def test_confirmed_backdoor_c2_kept_when_floor_met_by_cited_evidence():
     state = _with_activities(_state(), [
         _activity("process", "execute"),
         _activity("network", "connect"),
     ])
-    verdict = gate_verdict(state, _verdict(VerdictLevel.CONFIRMED_MALICIOUS, "backdoor_c2"))
+    cited = [item.activity_id for item in state.tool_ledger.query_results[0].activities]
+    verdict = gate_verdict(
+        state, _verdict(VerdictLevel.CONFIRMED_MALICIOUS, "backdoor_c2", cited)
+    )
     assert verdict.level == VerdictLevel.CONFIRMED_MALICIOUS
     assert verdict.limitations == []
+
+
+def test_uncited_ledger_data_cannot_help_verdict_pass_the_floor():
+    # The run observed execution AND network activity, but the verdict cites
+    # only the process activity: the network capability must not be borrowed.
+    state = _with_activities(_state(), [
+        _activity("process", "execute"),
+        _activity("network", "connect"),
+    ])
+    process_ref = state.tool_ledger.query_results[0].activities[0].activity_id
+    assert collect_capabilities(state) == {"execution", "network"}
+    assert cited_capabilities(
+        state, _verdict(VerdictLevel.CONFIRMED_MALICIOUS, "backdoor_c2", [process_ref])
+    ) == {"execution"}
+    verdict = gate_verdict(
+        state, _verdict(VerdictLevel.CONFIRMED_MALICIOUS, "backdoor_c2", [process_ref])
+    )
+    assert verdict.level == VerdictLevel.SUSPICIOUS
+    assert any("网络连接" in item for item in verdict.limitations)
+
+
+def test_evidence_reference_ids_resolve_to_cited_activities():
+    from threat_agent.contracts import EvidenceReference
+
+    state = _with_activities(_state(), [_activity("process", "execute")])
+    activity = state.tool_ledger.query_results[0].activities[0]
+    state.tool_ledger.query_results[0].evidence_references.append(EvidenceReference(
+        tenant_id="tenant-a", case_id="case-a", run_id="run-a", query_id="q-1",
+        evidence_id="evidence-ref-1", activity_ref=activity.activity_id,
+    ))
+    assert cited_capabilities(
+        state, _verdict(VerdictLevel.CONFIRMED_MALICIOUS, "ransomware", ["evidence-ref-1"])
+    ) == {"execution"}
 
 
 def test_confirmed_backdoor_c2_downgraded_when_floor_unmet():

@@ -109,6 +109,69 @@ def test_active_runtime_has_no_cross_host_scope_paths():
     assert not violations, "Cross-host scope paths remain in the active runtime:\n" + "\n".join(violations)
 
 
+def test_formal_report_is_only_constructed_by_the_publisher():
+    """Feature 14: InvestigationReport construction is publisher-exclusive."""
+
+    allowed_paths = {
+        ("judgment", "application", "reporting.py"),
+    }
+    violations: list[str] = []
+    for path in PACKAGE_ROOT.rglob("*.py"):
+        if "InvestigationReport(" not in path.read_text(encoding="utf-8"):
+            continue
+        parts = path.relative_to(PACKAGE_ROOT).parts
+        if parts in allowed_paths or path.parent.name == "contracts":
+            continue
+        violations.append(str(path.relative_to(PACKAGE_ROOT)))
+    assert not violations, "InvestigationReport constructed outside the publisher:\n" + "\n".join(violations)
+
+
+def test_no_silent_reference_filtering_or_legacy_repair_paths():
+    forbidden_tokens = [
+        "_sanitize_report",
+        "发布校验已自动修复",
+        "report_version +=",
+        "max_verdict_repairs",
+    ]
+    violations: list[str] = []
+    for path in PACKAGE_ROOT.rglob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        hits = [token for token in forbidden_tokens if token in text]
+        if hits:
+            violations.append(f"{path.relative_to(PACKAGE_ROOT)}: {', '.join(hits)}")
+    assert not violations, "Legacy silent-repair paths remain:\n" + "\n".join(violations)
+
+
+def test_validator_and_gate_stay_deterministic_and_framework_free():
+    for name in ("report_validation.py", "evidence_gate.py", "report_draft.py"):
+        path = PACKAGE_ROOT / "judgment" / "application" / name
+        imports = _absolute_imports(path)
+        for forbidden in (
+            "threat_agent.bootstrap",
+            "threat_agent.case_management",
+            "threat_agent.data_foundation",
+            "langchain_core",
+            "langchain_openai",
+        ):
+            assert not any(
+                imported == forbidden or imported.startswith(forbidden + ".")
+                for imported in imports
+            ), f"{name} must not import {forbidden}"
+        assert "invoke_llm" not in path.read_text(encoding="utf-8")
+
+
+def test_fallback_assembly_and_publication_status_flow_through_contracts():
+    # Fallback field assembly lives only in the fallback builder.
+    for path in PACKAGE_ROOT.rglob("*.py"):
+        if "report_grounding_failed" in path.read_text(encoding="utf-8"):
+            assert path.relative_to(PACKAGE_ROOT).as_posix() in {
+                "judgment/application/reporting.py",
+            }, f"fallback assembly leaked into {path}"
+    # Presentation surfaces the contract field instead of parsing text.
+    page = (PACKAGE_ROOT / "presentation" / "api" / "demo_page.py").read_text(encoding="utf-8")
+    assert "publication_status" in page
+
+
 def test_online_demo_path_uses_formal_investigation_api_and_activity_tools():
     page = (PACKAGE_ROOT / "presentation" / "api" / "demo_page.py").read_text(
         encoding="utf-8"
