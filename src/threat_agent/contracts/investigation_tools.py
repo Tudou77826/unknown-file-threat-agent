@@ -151,7 +151,12 @@ class EntityExplorationResult(StrictModel):
 
 class GetRawRecordsInput(StrictModel):
     activity_refs: list[str] = Field(min_length=1, max_length=10)
-    field_paths: list[str] = Field(default_factory=list, max_length=20)
+    field_paths: list[str] = Field(
+        default_factory=list, max_length=20,
+        description="要提取的字段路径。原始记录是事件信封（event_id/event_type/observed_at/"
+        "source_system/data 等），业务字段位于 data 下；直接写字段名（如 remote_ip）"
+        "会自动在 data 下查找，也可显式写 data.remote_ip",
+    )
     max_records: int = Field(default=10, ge=1, le=10)
 
 

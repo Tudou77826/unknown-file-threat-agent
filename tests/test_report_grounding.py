@@ -388,25 +388,40 @@ def test_graph_publishes_fallback_when_rejudgment_exhausted():
 # Response advisory: fallback cannot justify high-impact actions
 # ---------------------------------------------------------------------------
 
-def _judgment(publication_status="grounded"):
+def _judgment(publication_status="grounded", supporting_refs=None):
     return JudgmentResult(
         tenant_id="demo", case_id="case-a", source_identity="test",
         verdict=CandidateVerdict(
             level=VerdictLevel.INSUFFICIENT_EVIDENCE, threat_type="unknown",
             summary="证据不足",
+            supporting_refs=list(supporting_refs or []),
         ),
-        evidence_refs=["activity-1"],
+        evidence_refs=["evidence-ref-1"],
         publication_status=publication_status,
     )
 
 
-def _proposal(action_type="collect_more_data", approval_class="none"):
+def _proposal(action_type="collect_more_data", approval_class="none", judgment_refs=None):
     return ResponseProposal(actions=[ResponseAction(
         action_id="a1", action_type=action_type, rationale="理由",
-        judgment_refs=["activity-1"], preconditions=["前提"],
+        judgment_refs=list(judgment_refs or ["evidence-ref-1"]), preconditions=["前提"],
         expected_impact="低", approval_class=approval_class,
         rollback_steps=["回滚"], verification_steps=["验证"],
     )])
+
+
+def test_actions_may_cite_the_verdicts_own_activity_refs():
+    """Regression: the report pipeline cites activity-* ids while judgment.evidence_refs
+    carries evidence-ref digests; both vocabularies refer to the same objects and
+    must both be valid judgment references."""
+    judgment = _judgment(supporting_refs=["activity-raw-net-001", "evidence-ref-1"])
+    assert validate_response_proposal(judgment, _proposal(
+        judgment_refs=["activity-raw-net-001"],
+    )) == []
+    errors = validate_response_proposal(judgment, _proposal(
+        judgment_refs=["activity-not-in-judgment"],
+    ))
+    assert any("unknown judgment refs" in item for item in errors)
 
 
 def test_fallback_judgment_rejects_high_impact_actions():

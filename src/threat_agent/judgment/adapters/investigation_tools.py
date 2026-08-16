@@ -572,12 +572,22 @@ class InvestigationToolGateway:
 
     @staticmethod
     def _field_path(payload: dict[str, Any], path: str):
-        current: Any = payload
-        for part in path.strip(".").split("."):
-            if not isinstance(current, dict) or part not in current:
-                return None
-            current = current[part]
-        return current
+        # Raw records are event envelopes whose business fields live under
+        # ``data``. Models ask for bare field names ("remote_ip"), so retry a
+        # missed top-level path under the ``data.`` prefix instead of silently
+        # returning an empty payload.
+        def walk(candidate: str):
+            current: Any = payload
+            for part in candidate.strip(".").split("."):
+                if not isinstance(current, dict) or part not in current:
+                    return None
+                current = current[part]
+            return current
+
+        value = walk(path)
+        if value is None and not path.startswith("data."):
+            value = walk(f"data.{path}")
+        return value
 
     @staticmethod
     def _decode_offset(cursor: str | None) -> int:

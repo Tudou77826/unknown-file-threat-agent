@@ -24,7 +24,14 @@ def validate_response_proposal(
     errors: list[str] = []
     if not proposal.actions:
         errors.append("Response proposal contains no candidate actions")
+    # The judgment exposes two vocabularies for the same underlying objects:
+    # evidence-reference digests and the verdict's own cited activity refs.
+    # Both are legitimate judgment references — the report pipeline and the
+    # verdict cite activity ids, so accepting only digests made validation
+    # fail on correctly-grounded proposals.
     valid_refs = set(judgment.evidence_refs)
+    valid_refs |= set(judgment.verdict.supporting_refs)
+    valid_refs |= set(judgment.verdict.contradicting_refs)
     action_ids: set[str] = set()
     fallback = judgment.publication_status == "fallback"
     for action in proposal.actions:

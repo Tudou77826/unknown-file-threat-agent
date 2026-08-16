@@ -146,6 +146,17 @@ def test_raw_and_metric_tools_require_activity_returned_in_same_run(tmp_path: Pa
         ref = query.activities[0].activity_id
         raw = gateway.invoke("get_raw_records", {"activity_refs": [ref]}, _context(), ledger)
         assert raw.records[0].payload["event_type"] == "network_connection"
+        # Bare business field names fall back to the event envelope's data
+        # section instead of silently returning an empty payload.
+        projected = gateway.invoke(
+            "get_raw_records",
+            {"activity_refs": [ref], "field_paths": ["protocol", "data.process_ref", "observed_at"]},
+            _context(), ledger,
+        )
+        payload = projected.records[0].payload
+        assert payload["protocol"] == "tcp"
+        assert payload["data.process_ref"] == "process:host-1:10:1776914444000"
+        assert "observed_at" in payload
         metrics = gateway.invoke(
             "calculate_activity_metrics",
             {"operation": "connection_pattern", "activity_refs": [ref]}, _context(), ledger,
