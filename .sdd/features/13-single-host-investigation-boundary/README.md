@@ -10,4 +10,4 @@
 
 ## 状态
 
-关键产品决策已确认：初期关闭跨主机调查，租户鉴权与 RBAC 后置。已实施：`InvestigationBoundaryPort` 统一包围全部调查工具（调用前授权 + 结果后校验）、`SingleHostBoundaryPolicy`、`explore_entity` 实体授权与主机归属修复、跨主机扩域/审批路径删除、服务端租户注入与 `INVESTIGATION_LOOKBACK_HOURS` 回看配置。单元与架构测试通过；LLM 检测回归 Case（8.2）待带模型环境运行。
+关键产品决策已确认：初期关闭跨主机调查，租户鉴权与 RBAC 后置。已实施：`InvestigationBoundaryPort` 统一包围全部调查工具（调用前授权 + 结果后校验）、`SingleHostBoundaryPolicy`、`explore_entity` 实体授权与主机归属修复、跨主机扩域/审批路径删除、服务端租户注入与 `INVESTIGATION_LOOKBACK_HOURS` 回看配置。单元与架构测试通过；真实 LLM 端到端回归已跑通 C2 恶意/良性 L3 双数据集（likely_malicious / likely_benign，均 grounded 发布，零边界拒绝，跨主机线索仅进未解决问题）。勒索数据集与完整 8.2 矩阵待后续补充。
