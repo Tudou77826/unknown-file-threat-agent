@@ -24,6 +24,29 @@ InvestigationToolName = Literal[
     "calculate_activity_metrics",
 ]
 
+BoundaryErrorCode = Literal[
+    "single_host_required",
+    "host_out_of_scope",
+    "time_out_of_scope",
+    "domain_out_of_scope",
+    "entity_not_authorized",
+    "reference_not_authorized",
+]
+
+
+class BoundaryDenied(StrictModel):
+    """Structured pre-/post-execution boundary rejection.
+
+    Carries identifiers only; the content of unauthorized objects must never
+    enter events, traces or the model context.
+    """
+
+    code: BoundaryErrorCode
+    tool_name: str
+    message: str
+    host_refs: list[str] = Field(default_factory=list)
+    reference_ids: list[str] = Field(default_factory=list)
+
 
 class ToolRuntimeContext(StrictModel):
     tenant_id: str = Field(min_length=1)
@@ -108,10 +131,19 @@ class ExploreEntityInput(StrictModel):
     limit: int = Field(default=200, ge=1, le=1000)
 
 
+class OutOfScopeRelationClue(StrictModel):
+    """Minimal cross-host relation clue: identifiers and reason only."""
+
+    relation_id: str
+    other_endpoint_ref: str
+    reason: Literal["host_out_of_scope"] = "host_out_of_scope"
+
+
 class EntityExplorationResult(StrictModel):
     identity: EntityIdentity | None = None
     resolved_relations: list[ObservedRelation] = Field(default_factory=list)
     candidate_relations: list[ObservedRelation] = Field(default_factory=list)
+    out_of_scope_relations: list[OutOfScopeRelationClue] = Field(default_factory=list)
     timeline: list[NormalizedActivity] = Field(default_factory=list)
     returned_count: int = Field(ge=0)
     next_cursor: str | None = None
@@ -169,3 +201,4 @@ class InvestigationToolLedger(StrictModel):
     metric_results: list[ActivityMetricResult] = Field(default_factory=list)
     traces: list[InvestigationToolTrace] = Field(default_factory=list)
     authorized_activity_refs: list[str] = Field(default_factory=list)
+    authorized_entity_refs: list[str] = Field(default_factory=list)

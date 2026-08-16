@@ -5,7 +5,7 @@ import json
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from ...contracts import Entity, Scope
+from ...contracts import Entity, InvestigationToolLedger, Scope
 from ...judgment.domain.models import Claim, InvestigationState
 
 
@@ -61,12 +61,34 @@ def parse_detail(value: Any) -> tuple[dict[str, Any], list[str]]:
     return {}, [f"Unsupported Detail type: {type(value).__name__}"]
 
 
-def initialize_state(raw: dict[str, Any]) -> InvestigationState:
+def _single_alert_host(raw: dict[str, Any]) -> str:
+    """Return the one alert host for this run, rejecting missing or multi-host input.
+
+    ``Sub_asset`` is the alert host; ``source`` names the reporting system and
+    is only a fallback when the asset field is absent.
+    """
+    candidate = pick(raw, "sub_asset")
+    if candidate in (None, ""):
+        candidate = pick(raw, "source")
+    if isinstance(candidate, (list, tuple, set)):
+        unique = sorted({str(item) for item in candidate if item not in (None, "")})
+        if len(unique) != 1:
+            raise ValueError(
+                f"Input must provide a single alert host; got {unique or 'no host'}"
+            )
+        candidate = unique[0]
+    host_id = str(candidate or "")
+    if not host_id:
+        raise ValueError("Input must provide File_hash/fileHash, File_path/filePath and source/Sub_asset")
+    return host_id
+
+
+def initialize_state(raw: dict[str, Any], *, lookback_hours: float = 24.0) -> InvestigationState:
     sha256 = str(pick(raw, "sha256", "")).lower()
     path = str(pick(raw, "path", ""))
-    host_id = str(pick(raw, "sub_asset") or pick(raw, "source") or "unknown-host")
-    if not sha256 or not path or host_id == "unknown-host":
+    if not sha256 or not path:
         raise ValueError("Input must provide File_hash/fileHash, File_path/filePath and source/Sub_asset")
+    host_id = _single_alert_host(raw)
     detail, detail_limits = parse_detail(pick(raw, "detail"))
     case_seed = str(pick(raw, "file_id") or f"{host_id}:{sha256}")
     case_id = "case-" + hashlib.sha256(case_seed.encode()).hexdigest()[:12]
@@ -93,7 +115,10 @@ def initialize_state(raw: dict[str, Any]) -> InvestigationState:
         claims.append(Claim(claim_id=f"claim-process-chain-{cidx+1:03d}", claim_type="reported_process_chain", statement=f"Upstream reports a process chain for PID {target_pid}", source_evidence_refs=[], verification_requirements=["query process execution events", "verify PID and start time", "verify parent-child relations"]))
 
     discovery = millis(pick(raw, "discovery_time"))
-    start = discovery - timedelta(minutes=15) if discovery else None
+    # The maximum lookback is a deployment decision (INVESTIGATION_LOOKBACK_HOURS):
+    # persistence and low-frequency C2 often precede the alert by more than the
+    # old fixed 15 minutes.
+    start = discovery - timedelta(hours=lookback_hours) if discovery else None
     end = millis(pick(raw, "recent_time")) or discovery
     return InvestigationState(
         case_id=case_id,
@@ -101,4 +126,9 @@ def initialize_state(raw: dict[str, Any]) -> InvestigationState:
         entities=entities,
         claims=claims,
         scope=Scope(host_ids=[host_id], container_ids=[str(x) for x in [pick(raw, "container_id")] if x], entity_ids=[file_id], start_time=start, end_time=end),
+        tool_ledger=InvestigationToolLedger(
+            # Intake anchors: every entity minted here lives on the alert host
+            # and may seed authorized entity exploration.
+            authorized_entity_refs=[entity.entity_id for entity in entities],
+        ),
     )

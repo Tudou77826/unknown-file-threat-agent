@@ -6,7 +6,13 @@ import time
 from pathlib import Path
 from typing import Any, Callable
 
-from ..case_management import CaseGraph, build_case_read_model, create_memory_checkpointer, initialize_state
+from ..case_management import (
+    CaseGraph,
+    SingleHostBoundaryPolicy,
+    build_case_read_model,
+    create_memory_checkpointer,
+    initialize_state,
+)
 from ..case_management.application import evaluate_data_readiness
 from ..contracts import CaseReadModel, DemoComparisonReadModel, ProfileComparisonItem
 from ..data_foundation.adapters import (
@@ -214,10 +220,11 @@ def run_demo_profile(
         case_id = str(row["case_id"])
     profile = store.get_profile(dataset_id, dataset_version, profile_id)
     raw = store.get_case_input(dataset_id, dataset_version, case_id)
-    state = initialize_state(raw)
+    state = initialize_state(
+        raw, lookback_hours=settings.application.investigation_lookback_hours
+    )
     state.budget.max_iterations = settings.judgment_budget.max_iterations
     state.budget.max_tool_calls = settings.judgment_budget.max_tool_calls
-    state.budget.max_scope_expansions = settings.judgment_budget.max_scope_expansions
     state.budget.max_verdict_repairs = settings.judgment_budget.max_verdict_repairs
     effective_run_id = run_id or f"demo-{dataset_id}-{profile.level}"
     state.raw_input["run_id"] = effective_run_id
@@ -226,6 +233,14 @@ def run_demo_profile(
     activity_store = SQLiteActivityStore(reference_activity_store_path(store.path, dataset_id))
     activity_query_adapter = SQLiteActivityQueryAdapter(
         activity_store, visible_sources=set(profile.visible_sources)
+    )
+    # Server-side run identity and the single-host boundary policy are injected
+    # here; alert-payload fields can never override the tenant.
+    tenant_id = "demo"
+    boundary_policy = SingleHostBoundaryPolicy(
+        tenant_id=tenant_id,
+        case_id=state.case_id,
+        run_id=effective_run_id,
     )
     judgment_planner = ObservableJudgmentPlanner(
         StructuredDataToolPlanner(
@@ -238,17 +253,22 @@ def run_demo_profile(
         observation_summarizer=ToolObservationSummarizer(build_judgment_model(settings)),
     )
     report_composer = ObservableReportComposer(
-        StructuredReportComposer(build_report_model(settings), emit), emit
+        StructuredReportComposer(
+            build_report_model(settings), emit, tenant_id=tenant_id
+        ),
+        emit,
     )
     response_planner = ObservableResponsePlanner(
         StructuredResponsePlanner(build_response_model(settings), emit), emit
     )
     judgment_graph = JudgmentGraph(
         judgment_planner,
-        scope_approval_mode="defer",
+        tenant_id=tenant_id,
+        run_id=effective_run_id,
         data_tool_gateway=InvestigationToolGateway(
             activity_store,
             activity_query_adapter,
+            boundary_policy,
             event_sink=emit,
         ),
         report_composer=report_composer,
@@ -276,26 +296,16 @@ def run_demo_profile(
         "profile": profile.profile_id,
         "planner_mode": "llm",
     })
-    result = graph.start(state, tenant_id="demo", run_id=effective_run_id)
+    result = graph.start(state, tenant_id=tenant_id, run_id=effective_run_id)
     while (request := _interrupt_value(result)) is not None:
-        if request.get("kind") == "scope_approval":
-            emit("approval", "演示策略拒绝扩大调查范围", {
-                "node": "scope",
-                "approval_kind": "scope", "approved": False,
-                "request_ref": request.get("expansion_id"),
-            })
-            result = graph.resume_scope(
-                tenant_id="demo", case_id=state.case_id, run_id=effective_run_id,
-                approved=False, approved_by="reference-demo-policy",
-            )
-        elif request.get("kind") == "response_approval":
+        if request.get("kind") == "response_approval":
             emit("approval", "演示策略不批准执行高影响处置", {
                 "node": "approve",
                 "approval_kind": "response", "approved": False,
                 "request_ref": request.get("case_id"),
             })
             result = graph.resume_response(
-                tenant_id="demo", case_id=state.case_id, run_id=effective_run_id,
+                tenant_id=tenant_id, case_id=state.case_id, run_id=effective_run_id,
                 approved=False, approved_by="reference-demo-policy",
             )
         else:
@@ -304,7 +314,7 @@ def run_demo_profile(
     completed = type(state).model_validate(result["investigation"])
     read_model = build_case_read_model(
         completed,
-        tenant_id="demo",
+        tenant_id=tenant_id,
         lifecycle_status=str(result["lifecycle_status"]),
         judgment=result.get("judgment_result"),
         response_plan=result.get("response_plan"),
@@ -313,7 +323,7 @@ def run_demo_profile(
     if read_model.judgment is not None:
         localize_verdict(read_model.judgment)
     readiness = evaluate_data_readiness(
-        profile, case_id=case_id, tenant_id="demo", run_id=effective_run_id
+        profile, case_id=case_id, tenant_id=tenant_id, run_id=effective_run_id
     )
     level = read_model.judgment.verdict.level.value
     emit("result", f"案件处理完成：{VERDICT_LABEL_ZH.get(level, level)}", {

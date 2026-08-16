@@ -1,4 +1,5 @@
 from .application.graph import CaseGraph
+from .application.boundary_policy import SingleHostBoundaryPolicy
 from .application.intake import initialize_state
 from .application.read_model import build_case_read_model
 from .adapters.checkpointing import create_memory_checkpointer, create_sqlite_checkpointer
@@ -6,6 +7,7 @@ from .adapters.runtime_store import SQLiteInvestigationRuntimeStore
 
 __all__ = [
     "CaseGraph",
+    "SingleHostBoundaryPolicy",
     "build_case_read_model",
     "create_memory_checkpointer",
     "create_sqlite_checkpointer",

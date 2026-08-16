@@ -51,6 +51,7 @@ def report_context(state: InvestigationState) -> dict[str, Any]:
             "all material claims must cite a supplied evidence_id or activity_id",
             "authorized_scope.allowed_domains are permissions, not proof that those domains were queried",
             "only query_results represent successful queries; failed tool traces must be stated as limitations",
+            "cross-host leads are out of investigation scope: record them only as unresolved_questions or limitations, never as confirmed facts about target hosts",
             "key_evidence is a list of ReportStatement; put each key judgment basis as one statement citing its evidence",
             "write all natural-language content in Simplified Chinese",
         ],
@@ -64,10 +65,11 @@ class ReportComposer(Protocol):
 
 
 class StructuredReportComposer:
-    def __init__(self, model: Any, event_sink: Callable | None = None):
+    def __init__(self, model: Any, event_sink: Callable | None = None, *, tenant_id: str = "default"):
         self.model_name = str(getattr(model, "model_name", getattr(model, "model", "unknown")))
         self.structured_model = model.with_structured_output(ReportDraft, method="json_mode")
         self.event_sink = event_sink or (lambda _kind, _message, _details=None: None)
+        self.tenant_id = tenant_id
         schema = json.dumps(ReportDraft.model_json_schema(), ensure_ascii=False)
         self.system_prompt = (
             "你是未知文件安全调查的主研判模型。基于给定查询接口、实际执行边界、活动与实体关系，"
@@ -197,7 +199,7 @@ class StructuredReportComposer:
         run_id = str(state.raw_input.get("run_id") or "primary")
         digest = hashlib.sha256(f"{state.case_id}:{run_id}:{version}".encode()).hexdigest()[:16]
         return InvestigationReport(
-            tenant_id=str(state.raw_input.get("tenant_id") or "default"),
+            tenant_id=self.tenant_id,
             case_id=state.case_id,
             source_identity="structured-report-composer",
             report_id=f"report-{digest}", report_version=version, run_id=run_id,

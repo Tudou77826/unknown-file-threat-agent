@@ -16,7 +16,6 @@ class CaseReadModel(ContractModel):
     entities: list[dict[str, Any]] = Field(default_factory=list)
     tool_calls: list[dict[str, Any]] = Field(default_factory=list)
     scope: dict[str, Any] = Field(default_factory=dict)
-    scope_expansions: list[dict[str, Any]] = Field(default_factory=list)
     analysis_notes: list[str] = Field(default_factory=list)
     investigation_timeline: list[dict[str, Any]] = Field(default_factory=list)
     approval_status: str | None = None

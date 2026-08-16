@@ -7,18 +7,16 @@ from langgraph.graph import END, START, StateGraph
 
 from ..domain.models import (
     DataToolRequest,
-    Entity,
     FinishRequest,
     InvestigationAction,
     InvestigationState,
-    ScopeExpansion,
-    ScopeRequest,
     ToolCall,
 )
+from .boundary import BoundaryViolationError
 from .policy import PolicyError, validate_action
 
 
-Route = Literal["plan", "execute", "scope", "finish", "retry", "continue", "validate", "end"]
+Route = Literal["plan", "execute", "finish", "retry", "continue", "validate", "end"]
 
 
 class JudgmentGraphState(TypedDict, total=False):
@@ -29,20 +27,28 @@ class JudgmentGraphState(TypedDict, total=False):
 
 
 class JudgmentGraph:
-    """LangGraph runtime for the data-tool driven AI judgment loop."""
+    """LangGraph runtime for the data-tool driven AI judgment loop.
+
+    The investigation boundary is single-host: the tenant and run identity are
+    server-side constructor facts (injected by bootstrap), never taken from the
+    alert payload, and every data tool call flows through the gateway's
+    ``InvestigationBoundaryPort``.
+    """
 
     def __init__(
         self,
         planner,
         *,
         checkpointer: Any = None,
-        scope_approval_mode: Literal["defer"] = "defer",
+        tenant_id: str = "default",
+        run_id: str = "primary",
         data_tool_gateway=None,
         report_composer=None,
         recursion_limit: int = 1000,
     ):
         self.planner = planner
-        self.scope_approval_mode = scope_approval_mode
+        self.tenant_id = tenant_id
+        self.run_id = run_id
         self.data_tool_gateway = data_tool_gateway
         self.report_composer = report_composer
         self.recursion_limit = recursion_limit
@@ -51,7 +57,6 @@ class JudgmentGraph:
         builder.add_node("plan_action", self._plan_action)
         builder.add_node("validate_action", self._validate_action)
         builder.add_node("execute_action", self._execute_action)
-        builder.add_node("handle_scope", self._handle_scope)
         builder.add_node("evaluate_verdict", self._evaluate_verdict)
         builder.add_edge(START, "prepare_iteration")
         builder.add_conditional_edges(
@@ -65,7 +70,6 @@ class JudgmentGraph:
             lambda value: value["route"],
             {
                 "execute": "execute_action",
-                "scope": "handle_scope",
                 "finish": "evaluate_verdict",
                 "validate": "validate_action",
                 "retry": "prepare_iteration",
@@ -73,11 +77,6 @@ class JudgmentGraph:
         )
         builder.add_conditional_edges(
             "execute_action",
-            lambda value: value["route"],
-            {"continue": "prepare_iteration", "validate": "validate_action", "retry": "prepare_iteration", "end": END},
-        )
-        builder.add_conditional_edges(
-            "handle_scope",
             lambda value: value["route"],
             {"continue": "prepare_iteration", "validate": "validate_action", "retry": "prepare_iteration", "end": END},
         )
@@ -137,12 +136,7 @@ class JudgmentGraph:
         except (PolicyError, KeyError) as error:
             self._record_rejected(state, action, str(error))
             return self._next_action(state, pending)
-        if isinstance(action, FinishRequest):
-            route: Route = "finish"
-        elif isinstance(action, ScopeRequest):
-            route = "scope"
-        else:
-            route = "execute"
+        route: Route = "finish" if isinstance(action, FinishRequest) else "execute"
         return {"investigation": state, "action": action, "pending_actions": pending, "route": route}
 
     @staticmethod
@@ -162,6 +156,9 @@ class JudgmentGraph:
         pending = list(graph_state.get("pending_actions") or [])
         if not isinstance(action, DataToolRequest):
             raise RuntimeError("Execution node requires a data-tool request")
+        if state.budget.tool_calls_used >= state.budget.max_tool_calls:
+            self._record_rejected(state, action, "Tool-call budget exhausted")
+            return self._next_action(state, pending)
         call = ToolCall(
             call_id=f"call-{uuid.uuid4().hex[:10]}",
             tool_name=action.tool_name,
@@ -174,19 +171,39 @@ class JudgmentGraph:
             if self.data_tool_gateway is None:
                 raise PolicyError("LLM data-tool gateway is not configured")
             from ...contracts import ToolRuntimeContext
+            # Tenant and run identity are server-side facts; the alert payload
+            # (raw_input) must never override them.
             self.data_tool_gateway.invoke(
                 action.tool_name,
                 action.arguments,
                 ToolRuntimeContext(
-                    tenant_id=str(state.raw_input.get("tenant_id") or "default"),
+                    tenant_id=self.tenant_id,
                     case_id=state.case_id,
-                    run_id=str(state.raw_input.get("run_id") or "primary"),
+                    run_id=self.run_id,
                     scope=state.scope,
                 ),
                 state.tool_ledger,
                 tool_call_id=action.tool_call_id,
                 model_message=action.model_message,
             )
+        except BoundaryViolationError as denial:
+            # Structured rejection fed back to the model: a boundary denial is
+            # never disguised as an empty query result.
+            call.status, call.error = "denied", f"{denial.code}: {denial.message}"
+            from ...contracts import InvestigationToolTrace
+            state.tool_ledger.traces.append(InvestigationToolTrace(
+                sequence=len(state.tool_ledger.traces) + 1,
+                tool_name=action.tool_name,
+                arguments=action.arguments,
+                result_type="ToolError",
+                result={
+                    "error_type": "BoundaryDenied",
+                    "error_code": denial.code,
+                    "error_message": denial.message,
+                },
+                tool_call_id=action.tool_call_id,
+                model_message=action.model_message,
+            ))
         except (PolicyError, KeyError) as exc:
             call.status, call.error = "denied", str(exc)
         except Exception as exc:
@@ -212,82 +229,6 @@ class JudgmentGraph:
         state.budget.tool_calls_used += 1
         state.tool_calls.append(call)
         return self._next_action(state, pending)
-
-    def _handle_scope(self, graph_state: JudgmentGraphState) -> JudgmentGraphState:
-        state = graph_state["investigation"].model_copy(deep=True)
-        action = graph_state.get("action")
-        pending = list(graph_state.get("pending_actions") or [])
-        if not isinstance(action, ScopeRequest):
-            raise RuntimeError("Scope node requires ScopeRequest")
-        approved = state.scope.expansion_policy == "automatic"
-        state.scope_expansions.append(ScopeExpansion(
-            expansion_id=f"scope-{uuid.uuid4().hex[:10]}",
-            candidate_host_ids=list(dict.fromkeys(action.requested_host_ids)),
-            reason_type=action.reason_type,
-            reason_evidence_refs=action.reason_evidence_refs,
-            requested_domains=action.requested_domains,
-            start_time=action.start_time,
-            end_time=action.end_time,
-            approval_status="pending",
-            approval_source="policy:auto" if approved else "human_approval_required",
-            limitations=[],
-        ))
-        if not approved and self.scope_approval_mode == "defer":
-            return {"investigation": state, "action": None, "pending_actions": pending, "route": "end"}
-        self.apply_scope_decision(
-            state,
-            approved=approved,
-            approval_source="policy:auto" if approved else "policy:legacy-denial",
-            objective=action.objective,
-        )
-        return self._next_action(state, pending)
-
-    @staticmethod
-    def apply_scope_decision(
-        state: InvestigationState,
-        *,
-        approved: bool,
-        approval_source: str,
-        objective: str = "Resolve requested investigation scope expansion",
-    ) -> InvestigationState:
-        expansion = next(
-            (item for item in reversed(state.scope_expansions) if item.approval_status == "pending"),
-            None,
-        )
-        if expansion is None:
-            raise ValueError("No pending scope expansion exists")
-        expansion.approval_status = "approved" if approved else "denied"
-        expansion.approval_source = approval_source
-        expansion.limitations = [] if approved else [
-            "Scope was not expanded because explicit approval was denied"
-        ]
-        if approved:
-            for host_id in expansion.candidate_host_ids:
-                if host_id not in state.scope.host_ids:
-                    state.scope.host_ids.append(host_id)
-                entity_id = f"host:{host_id}"
-                if not any(item.entity_id == entity_id for item in state.entities):
-                    state.entities.append(Entity(
-                        entity_id=entity_id,
-                        entity_type="host",
-                        attributes={"scope_expansion": expansion.expansion_id},
-                    ))
-            state.budget.scope_expansions_used += 1
-        state.tool_calls.append(ToolCall(
-            call_id=f"call-{uuid.uuid4().hex[:10]}",
-            tool_name="scope_request",
-            action_type="scope_request",
-            status="success" if approved else "denied",
-            objective=objective,
-            parameters={
-                "requested_host_ids": expansion.candidate_host_ids,
-                "reason_evidence_refs": expansion.reason_evidence_refs,
-                "reason_type": expansion.reason_type,
-                "requested_domains": expansion.requested_domains,
-            },
-            error=None if approved else "Scope expansion was denied",
-        ))
-        return state
 
     def _evaluate_verdict(self, graph_state: JudgmentGraphState) -> JudgmentGraphState:
         state = graph_state["investigation"].model_copy(deep=True)

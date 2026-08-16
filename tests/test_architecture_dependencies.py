@@ -58,6 +58,12 @@ def test_data_foundation_does_not_depend_on_workflow_modules():
     )
 
 
+def test_judgment_does_not_depend_on_case_management():
+    # The boundary port is a Python Protocol: judgment defines and consumes it,
+    # concrete policies live in case_management and are injected by bootstrap.
+    _assert_does_not_import("judgment", {"case_management"})
+
+
 def test_presentation_only_consumes_stable_contracts():
     _assert_does_not_import(
         "presentation",
@@ -78,6 +84,29 @@ def test_only_bootstrap_reads_process_environment():
         if "os.getenv" in text or "os.environ" in text or "load_dotenv" in text:
             violations.append(str(path.relative_to(PACKAGE_ROOT)))
     assert not violations, "Environment access outside bootstrap: " + ", ".join(violations)
+
+
+def test_active_runtime_has_no_cross_host_scope_paths():
+    """Feature 13: cross-host expansion and scope approval are deleted, not dormant."""
+
+    forbidden_tokens = [
+        "request_scope_expansion",
+        "ScopeRequest",
+        "ScopeExpansion",
+        "awaiting_scope_approval",
+        "apply_scope_decision",
+        "resume_scope",
+        "approve_scope",
+        "scope_approval_mode",
+        "max_scope_expansions",
+    ]
+    violations: list[str] = []
+    for path in PACKAGE_ROOT.rglob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        hits = [token for token in forbidden_tokens if token in text]
+        if hits:
+            violations.append(f"{path.relative_to(PACKAGE_ROOT)}: {', '.join(hits)}")
+    assert not violations, "Cross-host scope paths remain in the active runtime:\n" + "\n".join(violations)
 
 
 def test_online_demo_path_uses_formal_investigation_api_and_activity_tools():

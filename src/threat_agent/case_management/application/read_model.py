@@ -43,7 +43,6 @@ def build_case_read_model(
         entities=_dump(state.entities),
         tool_calls=_dump(state.tool_calls),
         scope=state.scope.model_dump(mode="json"),
-        scope_expansions=_dump(state.scope_expansions),
         investigation_timeline=timeline,
         approval_status=approval_status,
         limitations=list(judgment.limitations if judgment else []),

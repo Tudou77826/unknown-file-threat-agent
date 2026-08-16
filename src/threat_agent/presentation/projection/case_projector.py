@@ -23,7 +23,6 @@ def case_read_payload(read_model: CaseReadModel) -> dict:
         "entities": read_model.entities,
         "tool_calls": read_model.tool_calls,
         "scope": read_model.scope,
-        "scope_expansions": read_model.scope_expansions,
         "approval_status": read_model.approval_status,
         "investigation_timeline": read_model.investigation_timeline,
         "analysis_notes": read_model.analysis_notes,

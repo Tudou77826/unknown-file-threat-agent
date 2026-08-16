@@ -24,6 +24,7 @@ class ApplicationSettings(FrozenSettings):
     default_case_dir: Path = PROJECT_ROOT / "cases" / "c2_malicious"
     output_dir: Path | None = None
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
+    investigation_lookback_hours: float = Field(default=24.0, gt=0, le=24 * 30)
 
 
 class CheckpointSettings(FrozenSettings):
@@ -38,7 +39,6 @@ class GraphSettings(FrozenSettings):
 class JudgmentBudgetSettings(FrozenSettings):
     max_iterations: int = Field(default=30, ge=1, le=500)
     max_tool_calls: int = Field(default=60, ge=1, le=1000)
-    max_scope_expansions: int = Field(default=2, ge=0, le=20)
     max_repair_actions: int = Field(default=8, ge=0, le=100)
     max_verdict_repairs: int = Field(default=2, ge=0, le=20)
 
@@ -175,6 +175,7 @@ class AppSettings(FrozenSettings):
                 ),
                 output_dir=path("THREAT_AGENT_OUTPUT_DIR"),
                 log_level=get("THREAT_AGENT_LOG_LEVEL", "INFO"),
+                investigation_lookback_hours=get("INVESTIGATION_LOOKBACK_HOURS", 24.0),
             ),
             checkpoint=CheckpointSettings(
                 backend=get("THREAT_AGENT_CHECKPOINT_BACKEND", "memory"),
@@ -186,7 +187,6 @@ class AppSettings(FrozenSettings):
             judgment_budget=JudgmentBudgetSettings(
                 max_iterations=get("JUDGMENT_MAX_ITERATIONS", 30),
                 max_tool_calls=get("JUDGMENT_MAX_TOOL_CALLS", 60),
-                max_scope_expansions=get("JUDGMENT_MAX_SCOPE_EXPANSIONS", 2),
                 max_repair_actions=get("JUDGMENT_MAX_REPAIR_ACTIONS", 8),
                 max_verdict_repairs=get("JUDGMENT_MAX_VERDICT_REPAIRS", 2),
             ),

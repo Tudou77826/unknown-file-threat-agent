@@ -1,5 +1,7 @@
 # Cross-Host Investigation
 
+> 启用状态：初期运行模式按 [Single-Host Investigation Boundary](../../13-single-host-investigation-boundary/README.md) 关闭跨主机调查。本文件保留目标场景规则，不代表当前运行时允许扩展主机 Scope。
+
 ## 范围原则
 
 - 候选主机必须被已有 Evidence 明确命名。

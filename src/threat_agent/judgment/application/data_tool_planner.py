@@ -26,11 +26,9 @@ from ..domain.models import (
     FinishRequest,
     InvestigationAction,
     InvestigationState,
-    ScopeRequest,
 )
 from .native_tool_calling import (
     FinishInvestigationInput,
-    RequestScopeExpansionInput,
     build_native_tools,
     parse_tool_calls,
     serialize_messages,
@@ -44,11 +42,10 @@ class DataToolSelection(StrictModel):
         "query_process_activities", "query_network_activities", "query_socket_activities",
         "query_file_activities", "query_service_activities", "query_package_activities",
         "query_asset_activities", "explore_entity", "get_raw_records",
-        "calculate_activity_metrics", "request_scope_expansion", "finish_investigation",
+        "calculate_activity_metrics", "finish_investigation",
     ]
     objective: str = Field(default="执行下一步受控数据调查", min_length=10)
     arguments: dict[str, Any] = Field(default_factory=dict)
-    scope_request: dict[str, Any] | None = None
 
 
 # After this many iterations, append a session-round reminder to the model.
@@ -120,8 +117,6 @@ def investigation_tools() -> list:
          "读取本次运行中已返回活动对应的原始记录。"),
         ("calculate_activity_metrics", CalculateActivityMetricsInput,
          "对本次运行已返回的活动执行进程树、连接模式、传输汇总或文件变更等确定性计算。"),
-        ("request_scope_expansion", RequestScopeExpansionInput,
-         "发现当前 Scope 外的相关主机且有证据引用时，发起范围扩大审批；本工具不直接扩大权限。"),
         ("finish_investigation", FinishInvestigationInput,
          "现有证据足以形成结论、继续查询没有信息增益或预算将耗尽时，结束调查并生成报告。"),
     ]
@@ -162,6 +157,9 @@ class StructuredDataToolPlanner:
             "工具参数必须严格遵循已注册 JSON Schema，不要自行创造字段。"
             "不需要的过滤字段直接省略，不要填写 \"null\"、\"none\" 或空字符串。"
             "租户、案件、run_id 和授权 Scope 由系统注入，不得作为工具参数提交。"
+            "调查边界固定为唯一告警主机的本机数据：没有跨主机查询工具，"
+            "发现涉及其他主机的线索时不要尝试查询目标主机，继续完成本机取证，"
+            "跨主机线索留给最终报告作为未解决问题或限制记录。"
             "空结果只代表该次查询在执行边界内返回零条，不能据此断言行为没有发生。"
             "候选关系只能用于继续调查，不能当作已确认事实。"
             "host_refs 必须使用 authorized_scope.host_ids 中的原始值，例如 server-01，不要添加 host: 前缀。"
@@ -230,8 +228,6 @@ class StructuredDataToolPlanner:
                         "usage_metadata": response.usage_metadata,
                     },
                 ))
-            elif name == "request_scope_expansion":
-                actions.append(ScopeRequest(**arguments))
             elif name == "finish_investigation":
                 actions.append(FinishRequest(**arguments))
             else:

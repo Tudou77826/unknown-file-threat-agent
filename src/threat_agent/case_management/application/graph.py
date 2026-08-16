@@ -21,11 +21,16 @@ class CaseGraphState(TypedDict, total=False):
     investigation_report: InvestigationReport | None
     response_plan: ResponsePlan | None
     approval_status: str | None
-    route: Literal["scope_approval", "judged", "response", "response_approval", "complete"]
+    route: Literal["judged", "response", "response_approval", "complete"]
 
 
 class CaseGraph:
-    """Parent graph for durable case lifecycle orchestration."""
+    """Parent graph for durable case lifecycle orchestration.
+
+    The investigation boundary is single-host: there is no scope-approval
+    branch. Cross-host leads surface as report limitations only. Response-plan
+    approval is unaffected.
+    """
 
     def __init__(
         self,
@@ -41,7 +46,6 @@ class CaseGraph:
         builder = StateGraph(CaseGraphState)
         builder.add_node("run_judgment", self.judgment_graph.compiled)
         builder.add_node("route_after_judgment", self._route_after_judgment)
-        builder.add_node("approve_scope", self._approve_scope)
         builder.add_node("publish_judgment", self._publish_judgment)
         if self.response_graph is not None:
             builder.add_node("run_response_advisory", self.response_graph.compiled)
@@ -54,9 +58,8 @@ class CaseGraph:
         builder.add_conditional_edges(
             "route_after_judgment",
             lambda value: value["route"],
-            {"scope_approval": "approve_scope", "judged": "publish_judgment"},
+            {"judged": "publish_judgment"},
         )
-        builder.add_edge("approve_scope", "run_judgment")
         builder.add_conditional_edges(
             "publish_judgment",
             lambda value: value["route"],
@@ -102,26 +105,6 @@ class CaseGraph:
             config=config,
         )
 
-    def resume_scope(
-        self,
-        *,
-        tenant_id: str,
-        case_id: str,
-        run_id: str = "primary",
-        approved: bool,
-        approved_by: str,
-    ) -> dict[str, Any]:
-        config = {
-            "configurable": {
-                "thread_id": self.thread_id(tenant_id, case_id, run_id),
-            },
-            "recursion_limit": self.recursion_limit,
-        }
-        return self.compiled.invoke(
-            Command(resume={"approved": approved, "approved_by": approved_by}),
-            config=config,
-        )
-
     def resume_response(
         self,
         *,
@@ -142,42 +125,9 @@ class CaseGraph:
             config=config,
         )
 
-    def _route_after_judgment(self, case_state: CaseGraphState) -> CaseGraphState:
-        result = case_state["investigation"]
-        pending = any(item.approval_status == "pending" for item in result.scope_expansions)
-        return {
-            "lifecycle_status": "awaiting_scope_approval" if pending else "judged",
-            "route": "scope_approval" if pending else "judged",
-        }
-
-    def _approve_scope(self, case_state: CaseGraphState) -> CaseGraphState:
-        state = case_state["investigation"].model_copy(deep=True)
-        expansion = next(
-            item for item in reversed(state.scope_expansions) if item.approval_status == "pending"
-        )
-        decision = interrupt(
-            {
-                "kind": "scope_approval",
-                "case_id": state.case_id,
-                "expansion_id": expansion.expansion_id,
-                "candidate_host_ids": expansion.candidate_host_ids,
-                "reason_type": expansion.reason_type,
-                "reason_evidence_refs": expansion.reason_evidence_refs,
-            }
-        )
-        if not isinstance(decision, dict) or not isinstance(decision.get("approved"), bool):
-            raise ValueError("Scope approval resume value must contain boolean approved")
-        approved_by = str(decision.get("approved_by") or "unknown")
-        self.judgment_graph.apply_scope_decision(
-            state,
-            approved=decision["approved"],
-            approval_source=f"human:{approved_by}",
-        )
-        return {
-            "investigation": state,
-            "approval_status": "approved" if decision["approved"] else "denied",
-            "lifecycle_status": "investigating",
-        }
+    @staticmethod
+    def _route_after_judgment(case_state: CaseGraphState) -> CaseGraphState:
+        return {"lifecycle_status": "judged", "route": "judged"}
 
     def _publish_judgment(self, case_state: CaseGraphState) -> CaseGraphState:
         state = case_state["investigation"]

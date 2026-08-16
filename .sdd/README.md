@@ -21,6 +21,8 @@
 | 06 | [platform-architecture-migration](features/06-platform-architecture-migration/README.md) | 将现有原型迁移到目标架构、原生 LangGraph 子图和纵向代码边界 | 已完成 |
 | 07 | [data-driven-investigation-quality-demo](features/07-data-driven-investigation-quality-demo/README.md) | 用受控数据 Profile 展示数据源对研判与处置质量的决定性影响，并统一外置运行配置 | 已实现并通过 8 条 Profile 路径验收 |
 | 08 | [investigation-platform-foundation](features/08-investigation-platform-foundation/README.md) | 安全活动模型、正式调查报告、持久化运行审计和最小调查运行接口 | 已完成首版架构收敛；容量实测后置为独立需求 |
+| 13 | [single-host-investigation-boundary](features/13-single-host-investigation-boundary/README.md) | 初期单租户、单主机可信调查边界，关闭跨主机扩展并统一工具边界校验 | 已实施；单元与架构测试通过，LLM 检测回归待运行 |
+| 14 | [evidence-grounded-report-repair](features/14-evidence-grounded-report-repair/README.md) | 引用失效时基于授权证据重新研判，阻止无证据结论通过修复发布 | 设计已完成；实施计划待审批 |
 
 ## 文档规则
 

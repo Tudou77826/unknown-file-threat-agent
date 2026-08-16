@@ -4,7 +4,7 @@ import hashlib
 import math
 import time
 from collections import Counter, defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from statistics import mean, pstdev
 from typing import Any, Callable
 
@@ -12,6 +12,7 @@ from ...contracts import (
     ActivityMetricResult,
     AssetActivitiesInput,
     AssetActivityQuery,
+    BoundaryDenied,
     CalculateActivityMetricsInput,
     EntityExplorationResult,
     ExploreEntityInput,
@@ -23,6 +24,7 @@ from ...contracts import (
     InvestigationToolTrace,
     NetworkActivitiesInput,
     NetworkActivityQuery,
+    OutOfScopeRelationClue,
     PackageActivitiesInput,
     PackageActivityQuery,
     ProcessActivitiesInput,
@@ -36,6 +38,7 @@ from ...contracts import (
     ToolRuntimeContext,
 )
 from ...data_foundation import DataAccessError, SQLiteActivityQueryAdapter, SQLiteActivityStore
+from ..application.boundary import BoundaryViolationError, InvestigationBoundaryPort
 
 
 _QUERY_CLASSES = {
@@ -87,8 +90,21 @@ def _normalize_arguments(arguments: dict[str, Any]) -> dict[str, Any]:
     return _normalize_null_values(arguments) or {}
 
 
+def _aware(value: datetime | None) -> datetime | None:
+    """Interpret naive datetimes as UTC so they compare with aware scope bounds."""
+    if value is not None and value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value
+
+
 class InvestigationToolGateway:
-    """Stable LLM tools over typed data-foundation capabilities."""
+    """Stable LLM tools over typed data-foundation capabilities.
+
+    Every invocation passes the injected ``InvestigationBoundaryPort`` twice:
+    before execution (authorization) and after execution (result validation).
+    Ledger mutations happen only after both checks pass, so an out-of-boundary
+    result can never reach the ledger, events or the model context.
+    """
 
     tool_names = (
         "query_process_activities",
@@ -107,10 +123,12 @@ class InvestigationToolGateway:
         self,
         store: SQLiteActivityStore,
         query_adapter: SQLiteActivityQueryAdapter,
+        boundary: InvestigationBoundaryPort,
         event_sink: Callable[[str, str, dict[str, Any] | None], None] | None = None,
     ):
         self.store = store
         self.query_adapter = query_adapter
+        self.boundary = boundary
         self.event_sink = event_sink or (lambda _kind, _message, _details=None: None)
 
     def invoke(
@@ -128,7 +146,14 @@ class InvestigationToolGateway:
         arguments = _normalize_arguments(dict(arguments or {}))
         handler = getattr(self, tool_name)
         started = time.perf_counter()
-        result = handler(arguments, context, ledger)
+        try:
+            self.boundary.authorize_call(context, ledger, tool_name, arguments)
+            result = handler(arguments, context, ledger)
+            self.boundary.validate_result(context, ledger, tool_name, result)
+        except BoundaryViolationError as violation:
+            self._emit_denial(violation.denial, context)
+            raise
+        self._record_result(context, ledger, tool_name, result)
         ledger.traces.append(InvestigationToolTrace(
             sequence=len(ledger.traces) + 1,
             tool_name=tool_name,
@@ -152,6 +177,68 @@ class InvestigationToolGateway:
             event_details,
         )
         return result
+
+    def _emit_denial(self, denial: BoundaryDenied, context: ToolRuntimeContext) -> None:
+        # Identifiers and scope summary only; unauthorized object content must
+        # not leak into events or audit.
+        self.event_sink("tool_error", f"调查边界拒绝工具调用：{denial.tool_name}", {
+            "tool_name": denial.tool_name,
+            "error_code": denial.code,
+            "boundary_denied": denial.model_dump(mode="json"),
+            "tenant_id": context.tenant_id,
+            "case_id": context.case_id,
+            "run_id": context.run_id,
+            "scope": context.scope.model_dump(mode="json"),
+            "node": "execute",
+        })
+
+    def _record_result(
+        self, context: ToolRuntimeContext, ledger: InvestigationToolLedger,
+        tool_name: str, result: Any,
+    ) -> None:
+        """Commit a validated result and extend the run's authorized ref sets."""
+
+        def extend_activities(activities) -> None:
+            for activity in activities:
+                refs = set(activity.subject_refs) | set(activity.actor_refs) | set(activity.target_refs)
+                ledger.authorized_entity_refs = sorted(
+                    set(ledger.authorized_entity_refs) | refs
+                )
+            ledger.authorized_activity_refs = sorted(
+                set(ledger.authorized_activity_refs)
+                | {item.activity_id for item in activities}
+            )
+
+        def endpoint_refs_of(relation) -> set[str]:
+            refs: set[str] = set()
+            for endpoint in (relation.source_entity_ref, relation.target_entity_ref):
+                identity = self._resolve_identity_of_ref(context.tenant_id, endpoint)
+                if identity is None:
+                    refs.add(endpoint)
+                else:
+                    refs.add(identity.entity_id)
+                    refs.update(alias.source_id for alias in identity.aliases)
+            return refs
+
+        if tool_name in _DOMAIN_TOOLS:
+            ledger.query_results.append(result)
+            extend_activities(result.activities)
+        elif tool_name == "explore_entity":
+            ledger.entity_results.append(result)
+            extend_activities(result.timeline)
+            entity_refs = set()
+            if result.identity is not None:
+                entity_refs.add(result.identity.entity_id)
+                entity_refs.update(alias.source_id for alias in result.identity.aliases)
+            for relation in [*result.resolved_relations, *result.candidate_relations]:
+                entity_refs |= endpoint_refs_of(relation)
+            ledger.authorized_entity_refs = sorted(
+                set(ledger.authorized_entity_refs) | entity_refs
+            )
+        elif tool_name == "get_raw_records":
+            ledger.raw_record_results.append(result)
+        elif tool_name == "calculate_activity_metrics":
+            ledger.metric_results.append(result)
 
     @staticmethod
     def _event_details(tool_name: str, arguments: dict[str, Any], result: Any) -> dict[str, Any]:
@@ -219,12 +306,7 @@ class InvestigationToolGateway:
                 }
             },
         )
-        result = getattr(self.query_adapter, f"query_{activity_type}")(query)
-        ledger.query_results.append(result)
-        ledger.authorized_activity_refs = sorted(set(ledger.authorized_activity_refs) | {
-            item.activity_id for item in result.activities
-        })
-        return result
+        return getattr(self.query_adapter, f"query_{activity_type}")(query)
 
     def query_process_activities(self, raw, context, ledger):
         request = ProcessActivitiesInput.model_validate(raw)
@@ -254,7 +336,6 @@ class InvestigationToolGateway:
         request = AssetActivitiesInput.model_validate(raw)
         return self._query_domain("asset", request, context, ledger)
 
-
     def explore_entity(self, raw, context, ledger):
         request = ExploreEntityInput.model_validate(raw)
         identity = self._resolve_identity(context.tenant_id, request.entity_ref)
@@ -264,16 +345,33 @@ class InvestigationToolGateway:
         relations = self.store.find_relations(
             context.tenant_id, entity_id, request.relation_direction
         ) if "relations" in request.include else []
+        resolved, candidate, out_of_scope = self._split_relations_by_host(
+            context, relations, entity_id
+        )
         alias_refs = {item.source_id for item in identity.aliases} | {entity_id}
         timeline = []
         if "timeline" in request.include:
+            lower = max(
+                filter(None, [context.scope.start_time, _aware(request.start_time)]),
+                default=None,
+            )
+            upper = min(
+                filter(None, [context.scope.end_time, _aware(request.end_time)]),
+                default=None,
+            )
             for activity in self.store.list_activities(context.tenant_id):
                 refs = set(activity.subject_refs) | set(activity.actor_refs) | set(activity.target_refs)
                 if not refs.intersection(alias_refs):
                     continue
-                if request.start_time and activity.observed_at < request.start_time:
+                # Entity timelines must not carry other hosts' activities: a
+                # shared entity (e.g. an external endpoint) is reachable from
+                # the alert host, but the timeline stays on the alert host.
+                activity_host = getattr(activity, "host_ref", None)
+                if activity_host is not None and activity_host not in context.scope.host_ids:
                     continue
-                if request.end_time and activity.observed_at > request.end_time:
+                if lower is not None and activity.observed_at < lower:
+                    continue
+                if upper is not None and activity.observed_at > upper:
                     continue
                 timeline.append(activity)
         offset = self._decode_offset(request.cursor)
@@ -281,17 +379,75 @@ class InvestigationToolGateway:
         next_cursor = str(offset + request.limit) if offset + request.limit < len(timeline) else None
         result = EntityExplorationResult(
             identity=identity if "identity" in request.include else None,
-            resolved_relations=[item for item in relations if item.resolution_status == "resolved"],
-            candidate_relations=[item for item in relations if item.resolution_status == "candidate"],
+            resolved_relations=resolved,
+            candidate_relations=candidate,
+            out_of_scope_relations=out_of_scope,
             timeline=page,
             returned_count=len(page),
             next_cursor=next_cursor,
         )
-        ledger.entity_results.append(result)
-        ledger.authorized_activity_refs = sorted(
-            set(ledger.authorized_activity_refs) | {item.activity_id for item in page}
-        )
         return result
+
+    def _split_relations_by_host(self, context, relations, entity_id):
+        """Split relations into local ones and minimal cross-host clues.
+
+        An endpoint whose host attribution can be determined and is not the
+        alert host is returned as an identifier-only clue: no target
+        attributes, no relation expansion, no target-side timeline.
+        """
+        resolved: list = []
+        candidate: list = []
+        out_of_scope: list[OutOfScopeRelationClue] = []
+        local_hosts = set(context.scope.host_ids)
+        for relation in relations:
+            other = (
+                relation.target_entity_ref
+                if relation.source_entity_ref == entity_id
+                else relation.source_entity_ref
+            )
+            if self._endpoint_host(context, other) not in local_hosts | {None}:
+                out_of_scope.append(OutOfScopeRelationClue(
+                    relation_id=relation.relation_id,
+                    other_endpoint_ref=other,
+                ))
+                continue
+            if relation.resolution_status == "resolved":
+                resolved.append(relation)
+            else:
+                candidate.append(relation)
+        return resolved, candidate, out_of_scope
+
+    def _endpoint_host(self, context, endpoint_ref: str) -> str | None:
+        """Deterministically attribute an endpoint ref to a host, if possible.
+
+        Returns None when the ref carries no host attribution (shared entities
+        such as external endpoints or packages).
+        """
+        identity = self._resolve_identity_of_ref(context.tenant_id, endpoint_ref)
+        if identity is not None:
+            if identity.attributes.get("host_ref"):
+                return str(identity.attributes["host_ref"])
+            if identity.entity_type == "host":
+                for alias in identity.aliases:
+                    source = alias.source_id
+                    if source in context.scope.host_ids:
+                        return source
+                    if source.startswith("host:") and source[5:] in context.scope.host_ids:
+                        return source[5:]
+                return None
+            for alias in identity.aliases:
+                source = alias.source_id
+                for host in context.scope.host_ids:
+                    if source == host or source == f"host:{host}" or f":{host}:" in source:
+                        return host
+            return None
+        # Unresolvable opaque refs fall back to structural attribution.
+        for host in context.scope.host_ids:
+            if endpoint_ref == host or endpoint_ref == f"host:{host}" or f":{host}:" in endpoint_ref:
+                return host
+        if endpoint_ref.startswith(("process:", "file:", "host:")) and endpoint_ref.count(":") >= 2:
+            return endpoint_ref.split(":")[1]
+        return None
 
     def _resolve_identity(self, tenant_id: str, ref: str):
         """Resolve an entity by entity_id first, then by alias source_id.
@@ -302,21 +458,22 @@ class InvestigationToolGateway:
         (host_ref alias), so also retry with the ``host:`` prefix stripped.
         """
         for candidate in {ref, ref[5:] if ref.startswith("host:") else ref}:
-            identity = self.store.get_entity(tenant_id, candidate)
+            identity = self._resolve_identity_of_ref(tenant_id, candidate)
             if identity is not None:
                 return identity
-            for identity in self.store.list_entities(tenant_id):
-                if any(alias.source_id == candidate for alias in identity.aliases):
-                    return identity
+        return None
+
+    def _resolve_identity_of_ref(self, tenant_id: str, ref: str):
+        identity = self.store.get_entity(tenant_id, ref)
+        if identity is not None:
+            return identity
+        for identity in self.store.list_entities(tenant_id):
+            if any(alias.source_id == ref for alias in identity.aliases):
+                return identity
         return None
 
     def get_raw_records(self, raw, context, ledger):
         request = GetRawRecordsInput.model_validate(raw)
-        unauthorized = sorted(set(request.activity_refs) - set(ledger.authorized_activity_refs))
-        if unauthorized:
-            raise DataAccessError(
-                f"Raw records require activity references already returned in this run: {unauthorized}"
-            )
         records = []
         for activity_ref in request.activity_refs[:request.max_records]:
             activity = self.store.get_activity(context.tenant_id, activity_ref)
@@ -342,16 +499,10 @@ class InvestigationToolGateway:
             records=records,
             truncated=len(request.activity_refs) > request.max_records,
         )
-        ledger.raw_record_results.append(result)
         return result
 
     def calculate_activity_metrics(self, raw, context, ledger):
         request = CalculateActivityMetricsInput.model_validate(raw)
-        unauthorized = sorted(set(request.activity_refs) - set(ledger.authorized_activity_refs))
-        if unauthorized:
-            raise DataAccessError(
-                f"Metrics require activity references already returned in this run: {unauthorized}"
-            )
         activities = [self.store.get_activity(context.tenant_id, ref) for ref in request.activity_refs]
         if any(item is None for item in activities):
             raise DataAccessError("Metric input contains an unknown activity reference")
@@ -369,7 +520,6 @@ class InvestigationToolGateway:
             metrics=metrics,
             limitations=limitations,
         )
-        ledger.metric_results.append(result)
         return result
 
     @staticmethod

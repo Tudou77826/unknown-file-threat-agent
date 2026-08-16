@@ -20,16 +20,6 @@ class FinishInvestigationInput(StrictModel):
     objective: str = Field(min_length=10, description="结束调查并生成报告的中文原因")
 
 
-class RequestScopeExpansionInput(StrictModel):
-    objective: str = Field(min_length=10, description="申请扩大调查范围的中文原因")
-    requested_host_ids: list[str] = Field(min_length=1)
-    reason_evidence_refs: list[str] = Field(min_length=1)
-    reason_type: str = "related_host_evidence"
-    requested_domains: list[str] = Field(default_factory=lambda: ["process", "file", "network"])
-    start_time: Any | None = None
-    end_time: Any | None = None
-
-
 def _not_directly_executable(**_kwargs: Any) -> None:
     raise RuntimeError("Tool execution is owned by JudgmentGraph")
 

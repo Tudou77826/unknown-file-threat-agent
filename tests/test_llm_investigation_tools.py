@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from langchain_core.messages import AIMessage, SystemMessage
 
-from threat_agent.case_management import initialize_state
+from threat_agent.case_management import SingleHostBoundaryPolicy, initialize_state
 from threat_agent.contracts import (
     CandidateVerdict,
     DatasetManifest,
@@ -17,12 +17,11 @@ from threat_agent.contracts import (
 )
 from threat_agent.data_foundation import (
     BatchIngestionService,
-    DataAccessError,
     ReferenceEventParser,
     SQLiteActivityQueryAdapter,
     SQLiteActivityStore,
 )
-from threat_agent.judgment import InvestigationToolGateway
+from threat_agent.judgment import BoundaryViolationError, InvestigationToolGateway
 from threat_agent.judgment.application.data_tool_planner import DataToolSelection, StructuredDataToolPlanner
 from threat_agent.judgment.application.reporting import ReportDraft, StructuredReportComposer
 from threat_agent.judgment.domain.models import DataToolRequest, FinishRequest, ToolCall
@@ -72,6 +71,10 @@ def _context() -> ToolRuntimeContext:
     )
 
 
+def _boundary() -> SingleHostBoundaryPolicy:
+    return SingleHostBoundaryPolicy(tenant_id="tenant-a", case_id="case-a", run_id="run-a")
+
+
 def test_gateway_exposes_domain_data_tools_and_routes_typed_query(tmp_path: Path):
     store = _store(tmp_path)
     try:
@@ -79,6 +82,7 @@ def test_gateway_exposes_domain_data_tools_and_routes_typed_query(tmp_path: Path
         gateway = InvestigationToolGateway(
             store,
             SQLiteActivityQueryAdapter(store),
+            _boundary(),
             event_sink=lambda kind, message, details=None: emitted.append(
                 (kind, message, details)
             ),
@@ -109,12 +113,13 @@ def test_gateway_exposes_domain_data_tools_and_routes_typed_query(tmp_path: Path
 def test_gateway_rejects_out_of_scope_host(tmp_path: Path):
     store = _store(tmp_path)
     try:
-        gateway = InvestigationToolGateway(store, SQLiteActivityQueryAdapter(store))
-        with pytest.raises(DataAccessError):
+        gateway = InvestigationToolGateway(store, SQLiteActivityQueryAdapter(store), _boundary())
+        with pytest.raises(BoundaryViolationError) as denial:
             gateway.invoke(
                 "query_process_activities", {"host_refs": ["host-2"]},
                 _context(), InvestigationToolLedger(),
             )
+        assert denial.value.code == "host_out_of_scope"
     finally:
         store.close()
 
@@ -122,12 +127,13 @@ def test_gateway_rejects_out_of_scope_host(tmp_path: Path):
 def test_raw_and_metric_tools_require_activity_returned_in_same_run(tmp_path: Path):
     store = _store(tmp_path)
     try:
-        gateway = InvestigationToolGateway(store, SQLiteActivityQueryAdapter(store))
+        gateway = InvestigationToolGateway(store, SQLiteActivityQueryAdapter(store), _boundary())
         ledger = InvestigationToolLedger()
-        with pytest.raises(DataAccessError):
+        with pytest.raises(BoundaryViolationError) as denial:
             gateway.invoke(
                 "get_raw_records", {"activity_refs": ["activity-process-1"]}, _context(), ledger
             )
+        assert denial.value.code == "reference_not_authorized"
         query = gateway.invoke(
             "query_network_activities", {}, _context(), ledger
         )
@@ -241,15 +247,14 @@ def test_report_validator_rejects_unknown_refs_scope_and_candidate_relations(tmp
         state = _state()
         state.scope = _context().scope
         state.raw_input.update({"tenant_id": "tenant-a", "run_id": "run-a"})
-        gateway = InvestigationToolGateway(store, SQLiteActivityQueryAdapter(store))
+        gateway = InvestigationToolGateway(store, SQLiteActivityQueryAdapter(store), _boundary())
         process = gateway.invoke(
             "query_process_activities", {}, _context(), state.tool_ledger
         )
-        entity_id = next(
-            item.entity_id for item in store.list_entities("tenant-a") if item.entity_type == "process"
-        )
+        # Only refs that appeared in this run's tool results may be explored.
+        entity_ref = process.activities[0].subject_refs[0]
         entity = gateway.invoke(
-            "explore_entity", {"entity_ref": entity_id}, _context(), state.tool_ledger
+            "explore_entity", {"entity_ref": entity_ref}, _context(), state.tool_ledger
         )
         candidate = entity.candidate_relations[0].relation_id
         verdict = CandidateVerdict(

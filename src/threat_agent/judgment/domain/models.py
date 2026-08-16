@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Annotated, Any, Literal, TypeAlias
 
 from pydantic import Field
@@ -20,26 +19,11 @@ class Claim(StrictModel):
     verification_requirements: list[str] = Field(default_factory=list)
 
 
-class ScopeExpansion(StrictModel):
-    expansion_id: str
-    candidate_host_ids: list[str]
-    reason_type: str
-    reason_evidence_refs: list[str]
-    requested_domains: list[str] = Field(default_factory=list)
-    start_time: datetime | None = None
-    end_time: datetime | None = None
-    approval_status: Literal["pending", "approved", "denied"] = "pending"
-    approval_source: str | None = None
-    limitations: list[str] = Field(default_factory=list)
-
-
 class Budget(StrictModel):
     max_iterations: int = 48
     max_tool_calls: int = 60
     iterations_used: int = 0
     tool_calls_used: int = 0
-    max_scope_expansions: int = 2
-    scope_expansions_used: int = 0
     max_verdict_repairs: int = 2
     verdict_repairs_used: int = 0
 
@@ -52,17 +36,6 @@ class ToolCall(StrictModel):
     objective: str
     parameters: dict[str, Any] = Field(default_factory=dict)
     error: str | None = None
-
-
-class ScopeRequest(StrictModel):
-    action_type: Literal["scope_request"] = "scope_request"
-    objective: str = Field(min_length=10)
-    requested_host_ids: list[str] = Field(min_length=1)
-    reason_evidence_refs: list[str] = Field(min_length=1)
-    reason_type: str = "related_host_evidence"
-    requested_domains: list[str] = Field(default_factory=lambda: ["process", "file", "network"])
-    start_time: datetime | None = None
-    end_time: datetime | None = None
 
 
 class FinishRequest(StrictModel):
@@ -84,7 +57,7 @@ class DataToolRequest(StrictModel):
 
 
 InvestigationAction: TypeAlias = Annotated[
-    DataToolRequest | ScopeRequest | FinishRequest,
+    DataToolRequest | FinishRequest,
     Field(discriminator="action_type"),
 ]
 
@@ -95,7 +68,6 @@ class InvestigationState(StrictModel):
     entities: list[Entity]
     claims: list[Claim] = Field(default_factory=list)
     scope: Scope
-    scope_expansions: list[ScopeExpansion] = Field(default_factory=list)
     budget: Budget = Field(default_factory=Budget)
     tool_calls: list[ToolCall] = Field(default_factory=list)
     verdict: CandidateVerdict | None = None
