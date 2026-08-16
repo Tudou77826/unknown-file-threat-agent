@@ -59,9 +59,10 @@ class StructuredResponsePlanner:
                     "operator, security_lead, business_owner. Never claim that an action "
                     "was executed. "
                     "If judgment.publication_status is 'fallback', the verdict did not "
-                    "survive grounding validation: only propose re-analysis, additional "
-                    "data collection or manual review, and never isolation, blocking, "
-                    "quarantine or deletion. "
+                    "survive grounding validation: use ONLY the action types "
+                    "re_run_analysis, collect_more_data or manual_review. Any other "
+                    "action type (isolation, blocking, quarantine, deletion, "
+                    "termination) will be rejected. "
                     "JSON schema: "
                     + json.dumps(ResponseProposal.model_json_schema(), ensure_ascii=False)
                 ),

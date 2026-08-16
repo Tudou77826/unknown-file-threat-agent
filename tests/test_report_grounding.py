@@ -381,7 +381,15 @@ def _proposal(action_type="collect_more_data", approval_class="none"):
 
 def test_fallback_judgment_rejects_high_impact_actions():
     errors = validate_response_proposal(_judgment("fallback"), _proposal("isolate_host", "security_lead"))
-    assert any("Fallback publication cannot justify" in item for item in errors)
+    assert any("Fallback publication only permits review actions" in item for item in errors)
+
+
+def test_fallback_judgment_fails_closed_on_unlisted_action_types():
+    # action_type is a free-form string: novel spellings of destructive
+    # actions must be rejected by the allowlist, not slip past a blocklist.
+    for novel in ("delete_file", "remove_persistence", "wipe_host", "terminate_process"):
+        errors = validate_response_proposal(_judgment("fallback"), _proposal(novel, "operator"))
+        assert any("Fallback publication only permits review actions" in item for item in errors), novel
 
 
 def test_grounded_judgment_allows_approved_high_impact_actions():
@@ -390,5 +398,7 @@ def test_grounded_judgment_allows_approved_high_impact_actions():
     assert not any("Fallback publication" in item for item in errors)
 
 
-def test_fallback_judgment_allows_low_impact_review_actions():
-    assert validate_response_proposal(_judgment("fallback"), _proposal()) == []
+def test_fallback_judgment_allows_only_review_actions():
+    from threat_agent.response_advisory.domain.policy import FALLBACK_ALLOWED_ACTIONS
+    for allowed in sorted(FALLBACK_ALLOWED_ACTIONS):
+        assert validate_response_proposal(_judgment("fallback"), _proposal(allowed)) == [], allowed

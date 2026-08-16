@@ -6,6 +6,16 @@ from .models import ResponseProposal
 
 HIGH_RISK_ACTIONS = {"isolate_host", "disable_account", "block_network", "quarantine_file"}
 
+# A fallback publication carries no safety assertions, so it may only justify
+# advisory follow-up: re-analysis, more data, or human review. This is an
+# allowlist, not a blocklist: action_type is a free-form string, so novel
+# spellings of high-impact actions (e.g. delete_file) must fail closed.
+FALLBACK_ALLOWED_ACTIONS = {
+    "re_run_analysis",
+    "collect_more_data",
+    "manual_review",
+}
+
 
 def validate_response_proposal(
     judgment: JudgmentResult,
@@ -16,8 +26,6 @@ def validate_response_proposal(
         errors.append("Response proposal contains no candidate actions")
     valid_refs = set(judgment.evidence_refs)
     action_ids: set[str] = set()
-    # A fallback publication carries no safety assertions: it may only justify
-    # re-analysis, data collection or manual review, never high-impact response.
     fallback = judgment.publication_status == "fallback"
     for action in proposal.actions:
         if action.action_id in action_ids:
@@ -32,11 +40,13 @@ def validate_response_proposal(
             errors.append(f"Action {action.action_id} has no preconditions")
         if not action.verification_steps:
             errors.append(f"Action {action.action_id} has no verification steps")
+        if fallback and action.action_type not in FALLBACK_ALLOWED_ACTIONS:
+            errors.append(
+                f"Fallback publication only permits review actions "
+                f"(re_run_analysis/collect_more_data/manual_review); "
+                f"{action.action_id} requested {action.action_type}"
+            )
         if action.action_type in HIGH_RISK_ACTIONS:
-            if fallback:
-                errors.append(
-                    f"Fallback publication cannot justify high-impact action {action.action_id}"
-                )
             if action.approval_class == "none":
                 errors.append(f"High-risk action {action.action_id} requires approval")
             if not action.rollback_steps:
