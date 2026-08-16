@@ -20,6 +20,7 @@ def _import_activity_dataset(
     dataset_id: str,
     dataset_version: str,
     case_dir: Path,
+    tenant_id: str = "default",
 ) -> None:
     activity_store = SQLiteActivityStore(reference_activity_store_path(reference_store.path, dataset_id))
     parser = ReferenceEventParser()
@@ -33,7 +34,7 @@ def _import_activity_dataset(
             )
         BatchIngestionService(activity_store, parser).ingest_payloads(
             DatasetManifest(
-                tenant_id="default",
+                tenant_id=tenant_id,
                 source_identity="reference-demo-initializer",
                 dataset_id=dataset_id,
                 dataset_version=dataset_version,
@@ -55,8 +56,13 @@ def initialize_reference_demo(
     *,
     project_root: Path,
     demo_data_root: Path | None = None,
+    tenant_id: str = "default",
 ) -> dict[str, ReferenceDatasetMetadata]:
-    """Import versioned, non-production demo assets into the reference store."""
+    """Import versioned, non-production demo assets into the reference store.
+
+    ``tenant_id`` keys the ingested activity data; callers must pass the same
+    server tenant the investigation runtime will query under.
+    """
 
     root = (demo_data_root or project_root / "demo_data").resolve()
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
@@ -84,6 +90,7 @@ def initialize_reference_demo(
             dataset_id=dataset_id,
             dataset_version=version,
             case_dir=case_dir,
+            tenant_id=tenant_id,
         )
     for raw_asset in manifest.get("assets", []):
         asset = ReferenceAsset.model_validate(raw_asset["asset"])

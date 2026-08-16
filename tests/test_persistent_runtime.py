@@ -18,6 +18,7 @@ def _settings(tmp_path: Path) -> AppSettings:
     return AppSettings.load(
         environ={
             "THREAT_AGENT_MODE": "deterministic",
+            "THREAT_AGENT_DEFAULT_TENANT": "demo",
             "DEMO_DATA_STORE_PATH": str(tmp_path / "reference.sqlite"),
             "DEMO_RUNTIME_STORE_PATH": str(tmp_path / "runtime.sqlite"),
             "DEMO_DATASET_VERSION": "2026.08.1",

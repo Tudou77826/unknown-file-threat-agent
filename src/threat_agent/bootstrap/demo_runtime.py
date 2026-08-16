@@ -91,8 +91,6 @@ _PHASE_TO_NODE = {
 class DemoRunService:
     """Background demo executor whose externally visible facts are persisted in SQLite."""
 
-    tenant_id = "demo"
-
     def __init__(
         self,
         settings: AppSettings,
@@ -102,6 +100,9 @@ class DemoRunService:
     ):
         self.settings = settings
         self.project_root = project_root
+        # One server-side tenant for runs, events, artifacts and queries; must
+        # match the tenant used for reference data ingestion.
+        self.tenant_id = settings.application.default_tenant
         self.runtime_store = runtime_store or SQLiteInvestigationRuntimeStore(
             settings.demo.runtime_store_path
         )
@@ -167,7 +168,11 @@ class DemoRunService:
     def _resolve_case(self, dataset_id: str, profile_id: str) -> str:
         store = SQLiteReferenceDataStore(self.settings.demo.data_store_path)
         try:
-            metadata = initialize_reference_demo(store, project_root=self.project_root)
+            metadata = initialize_reference_demo(
+                store,
+                project_root=self.project_root,
+                tenant_id=self.tenant_id,
+            )
             if dataset_id not in metadata:
                 raise KeyError(f"Unknown reference dataset: {dataset_id}")
             profiles = store.list_profiles(dataset_id, self.settings.demo.dataset_version)

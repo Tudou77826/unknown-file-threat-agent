@@ -161,6 +161,36 @@ def test_time_and_host_assertions_and_query_boundaries_are_located():
     assert all(issue.blocking for issue in issues)
 
 
+def test_model_emitted_string_and_naive_timestamps_are_coerced_not_crashed():
+    """Regression: LLM drafts carry ISO strings (sometimes tz-less) for asserted times.
+
+    The validator must locate them as issues instead of raising a
+    str-vs-datetime TypeError that kills the whole run.
+    """
+    from datetime import datetime, timezone
+    state = _state()
+    state.scope = Scope(
+        host_ids=["host-1"],
+        start_time=datetime(2026, 4, 23, tzinfo=timezone.utc),
+        end_time=datetime(2026, 4, 24, tzinfo=timezone.utc),
+    )
+    draft = ReportDraft.model_validate({
+        "verdict": {
+            "level": "insufficient_evidence", "threat_type": "unknown",
+            "summary": "证据不足。",
+        },
+        "executive_summary": "证据不足。",
+        "asserted_host_refs": ["host-1"],
+        "asserted_start": "2026-04-22T00:00:00",      # tz-less ISO string
+        "asserted_end": "2026-04-25T00:00:00+00:00",  # aware ISO string
+    })
+    assert draft.asserted_start == datetime(2026, 4, 22, tzinfo=timezone.utc)
+    assert draft.asserted_end == datetime(2026, 4, 25, tzinfo=timezone.utc)
+    issues = ReportGroundingValidator().validate(state, draft)
+    codes = {issue.code for issue in issues}
+    assert codes == {"time_assertion_out_of_scope"}
+
+
 # ---------------------------------------------------------------------------
 # Coordinator: budget, rejudgment, unified failure path
 # ---------------------------------------------------------------------------

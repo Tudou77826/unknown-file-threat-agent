@@ -245,8 +245,11 @@ def run_demo_profile(
         activity_store, visible_sources=set(profile.visible_sources)
     )
     # Server-side run identity and the single-host boundary policy are injected
-    # here; alert-payload fields can never override the tenant.
-    tenant_id = "demo"
+    # here; alert-payload fields can never override the tenant. The tenant is
+    # the ONE configured server tenant — it must match the tenant the
+    # reference activity data was ingested under, or every query returns zero
+    # rows.
+    tenant_id = settings.application.default_tenant
     boundary_policy = SingleHostBoundaryPolicy(
         tenant_id=tenant_id,
         case_id=state.case_id,
@@ -395,11 +398,11 @@ def run_demo_comparison(
             readiness=evaluate_data_readiness(
                 profile,
                 case_id=row["case_id"],
-                tenant_id="demo",
+                tenant_id=settings.application.default_tenant,
                 run_id=f"demo-{dataset_id}-{profile.level}",
             ),
             case=CaseReadModel(
-                tenant_id="demo",
+                tenant_id=settings.application.default_tenant,
                 case_id=row["case_id"],
                 source_identity="demo-readiness",
                 lifecycle_status="not_investigated",
@@ -430,7 +433,11 @@ def run_demo_comparison(
 def build_all_comparisons(settings: AppSettings) -> dict[str, DemoComparisonReadModel]:
     store = SQLiteReferenceDataStore(settings.demo.data_store_path)
     try:
-        metadata = initialize_reference_demo(store, project_root=PROJECT_ROOT)
+        metadata = initialize_reference_demo(
+            store,
+            project_root=PROJECT_ROOT,
+            tenant_id=settings.application.default_tenant,
+        )
         return {
             dataset_id: run_demo_comparison(store=store, dataset_id=dataset_id, settings=settings)
             for dataset_id in metadata
