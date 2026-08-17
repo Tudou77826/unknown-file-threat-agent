@@ -34,7 +34,14 @@ from ..presentation import InMemoryCaseReadStore, InMemoryDemoComparisonStore
 from ..presentation.api.routes import create_app
 from ..response_advisory import ResponseGraph, StructuredResponsePlanner
 from ..response_advisory.adapters import ReferenceResponseContextAdapter
-from .settings import AppSettings, PROJECT_ROOT, build_judgment_model, build_report_model, build_response_model
+from .settings import (
+    AppSettings,
+    PROJECT_ROOT,
+    build_judgment_model,
+    build_report_model,
+    build_response_model,
+    format_effective_settings,
+)
 
 
 EventSink = Callable[[str, str, dict[str, Any] | None], None]
@@ -453,6 +460,7 @@ def main() -> None:
     parser.add_argument("--serve", action="store_true", help="Serve read-only comparison pages")
     args = parser.parse_args()
     settings = AppSettings.load(cli_overrides={"DEMO_DATA_STORE_PATH": args.database})
+    print(format_effective_settings(settings), flush=True)
     comparisons = build_all_comparisons(settings)
     output = Path(args.output).resolve() if args.output else None
     if output:

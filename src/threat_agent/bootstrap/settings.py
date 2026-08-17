@@ -261,3 +261,71 @@ def build_response_model(settings: AppSettings | None = None):
 def build_report_model(settings: AppSettings | None = None):
     loaded = settings or AppSettings.load()
     return build_chat_model(loaded.report_model)
+
+
+def format_effective_settings(settings: AppSettings) -> str:
+    """One-screen masked summary of the effective configuration.
+
+    Values are compared against the pure built-in defaults; a trailing ``*``
+    marks anything overridden via environment or .env, so "which value is
+    actually in effect" is answerable at a glance. API keys are never shown.
+    """
+
+    defaults = AppSettings.load(
+        environ={}, env_file=PROJECT_ROOT / "__no_such_env_file__"
+    )
+
+    def mark(label: str, value, default) -> str:
+        suffix = "*" if value != default else ""
+        return f"{label}={value}{suffix}"
+
+    def key_mark(settings_obj, defaults_obj) -> str:
+        state = "set" if settings_obj.api_key is not None else "unset"
+        default_state = "set" if defaults_obj.api_key is not None else "unset"
+        return f"key=<{state}>" + ("*" if state != default_state else "")
+
+    jm, rm, dm = settings.judgment_model, settings.response_model, defaults.judgment_model
+    lines = [
+        "── 生效配置（* = 被 .env/环境变量覆盖，其余为默认值；密钥已脱敏）──",
+        "[模型] "
+        + "  ".join(filter(None, [
+            mark("judgment", jm.model_name, dm.model_name),
+            mark("response", rm.model_name, defaults.response_model.model_name),
+            mark("base", jm.base_url, dm.base_url),
+            key_mark(jm, dm),
+            mark("window", jm.context_window_tokens, dm.context_window_tokens),
+            mark("judgment_tokens", jm.max_tokens, dm.max_tokens),
+            mark("response_tokens", rm.max_tokens, defaults.response_model.max_tokens),
+        ])),
+        "[超时] "
+        + "  ".join([
+            mark("judgment", f"{jm.timeout_seconds:.0f}s", f"{dm.timeout_seconds:.0f}s"),
+            mark("response", f"{rm.timeout_seconds:.0f}s", f"{defaults.response_model.timeout_seconds:.0f}s"),
+            mark("report", f"{settings.report_model.timeout_seconds:.0f}s", f"{defaults.report_model.timeout_seconds:.0f}s"),
+            mark("judgment_retry", jm.max_retries, dm.max_retries),
+            mark("response_retry", rm.max_retries, defaults.response_model.max_retries),
+        ]),
+        "[预算] "
+        + "  ".join([
+            mark("iterations", settings.judgment_budget.max_iterations, defaults.judgment_budget.max_iterations),
+            mark("tool_calls", settings.judgment_budget.max_tool_calls, defaults.judgment_budget.max_tool_calls),
+            mark("rejudgments", settings.judgment_budget.max_report_rejudgments, defaults.judgment_budget.max_report_rejudgments),
+        ]),
+        "[边界] "
+        + "  ".join([
+            mark("lookback", f"{settings.application.investigation_lookback_hours:g}h", f"{defaults.application.investigation_lookback_hours:g}h"),
+            mark("tenant", settings.application.default_tenant, defaults.application.default_tenant),
+        ]),
+        "[演示] "
+        + "  ".join([
+            mark("dataset", settings.demo.dataset_version, defaults.demo.dataset_version),
+            mark("profile", settings.demo.data_profile, defaults.demo.data_profile),
+            mark("store", str(settings.demo.data_store_path), str(defaults.demo.data_store_path)),
+        ]),
+        "[服务] "
+        + "  ".join([
+            mark("host", settings.presentation.host, defaults.presentation.host),
+            mark("port", settings.presentation.port, defaults.presentation.port),
+        ]),
+    ]
+    return "\n".join(lines)
