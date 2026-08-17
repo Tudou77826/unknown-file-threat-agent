@@ -27,7 +27,7 @@ from threat_agent.judgment.application.report_draft import ReportDraft
 from threat_agent.judgment.domain.models import FinishRequest
 from threat_agent.response_advisory.domain.models import ResponseProposal
 from threat_agent.response_advisory.domain.policy import (
-    HIGH_RISK_ACTIONS,
+    FALLBACK_ALLOWED_ACTIONS,
     validate_response_proposal,
 )
 
@@ -438,12 +438,49 @@ def test_fallback_judgment_fails_closed_on_unlisted_action_types():
 
 
 def test_grounded_judgment_allows_approved_high_impact_actions():
-    action_type = sorted(HIGH_RISK_ACTIONS)[0]
-    errors = validate_response_proposal(_judgment("grounded"), _proposal(action_type, "security_lead"))
+    errors = validate_response_proposal(_judgment("grounded"), _proposal("isolate_host", "security_lead"))
     assert not any("Fallback publication" in item for item in errors)
 
 
+def test_approval_requiring_action_must_carry_rollback_steps():
+    # Vocabulary-free self-consistency floor: whatever the action is called,
+    # anything the model itself declares as needing approval must explain how
+    # to roll it back.
+    proposal = ResponseProposal(actions=[ResponseAction(
+        action_id="a1", action_type="isolation", rationale="理由",
+        judgment_refs=["evidence-ref-1"], preconditions=["前提"],
+        expected_impact="高", approval_class="security_lead",
+        rollback_steps=[], verification_steps=["验证"],
+    )])
+    errors = validate_response_proposal(_judgment("grounded"), proposal)
+    assert any("no rollback steps" in item for item in errors)
+    # Approval-free actions are not required to carry rollback steps.
+    assert validate_response_proposal(_judgment("grounded"), _proposal("monitor", "none")) == []
+
+
 def test_fallback_judgment_allows_only_review_actions():
-    from threat_agent.response_advisory.domain.policy import FALLBACK_ALLOWED_ACTIONS
     for allowed in sorted(FALLBACK_ALLOWED_ACTIONS):
         assert validate_response_proposal(_judgment("fallback"), _proposal(allowed)) == [], allowed
+
+
+def test_response_planner_prompt_carries_impact_exemplars():
+    """The few-shot exemplars are the teaching mechanism for weaker models:
+    a fully narrated high-impact action and a conservative fallback shape."""
+    from threat_agent.response_advisory.application.planner import StructuredResponsePlanner
+
+    class _Model:
+        model_name = "fake"
+
+        def with_structured_output(self, _schema, **_kwargs):
+            return self
+
+    prompt = StructuredResponsePlanner(_Model()).system_prompt
+    assert "Exemplar A" in prompt and "Exemplar B" in prompt
+    # High-impact exemplar teaches recognition: containment naming, approval,
+    # rollback and a real impact narration.
+    assert "isolate_host" in prompt
+    assert "security_lead" in prompt
+    assert "rollback_steps" in prompt
+    assert "中断" in prompt and "可逆" in prompt
+    # Conservative exemplar teaches the fallback shape.
+    assert "manual_review" in prompt and "collect_more_data" in prompt

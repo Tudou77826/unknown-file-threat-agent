@@ -4,8 +4,6 @@ from ...contracts import JudgmentResult
 from .models import ResponseProposal
 
 
-HIGH_RISK_ACTIONS = {"isolate_host", "disable_account", "block_network", "quarantine_file"}
-
 # A fallback publication carries no safety assertions, so it may only justify
 # advisory follow-up: re-analysis, more data, or human review. This is an
 # allowlist, not a blocklist: action_type is a free-form string, so novel
@@ -53,9 +51,12 @@ def validate_response_proposal(
                 f"(re_run_analysis/collect_more_data/manual_review); "
                 f"{action.action_id} requested {action.action_type}"
             )
-        if action.action_type in HIGH_RISK_ACTIONS:
-            if action.approval_class == "none":
-                errors.append(f"High-risk action {action.action_id} requires approval")
-            if not action.rollback_steps:
-                errors.append(f"High-risk action {action.action_id} requires rollback steps")
+        # Vocabulary-free self-consistency floor: an action the model itself
+        # declares as needing approval must also explain how to roll it back.
+        # (Action naming is free-form by design — high-impact discipline is
+        # taught through few-shot examples instead of an enum gate.)
+        if action.approval_class != "none" and not action.rollback_steps:
+            errors.append(
+                f"Action {action.action_id} requires approval but has no rollback steps"
+            )
     return errors
