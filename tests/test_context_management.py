@@ -98,9 +98,42 @@ def test_messages_layout_keeps_stable_prefix_and_trailing_dynamic():
     assert "budget" not in messages[1].content
     # Last message carries the progress projection.
     last = messages[-1]
-    assert isinstance(last, SystemMessage)
+    assert isinstance(last, HumanMessage)
     assert "queried_domains" in last.content
     assert "unqueried_domains" in last.content
+
+
+def test_messages_expose_exactly_one_leading_system_message():
+    # qwen/DashScope rejects any conversation with more than one system
+    # message; everything injected mid-conversation must use another role.
+    planner = _planner()
+    state = _state()
+    state.budget.iterations_used = 20  # past the reminder threshold
+    for tool_name in (
+        "query_process_activities",
+        "query_network_activities",
+        "query_file_activities",
+    ):
+        state.tool_ledger.traces.append(_trace(tool_name, 5))
+    messages = planner._messages(state)
+    system = [m for m in messages if isinstance(m, SystemMessage)]
+    assert len(system) == 1
+    assert messages[0] is system[0]
+
+
+def test_compaction_summary_replays_as_human_message():
+    planner = _planner()
+    state = _state()
+    planner._compaction_summary = "已查询进程与网络域，发现 C2 连接证据。"
+    planner._replay_from = 1
+    state.tool_ledger.traces.append(_trace("query_process_activities", 3))
+    state.tool_ledger.traces.append(_trace("query_file_activities", 2))
+    messages = planner._messages(state)
+    system = [m for m in messages if isinstance(m, SystemMessage)]
+    assert len(system) == 1
+    summary = messages[2]
+    assert isinstance(summary, HumanMessage)
+    assert "C2 连接证据" in summary.content
 
 
 def test_progress_projection_marks_unqueried_when_all_domains_queried():

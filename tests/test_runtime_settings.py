@@ -1,9 +1,15 @@
 from pathlib import Path
 
+import httpx
 import pytest
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
 
-from threat_agent.bootstrap.settings import AppSettings, format_effective_settings
+from threat_agent.bootstrap.settings import (
+    AppSettings,
+    ModelSettings,
+    build_chat_model,
+    format_effective_settings,
+)
 
 
 def test_settings_precedence_and_path_resolution(tmp_path: Path):
@@ -68,3 +74,43 @@ def test_effective_settings_summary_marks_overrides_and_masks_keys(tmp_path: Pat
     # The API key itself never appears, only its state.
     assert "sk-secret-value" not in summary
     assert "key=<set>*" in summary
+
+
+def test_disable_proxy_defaults_off_and_inherits_to_report(tmp_path: Path):
+    settings = AppSettings.load(env_file=tmp_path / "missing.env", environ={})
+    assert settings.judgment_model.disable_proxy is False
+    assert settings.response_model.disable_proxy is False
+    assert settings.report_model.disable_proxy is False
+
+
+def test_disable_proxy_global_flag_applies_to_all_roles(tmp_path: Path):
+    settings = AppSettings.load(
+        env_file=tmp_path / "missing.env",
+        environ={"MODEL_DISABLE_PROXY": "true"},
+    )
+    assert settings.judgment_model.disable_proxy is True
+    assert settings.response_model.disable_proxy is True
+    assert settings.report_model.disable_proxy is True
+
+
+def test_build_chat_model_bypasses_proxy_env_when_disabled():
+    settings = ModelSettings(
+        api_key=SecretStr("sk-test"),
+        model_name="test-model",
+        disable_proxy=True,
+    )
+    chat = build_chat_model(settings)
+    assert isinstance(chat.http_client, httpx.Client)
+    assert chat.http_client._trust_env is False
+    assert isinstance(chat.http_async_client, httpx.AsyncClient)
+    assert chat.http_async_client._trust_env is False
+
+
+def test_build_chat_model_keeps_default_clients_without_disable_proxy():
+    settings = ModelSettings(
+        api_key=SecretStr("sk-test"),
+        model_name="test-model",
+    )
+    chat = build_chat_model(settings)
+    assert chat.http_client is None
+    assert chat.http_async_client is None

@@ -244,11 +244,16 @@ class StructuredDataToolPlanner:
 
     def _messages(self, state: InvestigationState) -> list[Any]:
         # Message layout (prefix-cache friendly):
-        #   [0] system_prompt                 — byte-stable
+        #   [0] system_prompt                 — byte-stable; the ONLY system message,
+        #                                          since qwen/DashScope rejects any
+        #                                          additional system role mid-conversation
         #   [1] case_context (no budget)      — byte-stable
         #   [2] progress summary (optional)   — written once, replaced only on compaction
         #   [3..] raw tool call pairs         — most-recent traces, kept verbatim
         #   [last] dynamic state message      — changes each round, recomputed only
+        # Mid-conversation injections (summary, dynamic state) are delivered as
+        # tagged HumanMessages: providers such as qwen/DashScope allow exactly one
+        # system message and it must come first.
         prefix = [
             SystemMessage(content=self.system_prompt),
             HumanMessage(content=json.dumps(self._case_context(state), ensure_ascii=False)),
@@ -344,7 +349,9 @@ class StructuredDataToolPlanner:
         """Replay tool history: summary first, then recent raw traces verbatim."""
         messages: list[Any] = []
         if self._compaction_summary:
-            messages.append(SystemMessage(content=self._compaction_summary))
+            messages.append(HumanMessage(
+                content=f"<investigation_history_summary>\n{self._compaction_summary}\n</investigation_history_summary>"
+            ))
         for trace in state.tool_ledger.traces[self._replay_from:]:
             call_id = trace.tool_call_id or f"trace-{trace.sequence}"
             ai = AIMessage(
@@ -376,7 +383,7 @@ class StructuredDataToolPlanner:
             parts.append(
                 f"{{system_remind}}可用会话轮次：{state.budget.iterations_used}/{state.budget.max_iterations} {{/system_remind}}"
             )
-        return [SystemMessage(content="\n".join(parts))]
+        return [HumanMessage(content="\n".join(parts))]
 
     def _build_progress(self, state: InvestigationState) -> dict[str, Any]:
         """Deterministic progress projection derived from the tool ledger."""

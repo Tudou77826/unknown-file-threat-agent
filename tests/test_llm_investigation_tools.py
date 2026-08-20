@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
-from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from threat_agent.case_management import SingleHostBoundaryPolicy, initialize_state
 from threat_agent.contracts import (
@@ -253,7 +253,9 @@ def test_data_tool_planner_appends_round_reminder_after_threshold():
     model = _FakeModel({AIMessage: AIMessage(content="", tool_calls=[])})
     planner = StructuredDataToolPlanner(model)
     messages = planner._messages(state)
-    reminder = [m for m in messages if isinstance(m, SystemMessage) and "system_remind" in m.content]
+    # The reminder rides the trailing dynamic message, which must NOT be a
+    # system message: qwen/DashScope allows only one leading system message.
+    reminder = [m for m in messages if isinstance(m, HumanMessage) and "system_remind" in m.content]
     assert len(reminder) == 1
     assert "16/35" in reminder[0].content
 

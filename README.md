@@ -81,7 +81,10 @@ THREAT_AGENT_API_BASE=<OpenAI-compatible endpoint>
 MODEL_NAME=<model>
 JUDGMENT_MODEL_NAME=<optional judgment model override>
 RESPONSE_MODEL_NAME=<optional response model override>
+MODEL_DISABLE_PROXY=<optional, true to bypass proxy env vars>
 ```
+
+`MODEL_DISABLE_PROXY=true` 让模型请求忽略 `HTTP(S)_PROXY`/`ALL_PROXY` 等代理环境变量、始终直连模型服务，适用于系统代理无法访问模型服务的机器；对所有模型角色统一生效。
 
 然后运行：
 
@@ -100,7 +103,7 @@ RESPONSE_MODEL_NAME=<optional response model override>
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-当前回归基线为 119 项测试和 18 个 Case；其中包含模块依赖方向、配置、双循环、参考数据和 8 条 Profile 路径检查。
+当前回归基线为 118 项测试和 18 个 Case；其中包含模块依赖方向、配置、双循环、参考数据和 8 条 Profile 路径检查。
 
 如果尚未运行 `uv sync`、项目本地 `.venv` 不存在，可使用当前 Python 环境执行：
 

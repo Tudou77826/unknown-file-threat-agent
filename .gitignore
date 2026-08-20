@@ -5,4 +5,5 @@ __pycache__/
 .obsidian/
 outputs/
 .env
-
+.venv/
+log/

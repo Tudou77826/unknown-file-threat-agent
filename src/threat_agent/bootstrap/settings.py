@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from typing import Any, Mapping, Literal
 
+import httpx
 from dotenv import dotenv_values
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
@@ -61,6 +62,10 @@ class ModelSettings(FrozenSettings):
     timeout_seconds: float = Field(default=240, gt=0, le=1800)
     max_retries: int = Field(default=2, ge=0, le=10)
     temperature: float = Field(default=0, ge=0, le=2)
+    # When True the model client ignores HTTP(S)_PROXY/ALL_PROXY environment
+    # variables and always connects directly — for machines whose system proxy
+    # cannot reach the model endpoint.
+    disable_proxy: bool = False
 
 
 class DemoSettings(FrozenSettings):
@@ -124,6 +129,7 @@ class AppSettings(FrozenSettings):
         common_base_url = get("THREAT_AGENT_API_BASE", "https://api.siliconflow.cn/v1")
         common_model_name = get("MODEL_NAME")
         common_context_window = get("MODEL_CONTEXT_WINDOW_TOKENS", 100000)
+        disable_proxy = get("MODEL_DISABLE_PROXY", False)
 
         def model(role: str) -> ModelSettings:
             prefix = role.upper()
@@ -141,6 +147,7 @@ class AppSettings(FrozenSettings):
                 ),
                 max_retries=get(f"{prefix}_MODEL_MAX_RETRIES", 2),
                 temperature=get(f"{prefix}_MODEL_TEMPERATURE", 0),
+                disable_proxy=disable_proxy,
             )
 
         judgment_model = model("judgment")
@@ -162,6 +169,7 @@ class AppSettings(FrozenSettings):
             ),
             max_retries=get("REPORT_MODEL_MAX_RETRIES", judgment_model.max_retries),
             temperature=get("REPORT_MODEL_TEMPERATURE", 0),
+            disable_proxy=judgment_model.disable_proxy,
         )
 
         settings = cls(
@@ -237,6 +245,13 @@ class AppSettings(FrozenSettings):
 def build_chat_model(settings: ModelSettings):
     if settings.api_key is None or not settings.model_name:
         raise RuntimeError("Chat model configuration is incomplete")
+    # trust_env=False makes the client ignore HTTP(S)_PROXY/ALL_PROXY so the
+    # connection to the model endpoint is always direct. Timeout and retries
+    # stay in effect: both are applied per-request by the OpenAI SDK layer.
+    http_client = httpx.Client(trust_env=False) if settings.disable_proxy else None
+    http_async_client = (
+        httpx.AsyncClient(trust_env=False) if settings.disable_proxy else None
+    )
     return ChatOpenAI(
         model=settings.model_name,
         api_key=settings.api_key.get_secret_value(),
@@ -245,6 +260,8 @@ def build_chat_model(settings: ModelSettings):
         max_tokens=settings.max_tokens,
         timeout=settings.timeout_seconds,
         max_retries=settings.max_retries,
+        http_client=http_client,
+        http_async_client=http_async_client,
     )
 
 
@@ -296,6 +313,7 @@ def format_effective_settings(settings: AppSettings) -> str:
             mark("window", jm.context_window_tokens, dm.context_window_tokens),
             mark("judgment_tokens", jm.max_tokens, dm.max_tokens),
             mark("response_tokens", rm.max_tokens, defaults.response_model.max_tokens),
+            mark("no_proxy", jm.disable_proxy, dm.disable_proxy),
         ])),
         "[超时] "
         + "  ".join([
