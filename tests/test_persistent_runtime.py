@@ -4,9 +4,12 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from threat_agent.bootstrap.demo_runtime import DemoRunService
+from threat_agent.case_management import (
+    RunService,
+    RunServiceConfig,
+    SQLiteInvestigationRuntimeStore,
+)
 from threat_agent.bootstrap.settings import AppSettings
-from threat_agent.case_management import SQLiteInvestigationRuntimeStore
 from threat_agent.contracts import AuditEvent, InvestigationRun, OperationalEvent
 
 
@@ -33,6 +36,22 @@ def _run(status="running") -> InvestigationRun:
         run_id="run-a", status=status, stage=status,
         graph_thread_id="demo/case-a/run-a", started_at=NOW,
     )
+
+
+def _service(settings: AppSettings, runtime_store) -> RunService:
+    return RunService(
+        RunServiceConfig(tenant_id=settings.application.default_tenant),
+        execution=_NoExecution(),
+        resolve_case=lambda dataset_id, profile_id: "case-a",
+        runtime_store=runtime_store,
+    )
+
+
+class _NoExecution:
+    """Execution must never be reached by lifecycle-only tests."""
+
+    def execute(self, request, *, emit):  # pragma: no cover - guard
+        raise AssertionError("execution must not run in this test")
 
 
 def test_runtime_store_recovers_run_events_audit_and_artifacts_after_reopen(tmp_path: Path):
@@ -62,6 +81,9 @@ def test_runtime_store_recovers_run_events_audit_and_artifacts_after_reopen(tmp_
         assert [item.sequence for item in second.list_operational_events("demo", "run-a")] == [1]
         assert [item.action for item in second.list_audit_events("demo", "run-a")] == ["tool_invoked"]
         assert second.get_artifact("demo", "run-a", "demo_result") == {"ok": True}
+        summaries = second.list_runs("demo")
+        assert [item[0].run_id for item in summaries] == ["run-a"]
+        assert summaries[0][1] == "dataset-a" and summaries[0][2] == "profile-a"
     finally:
         second.close()
 
@@ -80,7 +102,9 @@ def test_investigation_service_rebuilds_read_model_from_persistent_store(tmp_pat
     first_store.put_artifact("demo", "run-a", "demo_result", {"case": {"case_id": "case-a"}})
     first_store.close()
 
-    restored = DemoRunService(settings, project_root=ROOT)
+    restored = _service(
+        settings, SQLiteInvestigationRuntimeStore(settings.demo.runtime_store_path)
+    )
     try:
         formal = restored.get_investigation("run-a")
         assert formal.run.status == "completed"
@@ -94,7 +118,7 @@ def test_persistent_events_are_ordered_correlated_and_scrub_sensitive_details(tm
     settings = _settings(tmp_path)
     store = SQLiteInvestigationRuntimeStore(settings.demo.runtime_store_path)
     store.create_run(_run(), dataset_id="dataset-a", profile_id="profile-a")
-    service = DemoRunService(settings, project_root=ROOT, runtime_store=store)
+    service = _service(settings, store)
     try:
         service._emit("run-a", "thinking", "模型分析", {
             "api_key": "must-not-persist", "prompt": "private prompt", "iteration": 1,
@@ -115,7 +139,7 @@ def test_persistent_events_are_ordered_correlated_and_scrub_sensitive_details(tm
         assert "must-not-persist" not in serialized
         assert "private prompt" not in serialized
         assert "Bearer secret" not in serialized
-        assert {item.action for item in audits} == {"tool_invoked", "demo_approval_decided"}
+        assert {item.action for item in audits} == {"tool_invoked", "approval_decided"}
     finally:
         store.close()
 

@@ -1,12 +1,18 @@
 from __future__ import annotations
 
-import hashlib
 from typing import Literal, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
-from ...contracts import JudgmentResult, KnowledgeQuery, KnowledgeResult, ResponseContext, ResponsePlan
-from ...knowledge import KnowledgeRetrievalPort, NullKnowledgeRetriever
+from ...contracts import (
+    JudgmentResult,
+    KnowledgeConsultation,
+    KnowledgeConsultationContext,
+    KnowledgeConsultationResult,
+    ResponseContext,
+    ResponsePlan,
+)
+from ...knowledge import NullKnowledgeSupplier, SecurityKnowledgeService
 from ..adapters import NullResponseContextProvider
 from ..domain.models import ResponseProposal
 from ..ports import ResponseContextPort
@@ -16,7 +22,7 @@ from ..domain.policy import validate_response_proposal
 
 class ResponseGraphState(TypedDict, total=False):
     judgment_result: JudgmentResult
-    knowledge_results: list[KnowledgeResult]
+    knowledge_result: KnowledgeConsultationResult | None
     response_context: ResponseContext
     proposal: ResponseProposal | None
     validation_errors: list[str]
@@ -31,13 +37,16 @@ class ResponseGraph:
         self,
         planner: ResponsePlanner,
         *,
-        knowledge_retriever: KnowledgeRetrievalPort | None = None,
+        knowledge_service: SecurityKnowledgeService | None = None,
         response_context_port: ResponseContextPort | None = None,
         max_iterations: int = 3,
         recursion_limit: int = 50,
     ):
         self.planner = planner
-        self.knowledge_retriever = knowledge_retriever or NullKnowledgeRetriever()
+        # 未配置部署默认走 Null 供应方：处置知识固定节点仍执行并显式 not_configured
+        self.knowledge_service = knowledge_service or SecurityKnowledgeService(
+            NullKnowledgeSupplier()
+        )
         self.response_context_port = response_context_port or NullResponseContextProvider()
         self.max_iterations = max_iterations
         self.recursion_limit = recursion_limit
@@ -63,7 +72,7 @@ class ResponseGraph:
         result = self.compiled.invoke(
             {
                 "judgment_result": judgment,
-                "knowledge_results": [],
+                "knowledge_result": None,
                 "response_context": self.response_context_port.load(judgment),
                 "proposal": None,
                 "validation_errors": [],
@@ -78,7 +87,7 @@ class ResponseGraph:
 
     def _initialize_response(self, state: ResponseGraphState) -> ResponseGraphState:
         return {
-            "knowledge_results": list(state.get("knowledge_results") or []),
+            "knowledge_result": state.get("knowledge_result"),
             "proposal": state.get("proposal"),
             "validation_errors": list(state.get("validation_errors") or []),
             "iterations": int(state.get("iterations", 0)),
@@ -88,32 +97,53 @@ class ResponseGraph:
         }
 
     def _load_response_context(self, state: ResponseGraphState) -> ResponseGraphState:
+        """生成处置建议前的固定知识节点：经能力层场景服务检索，失败不阻断。"""
+
         judgment = state["judgment_result"]
-        fingerprint = hashlib.sha256(
-            f"{judgment.case_id}:{judgment.verdict.threat_type}".encode()
-        ).hexdigest()[:16]
-        result = self.knowledge_retriever.retrieve(
-            KnowledgeQuery(
+        response_context = self.response_context_port.load(judgment)
+        request = KnowledgeConsultation(
+            scene="response_advisory",
+            intent="response_policy_reference",
+            context=KnowledgeConsultationContext(
+                verdict_summary=(
+                    f"{judgment.verdict.threat_type}: {judgment.verdict.summary}"
+                ),
+                asset_constraints=self._asset_constraints(response_context),
+            ),
+        )
+        try:
+            knowledge = self.knowledge_service.consult_response(request)
+        except Exception as error:  # noqa: BLE001 — 知识失败不阻断处置主流程
+            knowledge = KnowledgeConsultationResult(
                 tenant_id=judgment.tenant_id,
                 case_id=judgment.case_id,
-                source_identity="response-graph",
-                query_id=f"kquery-response-{fingerprint}",
-                knowledge_domain="response",
-                query_text=(
-                    "Response policy, approval, rollback and verification guidance for "
-                    f"{judgment.verdict.threat_type}"
-                ),
+                source_identity="response-graph/degraded",
+                consultation_id="kcon-response-failed",
+                query_id="kquery-response-failed",
+                scene="response_advisory",
+                intent="response_policy_reference",
+                status="error",
+                limitations=[f"处置知识检索执行失败：{type(error).__name__}: {error}"],
             )
-        )
         return {
-            "knowledge_results": [result],
-            "response_context": self.response_context_port.load(judgment),
+            "knowledge_result": knowledge,
+            "response_context": response_context,
         }
+
+    @staticmethod
+    def _asset_constraints(response_context: ResponseContext | None) -> list[str]:
+        if response_context is None:
+            return []
+        constraints: list[str] = []
+        for key, value in (response_context.asset_context or {}).items():
+            if isinstance(value, (str, int, float, bool)):
+                constraints.append(f"{key}={value}")
+        return constraints[:8]
 
     def _propose_actions(self, state: ResponseGraphState) -> ResponseGraphState:
         proposal = self.planner.propose(
             state["judgment_result"],
-            list(state.get("knowledge_results") or []),
+            state.get("knowledge_result"),
             list(state.get("validation_errors") or []),
             state.get("response_context"),
         )

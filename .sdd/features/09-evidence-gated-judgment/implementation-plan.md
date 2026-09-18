@@ -2,15 +2,17 @@
 
 每条步骤以"改动 + 验收"闭环。整体目标：删掉 CLI 的 LLM 证据路径、把数据工具按领域拆开、加证据门槛守卫、修报告超时；demo 路成为在线 AI 研判的唯一实现，确定性路径只服务离线测试。
 
+> 本计划中的 `bootstrap/cli.py` 是已完成迁移的历史路径，当前源码不再提供该入口。当前可执行验证统一使用 `uv run threat-agent-demo --help` 与 `uv run pytest -q`；运行时收敛设计见 Feature 15 的 `runtime-convergence-design.md`。
+
 ## 步骤 1：删除 CLI `--mode llm`
 
-**改动**：`src/threat_agent/bootstrap/cli.py`
+**历史改动**：`src/threat_agent/bootstrap/cli.py`
 
 - `--mode` 只保留 `deterministic`，移除 `llm` / `deepagents`；
 - `run_platform_case()` 移除 LLM 分支（`StructuredJudgmentPlanner` / `StructuredResponsePlanner` / `build_judgment_model` / `build_response_model` 相关接线）；
 - 清理不再使用的 import。
 
-**验收**：`python -m threat_agent.bootstrap.cli --case cases/c2_malicious`（默认 deterministic）正常输出；`--mode llm` 报参数错误；`pytest -q` 全绿。
+**当前验收**：`uv run threat-agent-demo --help` 可执行，`--mode` 不属于当前入口参数；`uv run pytest -q` 全绿。
 
 ## 步骤 2：数据查询工具按领域拆分
 

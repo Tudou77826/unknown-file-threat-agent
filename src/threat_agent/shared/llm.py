@@ -110,3 +110,11 @@ def invoke_llm(
 
 
 __all__ = ["classify_llm_error", "invoke_llm"]
+
+
+def structured_output_method(model) -> str:
+    """json_mode is an OpenAI-family capability; Anthropic-family models
+    reach structured output through tool calling."""
+
+    module = type(model).__module__
+    return "json_mode" if module.startswith("langchain_openai") else "function_calling"

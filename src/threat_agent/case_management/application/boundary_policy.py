@@ -126,7 +126,7 @@ class SingleHostBoundaryPolicy:
             if unauthorized:
                 _deny(
                     tool_name, "reference_not_authorized",
-                    "数据引用不属于本次运行已返回的活动",
+                    "该引用来自案件上下文，不是本次运行查询返回的活动；请先用活动查询取得活动 ID，再引用这些 ID",
                     reference_ids=unauthorized,
                 )
 
@@ -178,7 +178,7 @@ class SingleHostBoundaryPolicy:
             if unauthorized:
                 _deny(
                     tool_name, "reference_not_authorized",
-                    "原始记录引用不属于本次运行已返回的活动",
+                    "该引用来自案件上下文，不是本次运行查询返回的活动；请先用活动查询取得活动 ID，再引用这些 ID",
                     reference_ids=unauthorized,
                 )
         elif isinstance(result, ActivityMetricResult):

@@ -83,6 +83,15 @@ def _single_alert_host(raw: dict[str, Any]) -> str:
     return host_id
 
 
+def derive_case_id(raw: dict[str, Any]) -> str:
+    """Deterministic case identity for an alert payload (intake anchor)."""
+
+    sha256 = str(pick(raw, "sha256", "")).lower()
+    host_id = _single_alert_host(raw)
+    case_seed = str(pick(raw, "file_id") or f"{host_id}:{sha256}")
+    return "case-" + hashlib.sha256(case_seed.encode()).hexdigest()[:12]
+
+
 def initialize_state(raw: dict[str, Any], *, lookback_hours: float = 24.0) -> InvestigationState:
     sha256 = str(pick(raw, "sha256", "")).lower()
     path = str(pick(raw, "path", ""))
@@ -90,8 +99,7 @@ def initialize_state(raw: dict[str, Any], *, lookback_hours: float = 24.0) -> In
         raise ValueError("Input must provide File_hash/fileHash, File_path/filePath and source/Sub_asset")
     host_id = _single_alert_host(raw)
     detail, detail_limits = parse_detail(pick(raw, "detail"))
-    case_seed = str(pick(raw, "file_id") or f"{host_id}:{sha256}")
-    case_id = "case-" + hashlib.sha256(case_seed.encode()).hexdigest()[:12]
+    case_id = derive_case_id(raw)
     file_id = f"file:{host_id}:{sha256}"
     host_entity = Entity(entity_id=f"host:{host_id}", entity_type="host", attributes={"source": pick(raw, "source"), "sub_asset": pick(raw, "sub_asset")})
     file_entity = Entity(entity_id=file_id, entity_type="file", attributes={"sha256": sha256, "path": path, "file_type": pick(raw, "file_type"), "size": pick(raw, "size"), "mode": pick(raw, "mode"), "status": pick(raw, "status")})

@@ -27,14 +27,14 @@ from threat_agent.contracts import (
 from threat_agent.data_foundation import (
     BatchIngestionService,
     ReferenceEventParser,
-    SQLiteActivityQueryAdapter,
+    SQLiteInvestigationDataAdapter,
     SQLiteActivityStore,
 )
 from threat_agent.judgment import (
     BoundaryViolationError,
     InvestigationToolGateway,
-    JudgmentGraph,
 )
+from threat_agent.judgment.application.graph import JudgmentGraph
 from threat_agent.judgment.application.data_tool_planner import investigation_tools
 from threat_agent.judgment.domain.models import DataToolRequest, FinishRequest
 
@@ -105,8 +105,7 @@ def _policy() -> SingleHostBoundaryPolicy:
 
 def _gateway(store, boundary=None, events=None):
     return InvestigationToolGateway(
-        store,
-        SQLiteActivityQueryAdapter(store),
+        SQLiteInvestigationDataAdapter(store),
         boundary or _policy(),
         event_sink=(lambda kind, message, details=None: events.append((kind, message, details)))
         if events is not None else None,

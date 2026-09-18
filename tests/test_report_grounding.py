@@ -17,12 +17,12 @@ from threat_agent.contracts import (
 )
 from threat_agent.judgment import (
     DeterministicFallbackBuilder,
-    JudgmentGraph,
     ReportGroundingValidator,
     ReportPublisher,
     ReportRepairCoordinator,
     StructuredReportComposer,
 )
+from threat_agent.judgment.application.graph import JudgmentGraph
 from threat_agent.judgment.application.report_draft import ReportDraft
 from threat_agent.judgment.domain.models import FinishRequest
 from threat_agent.response_advisory.domain.models import ResponseProposal

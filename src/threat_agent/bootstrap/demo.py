@@ -10,28 +10,37 @@ from ..case_management import (
     CaseGraph,
     SingleHostBoundaryPolicy,
     build_case_read_model,
-    create_memory_checkpointer,
+    create_configured_checkpointer,
     initialize_state,
 )
 from ..case_management.application import evaluate_data_readiness
-from ..contracts import CaseReadModel, DemoComparisonReadModel, ProfileComparisonItem
+from ..contracts import (
+    CaseReadModel,
+    DemoComparisonReadModel,
+    ProfileComparisonItem,
+    ToolRuntimeContext,
+)
 from ..data_foundation.adapters import (
-    SQLiteActivityQueryAdapter, SQLiteActivityStore,
+    SQLiteActivityStore, SQLiteInvestigationDataAdapter,
     SQLiteReferenceDataStore,
 )
 from ..data_foundation.application import initialize_reference_demo, reference_activity_store_path
 from ..judgment import (
     InvestigationToolGateway,
-    JudgmentGraph,
     ReportGroundingValidator,
     ReportPublisher,
     ReportRepairCoordinator,
-    StructuredDataToolPlanner,
     StructuredReportComposer,
 )
-from ..judgment.application.tool_observation import ToolObservationSummarizer
-from ..presentation import InMemoryCaseReadStore, InMemoryDemoComparisonStore
+from ..presentation import InMemoryCaseReadStore
 from ..presentation.api.routes import create_app
+from ..knowledge import (
+    NullKnowledgeSupplier,
+    ReferenceKnowledgeAdapter,
+    SecurityKnowledgeService,
+)
+from ..knowledge.adapters.attack_corpus import AttackCorpusSupplier
+from ..knowledge.adapters.routing import RoutingSupplier
 from ..response_advisory import ResponseGraph, StructuredResponsePlanner
 from ..response_advisory.adapters import ReferenceResponseContextAdapter
 from .settings import (
@@ -42,6 +51,63 @@ from .settings import (
     build_response_model,
     format_effective_settings,
 )
+from .middleware_runtime import MiddlewareJudgmentRunner
+
+
+CASE_STORIES = {
+    "c2-malicious-reference": {
+        "badge": "预置攻击 · 生产环境",
+        "title": "未知程序伪装成系统更新服务，在支付服务器上建立远控通道",
+        "lead": "安全设备最初只发现 /tmp/.cache/sysupd 这个未知 ELF。完整事件显示，它通过 SSH 会话以 root 身份执行，随后外联、创建系统服务并执行远程命令。",
+        "asset": "payment-api-prod-01",
+        "asset_meta": "生产支付接口 · 核心资产",
+        "risk": "攻击仍具备远程控制与重启后驻留能力",
+        "scope": "当前证据仅覆盖 server-01，相关身份和横向影响尚未排查",
+        "steps": [
+            ("03:17", "进入主机", "SSH 会话启动 bash，为后续执行提供入口"),
+            ("03:20", "恶意执行", "bash 以 root 身份运行 /tmp/.cache/sysupd"),
+            ("03:21", "外联与驻留", "连接 203.0.113.50:443，同时写入并启用 sysupd.service"),
+            ("03:24", "远程控制", "收到网络输入后拉起 /bin/sh，执行 id 与 uname -a"),
+        ],
+    },
+    "c2-benign-reference": {
+        "badge": "预置对照 · 测试环境",
+        "title": "监控程序表现出相似行为，但完整数据证明它是批准的合法软件",
+        "lead": "安全设备最初只发现 /opt/vendor/monitor-agent 这个未知 ELF。完整事件显示，它由 systemd 正常启动，只访问批准的厂商端点，并具有可信软件包来源。",
+        "asset": "monitoring-test-02",
+        "asset_meta": "监控验证系统 · 低关键度资产",
+        "risk": "未发现恶意活动，行为与批准的监控服务一致",
+        "scope": "软件签名、仓库来源与 CMDB 端点基线均已完成核验",
+        "steps": [
+            ("03:20", "服务启动", "systemd 启动 vendor-monitor 守护进程"),
+            ("03:20", "健康检查", "程序调用 uptime 获取主机运行状态"),
+            ("03:21", "监控心跳", "周期连接批准的厂商监控服务"),
+            ("03:25", "身份核验", "软件包签名、可信仓库和 CMDB 基线共同完成反证"),
+        ],
+    },
+}
+
+def build_knowledge_service(settings: AppSettings) -> SecurityKnowledgeService:
+    """按管理面配置（首期为配置项）组装知识能力服务；Agent 运行中不可改。
+
+    adapter=attack（Feature 18）：ATT&CK 真实语料供应方接管 attack_technique
+    源，其余四类继续走参考适配器（真实数据到位前的占位与演练夹具）。"""
+
+    knowledge = settings.knowledge
+    if knowledge.adapter == "attack":
+        adapter = RoutingSupplier(
+            routes={
+                "attack_technique": AttackCorpusSupplier(
+                    corpus_path=knowledge.attack_corpus_path
+                )
+            },
+            default=ReferenceKnowledgeAdapter(profile=knowledge.reference_profile),
+        )
+    elif knowledge.adapter == "reference":
+        adapter = ReferenceKnowledgeAdapter(profile=knowledge.reference_profile)
+    else:
+        adapter = NullKnowledgeSupplier()
+    return SecurityKnowledgeService(adapter, timeout_seconds=knowledge.timeout_seconds)
 
 
 EventSink = Callable[[str, str, dict[str, Any] | None], None]
@@ -70,66 +136,22 @@ def localize_verdict(judgment) -> None:
     judgment.verdict.summary = VERDICT_SUMMARY_ZH.get(level, judgment.verdict.summary)
 
 
-class ObservableJudgmentPlanner:
-    def __init__(self, delegate, emit: EventSink, observation_summarizer=None):
-        self.delegate = delegate
-        self.emit = emit
-        self.uses_data_tools = bool(getattr(delegate, "uses_data_tools", False))
-        self.observation_summarizer = observation_summarizer
-        self._summarized_trace_count = 0
-
-    def plan(self, state):
-        self._summarize_previous_round(state)
-        self.emit("thinking", "研判模型正在选择下一步调查动作", {
-            "node": "plan",
-            "iteration": state.budget.iterations_used,
-        })
-        started = time.perf_counter()
-        actions = list(self.delegate.plan(state))
-        duration_ms = round((time.perf_counter() - started) * 1000, 3)
-        for action in actions:
-            self.emit("decision", f"研判模型选择：{action.action_type}", {
-                "node": "plan",
-                "tool_name": getattr(action, "tool_name", None),
-                "objective": action.objective,
-                "duration_ms": duration_ms,
-            })
-        return actions
-
-    def _summarize_previous_round(self, state) -> None:
-        """Emit one round-level observation for the tools executed last round.
-
-        The unit of observation is the round, not the individual tool, so this
-        performs a single LLM call aggregating the round's results.
-        """
-        if self.observation_summarizer is None:
-            return
-        traces = state.tool_ledger.traces
-        new_traces = traces[self._summarized_trace_count:]
-        if not new_traces:
-            return
-        round_num = max(1, state.budget.iterations_used - 1)
-        items = [(trace.tool_name, trace.result) for trace in new_traces]
-        try:
-            summary = self.observation_summarizer.summarize_round(items)
-        except Exception:
-            summary = None
-        self._summarized_trace_count = len(traces)
-        self.emit("round", f"第 {round_num} 轮调查完成", {
-            "node": "execute",
-            "round": round_num,
-            "tool_names": [trace.tool_name for trace in new_traces],
-            "observation": summary,
-        })
-
-
 class ObservableReportComposer:
-    """Emit workflow events around draft composition and rejudgment."""
+    """Emit workflow events around draft composition and rejudgment.
+
+    Wraps the delegate so report-phase model calls report token usage and
+    latency like the planning loop does — otherwise run-level token totals
+    silently omit the heaviest single call."""
 
     def __init__(self, delegate, emit: EventSink):
         self.delegate = delegate
         self.emit = emit
         self.model_name = getattr(delegate, "model_name", "unknown")
+
+    @staticmethod
+    def _usage(draft) -> dict:
+        meta = getattr(draft, "usage_metadata", None) or {}
+        return {k: int(v) for k, v in meta.items() if isinstance(v, (int, float))}
 
     def compose_draft(self, state):
         self.emit("thinking", "研判模型正在综合证据并形成报告草稿", {
@@ -214,6 +236,219 @@ def _interrupt_value(result: dict[str, Any]) -> dict[str, Any] | None:
     return value if isinstance(value, dict) else None
 
 
+def _attach_trace(model, trace_handler) -> None:
+    if trace_handler is not None:
+        model.callbacks = [trace_handler]
+
+
+class ReferenceRunAssembly:
+    """Per-run wiring of the middleware runtime.
+
+    Everything is derived from settings plus the reference store, so the debug
+    access layer can rebuild an identical graph for checkpoint history and
+    resume after the original execution thread is gone.
+    """
+
+    def __init__(
+        self,
+        *,
+        graph: CaseGraph,
+        state,
+        tenant_id: str,
+        activity_store: SQLiteActivityStore,
+        run_id: str,
+        dataset_id: str | None = None,
+        dataset_version: str | None = None,
+        profile=None,
+    ):
+        self.graph = graph
+        self.state = state
+        self.tenant_id = tenant_id
+        self.activity_store = activity_store
+        self.dataset_id = dataset_id
+        self.dataset_version = dataset_version
+        self.profile = profile
+        self.run_id = run_id
+
+    def close(self) -> None:
+        self.activity_store.close()
+
+
+def assemble_investigation_run(
+    activity_store: SQLiteActivityStore,
+    *,
+    state,
+    settings: AppSettings,
+    emit: EventSink | None = None,
+    run_id: str,
+    trace_handler=None,
+    response_context_port=None,
+    visible_sources=None,
+) -> ReferenceRunAssembly:
+    """Settings-only assembly of the middleware runtime for one investigation
+    state — shared by reference-dataset runs and real alert runs."""
+
+    emit = emit or (lambda _kind, _message, _details=None: None)
+    investigation_data = SQLiteInvestigationDataAdapter(
+        activity_store, visible_sources=visible_sources
+    )
+    tenant_id = settings.application.default_tenant
+    boundary_policy = SingleHostBoundaryPolicy(
+        tenant_id=tenant_id,
+        case_id=state.case_id,
+        run_id=run_id,
+    )
+    gateway = InvestigationToolGateway(
+        investigation_data,
+        boundary_policy,
+        event_sink=emit,
+    )
+    judgment_model = build_judgment_model(settings)
+    summarizer_model = build_judgment_model(settings)
+    report_model = build_report_model(settings)
+    response_model = build_response_model(settings)
+    from .middleware_runtime import LlmEventBridge
+
+    # Report and advisory calls get their own bridges so their token usage and
+    # latency land in the ledger exactly like the planning loop's.
+    report_model.callbacks = [LlmEventBridge(emit, phase="judgment_report", node="compose")]
+    response_model.callbacks = [LlmEventBridge(emit, phase="response_advisory", node="advise")]
+    for model in (judgment_model, summarizer_model):
+        _attach_trace(model, trace_handler)
+    report_composer = ObservableReportComposer(
+        StructuredReportComposer(report_model, emit, tenant_id=tenant_id),
+        emit,
+    )
+    response_planner = ObservableResponsePlanner(
+        StructuredResponsePlanner(response_model, emit), emit
+    )
+    report_publisher = ObservableReportPublisher(
+        ReportPublisher(
+            tenant_id=tenant_id,
+            run_id=run_id,
+            model_name=report_composer.model_name,
+        ),
+        emit,
+    )
+    judgment_stage = MiddlewareJudgmentRunner(
+        model=judgment_model,
+        summarizer_model=summarizer_model,
+        gateway=gateway,
+        boundary_policy=boundary_policy,
+        context=ToolRuntimeContext(
+            tenant_id=tenant_id,
+            case_id=state.case_id,
+            run_id=run_id,
+            scope=state.scope,
+        ),
+        ledger=state.tool_ledger,
+        case_budget=state.budget,
+        report_composer=report_composer,
+        report_coordinator=ReportRepairCoordinator(
+            report_composer, ReportGroundingValidator(), event_sink=emit,
+        ),
+        report_publisher=report_publisher,
+        knowledge_service=build_knowledge_service(settings),
+        emit=emit,
+        context_window_tokens=settings.judgment_model.context_window_tokens,
+        recursion_limit=settings.graph.recursion_limit,
+    )
+    response_graph = ResponseGraph(
+        response_planner,
+        knowledge_service=build_knowledge_service(settings),
+        response_context_port=response_context_port,
+        max_iterations=settings.response_budget.max_iterations,
+        recursion_limit=settings.graph.recursion_limit,
+    )
+    graph = CaseGraph(
+        judgment_stage,
+        checkpointer=create_configured_checkpointer(
+            settings.checkpoint.backend, settings.checkpoint.path
+        ),
+        response_graph=response_graph,
+        recursion_limit=settings.graph.recursion_limit,
+    )
+    return ReferenceRunAssembly(
+        graph=graph,
+        state=state,
+        tenant_id=tenant_id,
+        activity_store=activity_store,
+        run_id=run_id,
+    )
+
+
+def assemble_reference_run(
+    store: SQLiteReferenceDataStore,
+    *,
+    dataset_id: str,
+    dataset_version: str | None = None,
+    case_id: str,
+    profile_id: str,
+    settings: AppSettings,
+    emit: EventSink | None = None,
+    run_id: str,
+    trace_handler=None,
+) -> ReferenceRunAssembly:
+    emit = emit or (lambda _kind, _message, _details=None: None)
+    dataset_version = dataset_version or settings.demo.dataset_version
+    profile = store.get_profile(dataset_id, dataset_version, profile_id)
+    raw = store.get_case_input(dataset_id, dataset_version, case_id)
+    state = initialize_state(
+        raw, lookback_hours=settings.application.investigation_lookback_hours
+    )
+    state.budget.max_iterations = settings.judgment_budget.max_iterations
+    state.budget.max_tool_calls = settings.judgment_budget.max_tool_calls
+    state.budget.max_report_rejudgments = settings.judgment_budget.max_report_rejudgments
+    state.raw_input["run_id"] = run_id
+
+    profile = store.get_profile(dataset_id, dataset_version, profile_id)
+    raw = store.get_case_input(dataset_id, dataset_version, case_id)
+    state = initialize_state(
+        raw, lookback_hours=settings.application.investigation_lookback_hours
+    )
+    state.budget.max_iterations = settings.judgment_budget.max_iterations
+    state.budget.max_tool_calls = settings.judgment_budget.max_tool_calls
+    state.budget.max_report_rejudgments = settings.judgment_budget.max_report_rejudgments
+    state.raw_input["run_id"] = run_id
+    settings.require_models()
+    # create_agent executes tool calls on worker threads; the activity store
+    # must accept sequential cross-thread use (same posture as the test
+    # harness and the runtime store).
+    activity_store = SQLiteActivityStore(
+        reference_activity_store_path(store.path, dataset_id), check_same_thread=False
+    )
+    assembly = assemble_investigation_run(
+        activity_store,
+        state=state,
+        settings=settings,
+        emit=emit,
+        run_id=run_id,
+        trace_handler=trace_handler,
+        response_context_port=ReferenceResponseContextAdapter(
+            store,
+            dataset_id=dataset_id,
+            dataset_version=dataset_version,
+            profile=profile,
+        ),
+        visible_sources=set(profile.visible_sources),
+    )
+    assembly.dataset_id = dataset_id
+    assembly.dataset_version = dataset_version
+    assembly.profile = profile
+    return assembly
+
+    return ReferenceRunAssembly(
+        graph=graph,
+        state=state,
+        tenant_id=tenant_id,
+        activity_store=activity_store,
+        dataset_id=dataset_id,
+        dataset_version=dataset_version,
+        profile=profile,
+        run_id=run_id,
+    )
+
+
 def run_demo_profile(
     store: SQLiteReferenceDataStore,
     *,
@@ -224,6 +459,7 @@ def run_demo_profile(
     settings: AppSettings,
     emit: EventSink | None = None,
     run_id: str | None = None,
+    trace_handler=None,
 ) -> ProfileComparisonItem:
     emit = emit or (lambda _kind, _message, _details=None: None)
     dataset_version = dataset_version or settings.demo.dataset_version
@@ -235,140 +471,72 @@ def run_demo_profile(
         if row is None:
             raise KeyError(f"Reference dataset has no case: {dataset_id}/{dataset_version}")
         case_id = str(row["case_id"])
-    profile = store.get_profile(dataset_id, dataset_version, profile_id)
-    raw = store.get_case_input(dataset_id, dataset_version, case_id)
-    state = initialize_state(
-        raw, lookback_hours=settings.application.investigation_lookback_hours
-    )
-    state.budget.max_iterations = settings.judgment_budget.max_iterations
-    state.budget.max_tool_calls = settings.judgment_budget.max_tool_calls
-    state.budget.max_report_rejudgments = settings.judgment_budget.max_report_rejudgments
-    effective_run_id = run_id or f"demo-{dataset_id}-{profile.level}"
-    state.raw_input["run_id"] = effective_run_id
-
-    settings.require_models()
-    activity_store = SQLiteActivityStore(reference_activity_store_path(store.path, dataset_id))
-    activity_query_adapter = SQLiteActivityQueryAdapter(
-        activity_store, visible_sources=set(profile.visible_sources)
-    )
-    # Server-side run identity and the single-host boundary policy are injected
-    # here; alert-payload fields can never override the tenant. The tenant is
-    # the ONE configured server tenant — it must match the tenant the
-    # reference activity data was ingested under, or every query returns zero
-    # rows.
-    tenant_id = settings.application.default_tenant
-    boundary_policy = SingleHostBoundaryPolicy(
-        tenant_id=tenant_id,
-        case_id=state.case_id,
+    effective_run_id = run_id or f"demo-{dataset_id}-trace"
+    assembly = assemble_reference_run(
+        store,
+        dataset_id=dataset_id,
+        dataset_version=dataset_version,
+        case_id=case_id,
+        profile_id=profile_id,
+        settings=settings,
+        emit=emit,
         run_id=effective_run_id,
+        trace_handler=trace_handler,
     )
-    judgment_planner = ObservableJudgmentPlanner(
-        StructuredDataToolPlanner(
-            build_judgment_model(settings),
-            emit,
-            context_window_tokens=settings.judgment_model.context_window_tokens,
-            output_reserve_tokens=settings.judgment_model.max_tokens,
-        ),
-        emit,
-        observation_summarizer=ToolObservationSummarizer(build_judgment_model(settings)),
-    )
-    report_composer = ObservableReportComposer(
-        StructuredReportComposer(
-            build_report_model(settings), emit, tenant_id=tenant_id
-        ),
-        emit,
-    )
-    response_planner = ObservableResponsePlanner(
-        StructuredResponsePlanner(build_response_model(settings), emit), emit
-    )
-    judgment_graph = JudgmentGraph(
-        judgment_planner,
-        tenant_id=tenant_id,
-        run_id=effective_run_id,
-        data_tool_gateway=InvestigationToolGateway(
-            activity_store,
-            activity_query_adapter,
-            boundary_policy,
-            event_sink=emit,
-        ),
-        report_composer=report_composer,
-        report_coordinator=ReportRepairCoordinator(
-            report_composer, ReportGroundingValidator(), event_sink=emit,
-        ),
-        report_publisher=ObservableReportPublisher(
-            ReportPublisher(
-                tenant_id=tenant_id,
-                run_id=effective_run_id,
-                model_name=report_composer.model_name,
-            ),
-            emit,
-        ),
-        recursion_limit=settings.graph.recursion_limit,
-    )
-    response_graph = ResponseGraph(
-        response_planner,
-        response_context_port=ReferenceResponseContextAdapter(
-            store,
-            dataset_id=dataset_id,
-            dataset_version=dataset_version,
-            profile=profile,
-        ),
-        max_iterations=settings.response_budget.max_iterations,
-        recursion_limit=settings.graph.recursion_limit,
-    )
-    graph = CaseGraph(
-        judgment_graph,
-        checkpointer=create_memory_checkpointer(),
-        response_graph=response_graph,
-        recursion_limit=settings.graph.recursion_limit,
-    )
-    emit("graph", "LangGraph 调查流程已启动", {
-        "node": "intake",
-        "profile": profile.profile_id,
-        "planner_mode": "llm",
-    })
-    result = graph.start(state, tenant_id=tenant_id, run_id=effective_run_id)
-    while (request := _interrupt_value(result)) is not None:
-        if request.get("kind") == "response_approval":
-            emit("approval", "演示策略不批准执行高影响处置", {
-                "node": "approve",
-                "approval_kind": "response", "approved": False,
-                "request_ref": request.get("case_id"),
-            })
-            result = graph.resume_response(
-                tenant_id=tenant_id, case_id=state.case_id, run_id=effective_run_id,
-                approved=False, approved_by="reference-demo-policy",
-            )
-        else:
-            raise RuntimeError(f"Unsupported graph interrupt: {request!r}")
-    activity_store.close()
-    completed = type(state).model_validate(result["investigation"])
-    read_model = build_case_read_model(
-        completed,
-        tenant_id=tenant_id,
-        lifecycle_status=str(result["lifecycle_status"]),
-        judgment=result.get("judgment_result"),
-        response_plan=result.get("response_plan"),
-        approval_status=result.get("approval_status"),
-    )
-    if read_model.judgment is not None:
-        localize_verdict(read_model.judgment)
-    readiness = evaluate_data_readiness(
-        profile, case_id=case_id, tenant_id=tenant_id, run_id=effective_run_id
-    )
-    level = read_model.judgment.verdict.level.value
-    emit("result", f"案件处理完成：{VERDICT_LABEL_ZH.get(level, level)}", {
-        "node": "done",
-        "summary": read_model.judgment.verdict.summary,
-        "answerable_questions": len(readiness.answerable_questions),
-    })
-    return ProfileComparisonItem(
-        profile_id=profile.profile_id,
-        level=profile.level,
-        readiness=readiness,
-        case=read_model,
-        investigation_report=result.get("investigation_report"),
-    )
+    try:
+        state = assembly.state
+        tenant_id = assembly.tenant_id
+        graph = assembly.graph
+        profile = assembly.profile
+        emit("graph", "AI 已开始调查：正在建立案件上下文", {
+            "node": "intake",
+            "profile": profile.profile_id,
+            "planner_mode": "llm",
+            "orchestration": "framework_middleware",
+        })
+        result = graph.start(state, tenant_id=tenant_id, run_id=effective_run_id)
+        while (request := _interrupt_value(result)) is not None:
+            if request.get("kind") == "response_approval":
+                emit("approval", "演示策略不批准执行高影响处置", {
+                    "node": "approve",
+                    "approval_kind": "response", "approved": False,
+                    "request_ref": request.get("case_id"),
+                })
+                result = graph.resume_response(
+                    tenant_id=tenant_id, case_id=state.case_id, run_id=effective_run_id,
+                    approved=False, approved_by="reference-demo-policy",
+                )
+            else:
+                raise RuntimeError(f"Unsupported graph interrupt: {request!r}")
+        completed = type(state).model_validate(result["investigation"])
+        read_model = build_case_read_model(
+            completed,
+            tenant_id=tenant_id,
+            lifecycle_status=str(result["lifecycle_status"]),
+            judgment=result.get("judgment_result"),
+            response_plan=result.get("response_plan"),
+            approval_status=result.get("approval_status"),
+        )
+        if read_model.judgment is not None:
+            localize_verdict(read_model.judgment)
+        readiness = evaluate_data_readiness(
+            profile, case_id=case_id, tenant_id=tenant_id, run_id=effective_run_id
+        )
+        level = read_model.judgment.verdict.level.value
+        emit("result", f"案件处理完成：{VERDICT_LABEL_ZH.get(level, level)}", {
+            "node": "done",
+            "summary": read_model.judgment.verdict.summary,
+            "answerable_questions": len(readiness.answerable_questions),
+        })
+        return ProfileComparisonItem(
+            profile_id=profile.profile_id,
+            level=profile.level,
+            readiness=readiness,
+            case=read_model,
+            investigation_report=result.get("investigation_report"),
+        )
+    finally:
+        assembly.close()
 
 
 def run_demo_comparison(
@@ -431,7 +599,7 @@ def run_demo_comparison(
             "default_focus_profile": settings.demo.data_profile,
             "judgment_planner": "structured-data-tool",
             "response_planner": "structured",
-            "rag_adapter": "null",
+            "rag_adapter": settings.knowledge.adapter,
         },
         profiles=profiles,
     )
@@ -475,12 +643,28 @@ def main() -> None:
         )
     if args.serve:
         import uvicorn
-        from .demo_runtime import DemoRunService
 
+        from .workbench_bindings import (
+            build_approval_service,
+            build_debug_service,
+            build_event_service,
+            build_settings_overview,
+            build_knowledge_overview,
+            build_run_service,
+        )
+
+        run_service = build_run_service(settings, project_root=PROJECT_ROOT)
         app = create_app(
             InMemoryCaseReadStore(),
-            InMemoryDemoComparisonStore(comparisons),
-            DemoRunService(settings, project_root=PROJECT_ROOT),
+            None,
+            run_service,
+            build_approval_service(settings, run_service),
+            build_debug_service(settings, run_service)
+            if settings.workbench.debug_enabled
+            else None,
+            build_knowledge_overview(settings),
+            build_event_service(settings),
+            build_settings_overview(settings),
         )
         uvicorn.run(app, host=settings.presentation.host, port=settings.presentation.port)
     else:

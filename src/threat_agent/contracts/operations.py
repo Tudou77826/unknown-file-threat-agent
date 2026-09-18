@@ -51,7 +51,7 @@ class InvestigationReport(ContractModel):
 
 class InvestigationRun(ContractModel):
     run_id: str = Field(min_length=1)
-    status: Literal["queued", "running", "completed", "failed"]
+    status: Literal["queued", "running", "awaiting_approval", "completed", "failed"]
     stage: str = Field(min_length=1)
     graph_thread_id: str | None = None
     started_at: datetime | None = None

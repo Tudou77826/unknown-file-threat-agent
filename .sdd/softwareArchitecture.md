@@ -4,7 +4,7 @@
 
 目标系统由五个 Feature 组成：安全数据底座、AI 研判引擎、AI 处置建议、RAG 知识能力和案件治理。LLM 是研判与处置建议的核心推理组件；确定性计算、证据模型和策略校验作为引擎内部的可信约束。处置建议与实际执行隔离。
 
-当前代码已实现目标架构的本地可运行骨架：数据查询端口、JSONL/Fixture 适配器与 SQLite 参考数据存储，由案件父图原生挂载的 LangGraph 研判与处置建议子图，内存/SQLite Checkpoint、审批中断、稳定读模型、只读 API 和页面。代码采用按能力纵向组织的模块化单体；RAG 仅保留接口与 Null Adapter，生产数据源、知识检索、身份系统和处置执行尚未接入。
+当前代码已实现目标架构的本地可运行骨架：聚合调查数据 Port、JSONL/Fixture 适配器与 SQLite 参考数据存储，由案件父图挂载的 create_agent + middleware 研判循环及 LangGraph 处置建议子图，内存/SQLite Checkpoint、审批中断、稳定读模型、API 和页面。代码采用按能力纵向组织的模块化单体；RAG 仅保留接口与 Null Adapter，生产数据源、知识检索、身份系统和处置执行尚未接入。
 
 ## 2. 系统边界
 
@@ -93,12 +93,12 @@ LLM 只生成结构化建议。实际执行必须经过动作白名单、身份�
 
 | 目标组件 | 当前实现 | 差距 |
 |---|---|---|
-| 数据底座 | `data_foundation`：`EvidenceQueryPort`、JSONL/Fixture Adapter、SQLite 参考存储、Data Profile、Coverage | 参考存储不是生产数据湖；无生产连接器和数据级 RBAC |
-| 研判引擎 | `judgment`：原生子图、结构化 Planner、Analyzer、Policy、Verdict | 场景和规则仍集中注册，真实模型需部署配置 |
+| 数据底座 | `data_foundation`：`InvestigationDataPort`、JSONL/Fixture Adapter、SQLite 参考存储、Data Profile、Coverage | 参考存储不是生产数据湖；无生产连接器和数据级 RBAC |
+| 研判引擎 | `judgment` + `agent_middleware`：create_agent 工具循环、边界、预算、压缩、报告接地 | 场景和规则仍集中注册，真实模型需部署配置 |
 | RAG | `knowledge`：`KnowledgeRetrievalPort`、Null Adapter | 具体知识来源、索引、检索、ACL 和评测后置 |
 | 处置建议 | `response_advisory`：原生子图、Response Policy、`ResponseContextPort`、参考资产上下文 | 无真实动作执行和组织策略知识 |
-| 案件治理 | `case_management`：父图、内存/SQLite Checkpoint、interrupt、结果提交 | 无生产队列、身份系统、审计存储和执行集成 |
-| 输出展示 | `presentation`：案件及 L0～L3 对照读模型、只读 API、HTML 和契约序列化 | 当前为进程内读模型，未接生产读库 |
+| 案件治理 | `case_management`：父图、内存/SQLite Checkpoint、interrupt、结果提交 | 无生产队列、身份系统、审计存储和执行集成；运行中任务尚不能在进程重启后续跑 |
+| 输出展示 | `presentation`：案件及 L0～L3 对照读模型、只读 API、HTML 和契约序列化 | 当前为进程内读模型，未接生产读库；调查 API 仍是本地 Demo，未具备认证、RBAC 与受控事件展示边界 |
 
 ## 7. 代码组织与依赖方向
 
@@ -119,6 +119,7 @@ src/threat_agent/
 
 - `contracts` 和 `shared` 不依赖任何业务能力；
 - `data_foundation` 不依赖案件、研判、处置或展示流程；
+- `judgment` 只消费数据 Port，不直接依赖 SQLite 或外部安全平台 SDK；
 - `presentation` 只消费稳定契约，不读取调查状态或 Checkpoint；
 - 具体 Adapter 在 `bootstrap` 中组装，业务模块不依赖 `bootstrap`；
 - 案件管理可以调用两个子图，两个子图之间只传递 `JudgmentResult`。

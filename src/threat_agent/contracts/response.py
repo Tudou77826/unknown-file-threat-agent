@@ -6,7 +6,6 @@ from pydantic import Field
 
 from ..shared import StrictModel
 from .common import ContractModel
-from .knowledge import KnowledgeCitation
 
 
 class ResponseAction(StrictModel):
@@ -20,7 +19,8 @@ class ResponseAction(StrictModel):
     approval_class: Literal["none", "operator", "security_lead", "business_owner"]
     rollback_steps: list[str] = Field(default_factory=list)
     verification_steps: list[str] = Field(default_factory=list)
-    knowledge_citations: list[KnowledgeCitation] = Field(default_factory=list)
+    # 知识引用：knowledge_id@version#chunk_id，凭此事后追溯（设计 §5）
+    knowledge_refs: list[str] = Field(default_factory=list)
 
 
 class ResponsePlan(ContractModel):

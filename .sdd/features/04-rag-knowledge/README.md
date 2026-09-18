@@ -6,6 +6,7 @@ RAG Knowledge 为研判和处置建议提供受权限、版本和来源约束的
 
 - [requirements.md](requirements.md)
 - [design.md](design.md)
+- [rag-adapter-requirements-design.md](rag-adapter-requirements-design.md)：安全知识能力与供应方无关 RAG 适配层的目标边界。
 - [knowledge-model.md](knowledge-model.md)
 - [retrieval-policy.md](retrieval-policy.md)
 - [verification.md](verification.md)
@@ -16,4 +17,4 @@ RAG Knowledge 为研判和处置建议提供受权限、版本和来源约束的
 2. 调查方法、产品文档和威胁知识。
 3. 经质量控制的历史案件和复盘。
 
-当前项目未实现 RAG。本次平台架构迁移只预留查询契约、调用边界和 Null Adapter；知识来源、索引、检索与评测后续作为独立需求审批和实施。
+当前项目未实现 RAG。代码只预留查询契约、调用边界和 Null Adapter；安全知识能力与供应方无关适配层的目标需求见 [rag-adapter-requirements-design.md](rag-adapter-requirements-design.md)。知识来源、索引、检索、管理面与评测仍需作为独立实现需求审批。

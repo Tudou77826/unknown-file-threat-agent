@@ -93,6 +93,24 @@ class SQLiteInvestigationRuntimeStore:
             if changed != 1:
                 raise KeyError(f"Unknown investigation run: {run.tenant_id}/{run.run_id}")
 
+    def list_runs(self, tenant_id: str) -> list[tuple[InvestigationRun, str, str]]:
+        """Newest-first run rows with their source metadata (dataset, profile)."""
+
+        with self._lock:
+            rows = self.connection.execute(
+                "SELECT payload_json, dataset_id, profile_id FROM investigation_runs "
+                "WHERE tenant_id=? ORDER BY rowid DESC",
+                (tenant_id,),
+            ).fetchall()
+        return [
+            (
+                InvestigationRun.model_validate_json(row["payload_json"]),
+                str(row["dataset_id"]),
+                str(row["profile_id"]),
+            )
+            for row in rows
+        ]
+
     def next_operational_sequence(self, tenant_id: str, run_id: str) -> int:
         with self._lock:
             row = self.connection.execute(
@@ -139,6 +157,26 @@ class SQLiteInvestigationRuntimeStore:
                 "SELECT payload_json FROM audit_events WHERE tenant_id=? AND run_id=? ORDER BY sequence",
                 (tenant_id, run_id),
             ).fetchall()
+        return [AuditEvent.model_validate_json(row["payload_json"]) for row in rows]
+
+    def list_audit_global(
+        self, tenant_id: str, *, action: str | None = None, limit: int = 300
+    ) -> list[AuditEvent]:
+        """Newest-first audit trail across every run of the tenant."""
+
+        with self._lock:
+            if action:
+                rows = self.connection.execute(
+                    "SELECT payload_json FROM audit_events WHERE tenant_id=? AND action=? "
+                    "ORDER BY rowid DESC LIMIT ?",
+                    (tenant_id, action, limit),
+                ).fetchall()
+            else:
+                rows = self.connection.execute(
+                    "SELECT payload_json FROM audit_events WHERE tenant_id=? "
+                    "ORDER BY rowid DESC LIMIT ?",
+                    (tenant_id, limit),
+                ).fetchall()
         return [AuditEvent.model_validate_json(row["payload_json"]) for row in rows]
 
     def put_artifact(self, tenant_id: str, run_id: str, artifact_type: str, payload: dict[str, Any]) -> None:

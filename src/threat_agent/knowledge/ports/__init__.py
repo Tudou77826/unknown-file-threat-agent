@@ -1,3 +1,15 @@
-from .retrieval import KnowledgeRetrievalPort
+from .supplier_retrieval import (
+    SupplierItem,
+    SupplierRetrievalPort,
+    SupplierRetrievalRequest,
+    SupplierSourceOutcome,
+    SupplierSourceQuery,
+)
 
-__all__ = ["KnowledgeRetrievalPort"]
+__all__ = [
+    "SupplierItem",
+    "SupplierRetrievalPort",
+    "SupplierRetrievalRequest",
+    "SupplierSourceOutcome",
+    "SupplierSourceQuery",
+]

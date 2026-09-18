@@ -17,8 +17,9 @@ from threat_agent.contracts import (
 )
 from threat_agent.data_foundation import (
     BatchIngestionService,
+    EntityTimelineQuery,
     ReferenceEventParser,
-    SQLiteActivityQueryAdapter,
+    SQLiteInvestigationDataAdapter,
     SQLiteActivityStore,
 )
 from threat_agent.judgment import (
@@ -81,13 +82,47 @@ def _boundary() -> SingleHostBoundaryPolicy:
     return SingleHostBoundaryPolicy(tenant_id="tenant-a", case_id="case-a", run_id="run-a")
 
 
+def test_aggregate_data_port_applies_profile_visibility_to_all_reads(tmp_path: Path):
+    store = _store(tmp_path)
+    try:
+        data = SQLiteInvestigationDataAdapter(
+            store, visible_sources={"edr-process"}
+        )
+        process_ref = "process:host-1:10:1776914444000"
+        identity = data.resolve_entity("tenant-a", process_ref)
+        assert identity is not None
+        assert isinstance(data.find_relations("tenant-a", identity.entity_id), list)
+
+        visible, hidden = data.get_activities(
+            "tenant-a", ["activity-process-1", "activity-network-1"]
+        )
+        assert visible is not None
+        assert hidden is None
+        assert data.get_raw_record("tenant-a", "activity-process-1") is not None
+        assert data.get_raw_record("tenant-a", "activity-network-1") is None
+
+        timeline = data.list_entity_timeline(EntityTimelineQuery(
+            tenant_id="tenant-a",
+            entity_refs={process_ref},
+            host_refs={"host-1"},
+            start_time=None,
+            end_time=None,
+            cursor=None,
+            limit=100,
+        ))
+        assert [item.activity_id for item in timeline.activities] == [
+            "activity-process-1"
+        ]
+    finally:
+        store.close()
+
+
 def test_gateway_exposes_domain_data_tools_and_routes_typed_query(tmp_path: Path):
     store = _store(tmp_path)
     try:
         emitted = []
         gateway = InvestigationToolGateway(
-            store,
-            SQLiteActivityQueryAdapter(store),
+            SQLiteInvestigationDataAdapter(store),
             _boundary(),
             event_sink=lambda kind, message, details=None: emitted.append(
                 (kind, message, details)
@@ -119,7 +154,7 @@ def test_gateway_exposes_domain_data_tools_and_routes_typed_query(tmp_path: Path
 def test_gateway_rejects_out_of_scope_host(tmp_path: Path):
     store = _store(tmp_path)
     try:
-        gateway = InvestigationToolGateway(store, SQLiteActivityQueryAdapter(store), _boundary())
+        gateway = InvestigationToolGateway(SQLiteInvestigationDataAdapter(store), _boundary())
         with pytest.raises(BoundaryViolationError) as denial:
             gateway.invoke(
                 "query_process_activities", {"host_refs": ["host-2"]},
@@ -133,7 +168,7 @@ def test_gateway_rejects_out_of_scope_host(tmp_path: Path):
 def test_raw_and_metric_tools_require_activity_returned_in_same_run(tmp_path: Path):
     store = _store(tmp_path)
     try:
-        gateway = InvestigationToolGateway(store, SQLiteActivityQueryAdapter(store), _boundary())
+        gateway = InvestigationToolGateway(SQLiteInvestigationDataAdapter(store), _boundary())
         ledger = InvestigationToolLedger()
         with pytest.raises(BoundaryViolationError) as denial:
             gateway.invoke(
@@ -266,7 +301,7 @@ def test_grounding_validator_locates_unknown_refs_scope_and_candidate_relations(
         state = _state()
         state.scope = _context().scope
         state.raw_input.update({"tenant_id": "tenant-a", "run_id": "run-a"})
-        gateway = InvestigationToolGateway(store, SQLiteActivityQueryAdapter(store), _boundary())
+        gateway = InvestigationToolGateway(SQLiteInvestigationDataAdapter(store), _boundary())
         process = gateway.invoke(
             "query_process_activities", {}, _context(), state.tool_ledger
         )
@@ -329,7 +364,7 @@ def test_repair_coordinator_rejudges_against_whitelist_and_may_change_conclusion
         state = _state()
         state.scope = _context().scope
         state.raw_input.update({"tenant_id": "tenant-a", "run_id": "run-a"})
-        gateway = InvestigationToolGateway(store, SQLiteActivityQueryAdapter(store), _boundary())
+        gateway = InvestigationToolGateway(SQLiteInvestigationDataAdapter(store), _boundary())
         process = gateway.invoke("query_process_activities", {}, _context(), state.tool_ledger)
         activity_ref = process.activities[0].activity_id
         broken = ReportDraft(

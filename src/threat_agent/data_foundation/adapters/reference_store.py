@@ -1,5 +1,59 @@
 from __future__ import annotations
 
+
+class _LockedConnection:
+    """sqlite3 connection proxy that serializes execute* across threads.
+
+    create_agent executes tool calls on worker threads that share one
+    connection; interleaved parameter binding produced intermittent
+    sqlite3.InterfaceError("bad parameter or other API misuse")."""
+
+    def __init__(self, connection):
+        import threading
+
+        self._connection = connection
+        self._lock = threading.RLock()
+
+    def execute(self, sql, params=()):
+        with self._lock:
+            return self._connection.execute(sql, params)
+
+    def executemany(self, sql, seq):
+        with self._lock:
+            return self._connection.executemany(sql, seq)
+
+    def executescript(self, script):
+        with self._lock:
+            return self._connection.executescript(script)
+
+    def commit(self):
+        with self._lock:
+            return self._connection.commit()
+
+    def close(self):
+        with self._lock:
+            return self._connection.close()
+
+    def __enter__(self):
+        self._lock.acquire()
+        return self._connection.__enter__()
+
+    def __exit__(self, *args):
+        try:
+            return self._connection.__exit__(*args)
+        finally:
+            self._lock.release()
+
+    def __setattr__(self, name, value):
+        if name in ("_connection", "_lock"):
+            object.__setattr__(self, name, value)
+        else:
+            setattr(self._connection, name, value)
+
+    def __getattr__(self, name):
+        return getattr(self._connection, name)
+
+
 import hashlib
 import json
 import sqlite3
@@ -42,7 +96,11 @@ class SQLiteReferenceDataStore:
     def __init__(self, path: Path | str):
         self.path = Path(path).resolve()
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.connection = sqlite3.connect(str(self.path))
+        # Agent tool execution happens on worker threads (create_agent); the
+        # response-context adapter reads this store from those threads.
+        self.connection = _LockedConnection(
+            sqlite3.connect(str(self.path), check_same_thread=False)
+        )
         self.connection.row_factory = sqlite3.Row
         self.initialize()
 

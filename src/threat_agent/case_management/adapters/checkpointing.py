@@ -25,6 +25,17 @@ def create_memory_checkpointer() -> MemorySaver:
     return MemorySaver(serde=_serializer())
 
 
+def create_configured_checkpointer(backend: str, path: Path | str | None):
+    """Resolve the settings-driven checkpointer: sqlite for durable runs
+    (survives restarts, enables time-travel debug), memory for tests."""
+
+    if backend == "sqlite":
+        if path is None:
+            raise ValueError("SQLite checkpoint backend requires a path")
+        return create_sqlite_checkpointer(path)
+    return create_memory_checkpointer()
+
+
 def create_sqlite_checkpointer(path: Path | str) -> SqliteSaver:
     resolved = Path(path).resolve()
     resolved.parent.mkdir(parents=True, exist_ok=True)

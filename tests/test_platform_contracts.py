@@ -3,7 +3,13 @@ from datetime import datetime, timezone
 import pytest
 from pydantic import ValidationError
 
-from threat_agent.contracts import EvidenceQuery, InitialCase, KnowledgeQuery, KnowledgeResult
+from threat_agent.contracts import (
+    EvidenceQuery,
+    InitialCase,
+    KnowledgeConsultation,
+    KnowledgeConsultationContext,
+    KnowledgeItem,
+)
 from threat_agent.judgment.domain.models import Scope
 
 
@@ -35,20 +41,19 @@ def test_evidence_and_knowledge_contracts_are_distinct():
         evidence_types=["process_exec"],
         scope=Scope(host_ids=["host-a"]),
     )
-    knowledge_query = KnowledgeQuery(
-        **contract_fields(),
-        query_id="query-knowledge",
-        knowledge_domain="investigation",
-        query_text="How should process execution be verified?",
-    )
-    result = KnowledgeResult(
-        **contract_fields(),
-        query_id=knowledge_query.query_id,
-        status="not_configured",
-        limitations=["Knowledge retrieval is not configured"],
+    # 业务知识咨询只有业务语义字段；授权与证据体系都不出现在请求上
+    knowledge_consultation = KnowledgeConsultation(
+        scene="unknown_file_investigation",
+        intent="telemetry_interpretation",
+        context=KnowledgeConsultationContext(
+            telemetry_field_ids=["netflow.session_reset_count"]
+        ),
     )
     assert evidence_query.domain == "process"
-    assert result.citations == []
+    assert set(knowledge_consultation.model_dump()) == {"scene", "intent", "context"}
+    # 知识条目不是证据：字段集合与证据契约无交集语义
+    assert "evidence_id" not in KnowledgeItem.model_json_schema()["properties"]
+    assert "evidence_refs" not in KnowledgeItem.model_json_schema()["properties"]
 
 
 def test_contract_rejects_unknown_schema_major_version():

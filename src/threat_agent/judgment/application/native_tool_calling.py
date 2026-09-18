@@ -21,7 +21,7 @@ class FinishInvestigationInput(StrictModel):
 
 
 def _not_directly_executable(**_kwargs: Any) -> None:
-    raise RuntimeError("Tool execution is owned by JudgmentGraph")
+    raise RuntimeError("Legacy planner tools cannot execute directly")
 
 
 def build_native_tools(specs: Iterable[tuple[str, type[StrictModel], str]]) -> list[StructuredTool]:

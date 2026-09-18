@@ -89,38 +89,66 @@ _COMPACTION_SYSTEM_PROMPT = (
 )
 
 
+# Model-facing tool catalog: (name, args_schema, description). Shared by the
+# non-executing planner catalog and by executing gateway bindings.
+TOOL_DEFINITIONS = [
+    ("query_process_activities", ProcessActivitiesInput,
+     "查询进程活动：进程创建/执行/终止、父子关系、可执行文件与命令行。"),
+    ("query_network_activities", NetworkActivitiesInput,
+     "查询网络活动：进程发起/接受的连接、目标端点和协议。"),
+    ("query_socket_activities", SocketActivitiesInput,
+     "查询 socket 活动：进程的收发字节与 socket 会话。"),
+    ("query_file_activities", FileActivitiesInput,
+     "查询文件活动：创建、写入、重命名、删除、执行和读取。"),
+    ("query_service_activities", ServiceActivitiesInput,
+     "查询服务活动：systemd 等服务的定义、启用、启动与停止。"),
+    ("query_package_activities", PackageActivitiesInput,
+     "查询软件包活动：包归属、安装、签名与文件关联。"),
+    ("query_asset_activities", AssetActivitiesInput,
+     "查询资产活动：主机环境、业务关键度、负责人与批准上下文。"),
+    ("explore_entity", ExploreEntityInput,
+     "读取一个平台实体的身份、已解析/候选关系及时间线。entity_ref 必须来自案件或先前工具结果。"),
+    ("get_raw_records", GetRawRecordsInput,
+     "读取本次运行中已返回活动对应的原始记录。"),
+    ("calculate_activity_metrics", CalculateActivityMetricsInput,
+     "对本次运行已返回的活动执行进程树、连接模式、传输汇总或文件变更等确定性计算。"),
+    ("finish_investigation", FinishInvestigationInput,
+     "现有证据足以形成结论、继续查询没有信息增益或预算将耗尽时，结束调查并生成报告。"),
+]
+
+
 def investigation_tools() -> list:
     """Return the exact schemas registered with the chat model.
 
     Query tools are split by activity domain: each tool's name fixes the
     domain, and its schema exposes only that domain's fields.
     """
+    return build_native_tools(TOOL_DEFINITIONS)
 
-    definitions = [
-        ("query_process_activities", ProcessActivitiesInput,
-         "查询进程活动：进程创建/执行/终止、父子关系、可执行文件与命令行。"),
-        ("query_network_activities", NetworkActivitiesInput,
-         "查询网络活动：进程发起/接受的连接、目标端点和协议。"),
-        ("query_socket_activities", SocketActivitiesInput,
-         "查询 socket 活动：进程的收发字节与 socket 会话。"),
-        ("query_file_activities", FileActivitiesInput,
-         "查询文件活动：创建、写入、重命名、删除、执行和读取。"),
-        ("query_service_activities", ServiceActivitiesInput,
-         "查询服务活动：systemd 等服务的定义、启用、启动与停止。"),
-        ("query_package_activities", PackageActivitiesInput,
-         "查询软件包活动：包归属、安装、签名与文件关联。"),
-        ("query_asset_activities", AssetActivitiesInput,
-         "查询资产活动：主机环境、业务关键度、负责人与批准上下文。"),
-        ("explore_entity", ExploreEntityInput,
-         "读取一个平台实体的身份、已解析/候选关系及时间线。entity_ref 必须来自案件或先前工具结果。"),
-        ("get_raw_records", GetRawRecordsInput,
-         "读取本次运行中已返回活动对应的原始记录。"),
-        ("calculate_activity_metrics", CalculateActivityMetricsInput,
-         "对本次运行已返回的活动执行进程树、连接模式、传输汇总或文件变更等确定性计算。"),
-        ("finish_investigation", FinishInvestigationInput,
-         "现有证据足以形成结论、继续查询没有信息增益或预算将耗尽时，结束调查并生成报告。"),
-    ]
-    return build_native_tools(definitions)
+
+# Shared investigation planner system prompt.  The formal create_agent-based
+# middleware runtime is its production consumer; the native planner only
+# remains for low-level migration and regression coverage.
+PLANNER_SYSTEM_PROMPT = (
+    "你是未知文件安全调查的取证规划器。根据案件证据和历次工具返回，规划下一步调查动作，"
+    "可以一次规划多个工具调用（按顺序执行）。"
+    "工具参数必须严格遵循已注册 JSON Schema，不要自行创造字段。"
+    "不需要的过滤字段直接省略，不要填写 \"null\"、\"none\" 或空字符串。"
+    "租户、案件、run_id 和授权 Scope 由系统注入，不得作为工具参数提交。"
+    "调查边界固定为唯一告警主机的本机数据：没有跨主机查询工具，"
+    "发现涉及其他主机的线索时不要尝试查询目标主机，继续完成本机取证，"
+    "跨主机线索留给最终报告作为未解决问题或限制记录。"
+    "空结果只代表该次查询在执行边界内返回零条，不能据此断言行为没有发生。"
+    "候选关系只能用于继续调查，不能当作已确认事实。"
+    "host_refs 必须使用 authorized_scope.host_ids 中的原始值，例如 server-01，不要添加 host: 前缀。"
+    "explore_entity 只接受先前数据工具结果中出现的平台 entity_id，不要直接使用案件实体 ID。"
+    "get_raw_records 和 calculate_activity_metrics 的参数只能引用本次运行中活动查询返回的活动 ID；"
+    "案件上下文里的实体 ID（例如上游上报的进程链）属于线索而非证据，直接引用会被边界拒绝——"
+    "需要查看某个进程的原始记录或统计时，先用 query_process_activities 等查询取得活动 ID 再引用它们。"
+    "必须逐字复制工具返回中的 evidence_ids，禁止按命名规律自行构造或推测 ID；"
+    "被拒绝时阅读拒绝原因并更换查询方式，不要重复同一次调用。"
+    "当进一步查询没有信息增益时调用 finish_investigation。"
+)
 
 
 class StructuredDataToolPlanner:
@@ -151,21 +179,7 @@ class StructuredDataToolPlanner:
         # within a single investigation run.
         self._compaction_summary = ""
         self._replay_from = 0
-        self.system_prompt = (
-            "你是未知文件安全调查的取证规划器。根据案件证据和历次工具返回，规划下一步调查动作，"
-            "可以一次规划多个工具调用（按顺序执行）。"
-            "工具参数必须严格遵循已注册 JSON Schema，不要自行创造字段。"
-            "不需要的过滤字段直接省略，不要填写 \"null\"、\"none\" 或空字符串。"
-            "租户、案件、run_id 和授权 Scope 由系统注入，不得作为工具参数提交。"
-            "调查边界固定为唯一告警主机的本机数据：没有跨主机查询工具，"
-            "发现涉及其他主机的线索时不要尝试查询目标主机，继续完成本机取证，"
-            "跨主机线索留给最终报告作为未解决问题或限制记录。"
-            "空结果只代表该次查询在执行边界内返回零条，不能据此断言行为没有发生。"
-            "候选关系只能用于继续调查，不能当作已确认事实。"
-            "host_refs 必须使用 authorized_scope.host_ids 中的原始值，例如 server-01，不要添加 host: 前缀。"
-            "explore_entity 只接受先前数据工具结果中出现的平台 entity_id，不要直接使用案件实体 ID。"
-            "当进一步查询没有信息增益时调用 finish_investigation。"
-        )
+        self.system_prompt = PLANNER_SYSTEM_PROMPT
 
     def plan(self, state: InvestigationState) -> list[InvestigationAction]:
         messages = self._messages(state)

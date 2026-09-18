@@ -1,5 +1,7 @@
 # RAG Knowledge Design
 
+> 本文保留知识域、引用和安全约束；面向 Agent 的安全知识能力边界，以及与具体供应方隔离的适配层设计，以 [rag-adapter-requirements-design.md](rag-adapter-requirements-design.md) 为准。
+
 ```mermaid
 flowchart LR
     S["Knowledge Sources"] --> G["Ingestion and Parsing"]

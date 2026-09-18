@@ -9,6 +9,8 @@ from dotenv import dotenv_values
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
+from ..knowledge.adapters.attack_corpus import DEFAULT_ATTACK_CORPUS_PATH
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
@@ -29,8 +31,10 @@ class ApplicationSettings(FrozenSettings):
 
 
 class CheckpointSettings(FrozenSettings):
-    backend: Literal["memory", "sqlite"] = "memory"
-    path: Path | None = None
+    # Feature 17: sqlite is the runtime default so runs survive restarts and
+    # stay debuggable via checkpoint history; memory remains for tests.
+    backend: Literal["memory", "sqlite"] = "sqlite"
+    path: Path = PROJECT_ROOT / "outputs" / "checkpoint.sqlite"
 
 
 class GraphSettings(FrozenSettings):
@@ -48,6 +52,19 @@ class ResponseBudgetSettings(FrozenSettings):
     max_iterations: int = Field(default=3, ge=1, le=20)
 
 
+class KnowledgeSettings(FrozenSettings):
+    """知识能力运行面配置（管理面首期形态）：供应方适配器选择、参考适配器
+    档位与超时。Agent 运行中不可修改；检索参数类配置属于后续管理面需求。
+
+    adapter=attack（Feature 18）：ATT&CK 文件语料供应方接管 attack_technique
+    源，语料由 scripts/build_attack_corpus.py 离线构建，运行时零网络零 LLM。"""
+
+    adapter: Literal["null", "reference", "attack"] = "null"
+    reference_profile: Literal["standard", "alternate"] = "standard"
+    attack_corpus_path: Path = DEFAULT_ATTACK_CORPUS_PATH
+    timeout_seconds: float = Field(default=10.0, gt=0, le=300)
+
+
 class EvidenceQuerySettings(FrozenSettings):
     default_limit: int = Field(default=1000, ge=1, le=5000)
     max_limit: int = Field(default=5000, ge=1, le=5000)
@@ -56,6 +73,9 @@ class EvidenceQuerySettings(FrozenSettings):
 class ModelSettings(FrozenSettings):
     api_key: SecretStr | None = None
     base_url: str = "https://api.siliconflow.cn/v1"
+    # Wire protocol flavor: openai-compatible chat completions vs anthropic
+    # messages. Selects the LangChain client in build_chat_model.
+    provider: Literal["openai", "anthropic"] = "openai"
     model_name: str | None = None
     max_tokens: int = Field(default=512, ge=1, le=32768)
     context_window_tokens: int = Field(default=100000, ge=1024, le=1000000)
@@ -81,18 +101,35 @@ class PresentationSettings(FrozenSettings):
     port: int = Field(default=8000, ge=1, le=65535)
 
 
+class ObservabilitySettings(FrozenSettings):
+    """Feature 17: one-way trace sidecar. ``langfuse`` degrades to no-op when
+    the package is missing or the sink fails; investigation never blocks."""
+
+    backend: Literal["none", "langfuse"] = "none"
+
+
+class WorkbenchSettings(FrozenSettings):
+    debug_enabled: bool = True
+    # Data plane for real alert intake (Feature 17 M2). The intake channel is
+    # engine-ready here; swapping in production telemetry is Feature 01 scope.
+    alert_activity_store_path: Path = PROJECT_ROOT / "outputs" / "alert-activities.sqlite"
+
+
 class AppSettings(FrozenSettings):
     application: ApplicationSettings
     checkpoint: CheckpointSettings
     graph: GraphSettings
     judgment_budget: JudgmentBudgetSettings
     response_budget: ResponseBudgetSettings
+    knowledge: KnowledgeSettings
     evidence_query: EvidenceQuerySettings
     judgment_model: ModelSettings
     response_model: ModelSettings
     report_model: ModelSettings
     demo: DemoSettings
     presentation: PresentationSettings
+    observability: ObservabilitySettings
+    workbench: WorkbenchSettings
 
     @classmethod
     def load(
@@ -127,6 +164,7 @@ class AppSettings(FrozenSettings):
 
         common_api_key = get("THREAT_AGENT_API_KEY", None, "SILICONFLOW_API_KEY")
         common_base_url = get("THREAT_AGENT_API_BASE", "https://api.siliconflow.cn/v1")
+        common_provider = get("THREAT_AGENT_MODEL_PROVIDER", "openai")
         common_model_name = get("MODEL_NAME")
         common_context_window = get("MODEL_CONTEXT_WINDOW_TOKENS", 100000)
         disable_proxy = get("MODEL_DISABLE_PROXY", False)
@@ -136,6 +174,7 @@ class AppSettings(FrozenSettings):
             return ModelSettings(
                 api_key=get(f"{prefix}_MODEL_API_KEY", common_api_key),
                 base_url=get(f"{prefix}_MODEL_API_BASE", common_base_url),
+                provider=get(f"{prefix}_MODEL_PROVIDER", common_provider),
                 model_name=get(f"{prefix}_MODEL_NAME", common_model_name),
                 max_tokens=get(f"{prefix}_MODEL_MAX_TOKENS", 512),
                 context_window_tokens=get(
@@ -158,6 +197,7 @@ class AppSettings(FrozenSettings):
         report_model = ModelSettings(
             api_key=judgment_model.api_key,
             base_url=judgment_model.base_url,
+            provider=judgment_model.provider,
             model_name=judgment_model.model_name,
             max_tokens=get("REPORT_MODEL_MAX_TOKENS", 8192),
             context_window_tokens=get(
@@ -186,8 +226,11 @@ class AppSettings(FrozenSettings):
                 investigation_lookback_hours=get("INVESTIGATION_LOOKBACK_HOURS", 24.0),
             ),
             checkpoint=CheckpointSettings(
-                backend=get("THREAT_AGENT_CHECKPOINT_BACKEND", "memory"),
-                path=path("THREAT_AGENT_CHECKPOINT_PATH"),
+                backend=get("THREAT_AGENT_CHECKPOINT_BACKEND", "sqlite"),
+                path=path(
+                    "THREAT_AGENT_CHECKPOINT_PATH",
+                    PROJECT_ROOT / "outputs" / "checkpoint.sqlite",
+                ),
             ),
             graph=GraphSettings(
                 recursion_limit=get("THREAT_AGENT_GRAPH_RECURSION_LIMIT", 1000)
@@ -203,6 +246,12 @@ class AppSettings(FrozenSettings):
             ),
             response_budget=ResponseBudgetSettings(
                 max_iterations=get("RESPONSE_MAX_ITERATIONS", 3)
+            ),
+            knowledge=KnowledgeSettings(
+                adapter=get("KNOWLEDGE_ADAPTER", "null"),
+                reference_profile=get("KNOWLEDGE_REFERENCE_PROFILE", "standard"),
+                attack_corpus_path=path("KNOWLEDGE_ATTACK_CORPUS", DEFAULT_ATTACK_CORPUS_PATH),
+                timeout_seconds=get("KNOWLEDGE_TIMEOUT_SECONDS", 10.0),
             ),
             evidence_query=EvidenceQuerySettings(
                 default_limit=get("EVIDENCE_QUERY_DEFAULT_LIMIT", 1000),
@@ -226,6 +275,16 @@ class AppSettings(FrozenSettings):
                 host=get("THREAT_AGENT_API_HOST", "127.0.0.1"),
                 port=get("THREAT_AGENT_API_PORT", 8000),
             ),
+            observability=ObservabilitySettings(
+                backend=get("OBSERVABILITY_BACKEND", "none"),
+            ),
+            workbench=WorkbenchSettings(
+                debug_enabled=get("WORKBENCH_DEBUG_ENABLED", True),
+                alert_activity_store_path=path(
+                    "WORKBENCH_ALERT_ACTIVITY_STORE_PATH",
+                    PROJECT_ROOT / "outputs" / "alert-activities.sqlite",
+                ),
+            ),
         )
         if settings.evidence_query.default_limit > settings.evidence_query.max_limit:
             raise ValueError("EVIDENCE_QUERY_DEFAULT_LIMIT cannot exceed EVIDENCE_QUERY_MAX_LIMIT")
@@ -247,8 +306,26 @@ def build_chat_model(settings: ModelSettings):
         raise RuntimeError("Chat model configuration is incomplete")
     # trust_env=False makes the client ignore HTTP(S)_PROXY/ALL_PROXY so the
     # connection to the model endpoint is always direct. Timeout and retries
-    # stay in effect: both are applied per-request by the OpenAI SDK layer.
+    # stay in effect: both are applied per-request by the SDK layer.
     http_client = httpx.Client(trust_env=False) if settings.disable_proxy else None
+    if settings.provider == "anthropic":
+        from langchain_anthropic import ChatAnthropic
+
+        kwargs = dict(
+            model=settings.model_name,
+            api_key=settings.api_key.get_secret_value(),
+            base_url=settings.base_url,
+            max_tokens=settings.max_tokens,
+            temperature=settings.temperature,
+            timeout=settings.timeout_seconds,
+            max_retries=settings.max_retries,
+        )
+        if http_client is not None:
+            kwargs["http_client"] = http_client
+        # Structured output forces a tool choice, which thinking-mode rejects;
+        # the investigation loop needs deterministic JSON, not reasoning.
+        kwargs["thinking"] = {"type": "disabled"}
+        return ChatAnthropic(**kwargs)
     http_async_client = (
         httpx.AsyncClient(trust_env=False) if settings.disable_proxy else None
     )
@@ -333,6 +410,12 @@ def format_effective_settings(settings: AppSettings) -> str:
         + "  ".join([
             mark("lookback", f"{settings.application.investigation_lookback_hours:g}h", f"{defaults.application.investigation_lookback_hours:g}h"),
             mark("tenant", settings.application.default_tenant, defaults.application.default_tenant),
+        ]),
+        "[知识] "
+        + "  ".join([
+            mark("adapter", settings.knowledge.adapter, defaults.knowledge.adapter),
+            mark("profile", settings.knowledge.reference_profile, defaults.knowledge.reference_profile),
+            mark("timeout", f"{settings.knowledge.timeout_seconds:g}s", f"{defaults.knowledge.timeout_seconds:g}s"),
         ]),
         "[演示] "
         + "  ".join([

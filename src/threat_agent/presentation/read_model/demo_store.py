@@ -8,6 +8,8 @@ from ...contracts import DemoComparisonReadModel
 class DemoComparisonStore(Protocol):
     def get(self, dataset_id: str) -> DemoComparisonReadModel | None: ...
 
+    def dataset_ids(self) -> list[str]: ...
+
 
 class InMemoryDemoComparisonStore:
     def __init__(self, items: Mapping[str, DemoComparisonReadModel] | None = None):
@@ -21,3 +23,6 @@ class InMemoryDemoComparisonStore:
     def get(self, dataset_id: str) -> DemoComparisonReadModel | None:
         item = self._items.get(dataset_id)
         return item.model_copy(deep=True) if item is not None else None
+
+    def dataset_ids(self) -> list[str]:
+        return list(self._items)

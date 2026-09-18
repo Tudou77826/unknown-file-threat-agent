@@ -1,22 +1,15 @@
-"""Lightweight per-round observation summary for the demo's event stream.
+"""Deterministic tool-result downsizing for prompt context.
 
-The data-tool gateway executes queries deterministically; the AI does not take
-part in the queries themselves. This component lets the judgment model produce
-a one-sentence Chinese observation describing *what one investigation round
-actually found* — one LLM call per round, not per tool — so the demo's event
-stream reflects the natural unit of observation (the round) instead of a bare
-per-tool row count.
-
-It is purely observational: failures are silently downgraded to ``None`` and
-never affect the investigation flow.
+``brief_result`` keeps only the fields that carry investigation signal
+(executable, command line, endpoints, relations, …) and drops raw large blobs
+before tool history re-enters the model context. Round-level narrative is
+emitted by the runtime's LLM bridge, not here.
 """
 
 from __future__ import annotations
 
 import json
 from typing import Any
-
-from ...shared.llm import invoke_llm
 
 _SYSTEM_PROMPT = (
     "你是安全调查的观察记录助手。基于一轮调查中多次数据查询返回的结果，用一句简洁的中文"
@@ -25,7 +18,12 @@ _SYSTEM_PROMPT = (
 )
 
 # Fields worth surfacing per activity type when briefing the model.
+# ``activity_id`` is deliberately first: downstream tools (get_raw_records,
+# calculate_activity_metrics) require the planner to quote activity IDs
+# verbatim, so downsizing must never strip the identifiers it needs. Dropping
+# them made the model invent IDs by pattern and get rejected every round.
 _ACTIVITY_FIELDS = (
+    "activity_id",
     "activity_type",
     "operation",
     "host_ref",
@@ -45,6 +43,22 @@ _ACTIVITY_FIELDS = (
     "repository",
     "signature_valid",
 )
+
+
+def _reference_ids(references: Any) -> list[str]:
+    """Extract citable reference IDs from a query result's evidence list."""
+
+    if not isinstance(references, list):
+        return []
+    ids: list[str] = []
+    for reference in references:
+        if isinstance(reference, dict):
+            value = reference.get("evidence_id") or reference.get("id")
+            if value:
+                ids.append(str(value))
+        elif reference:
+            ids.append(str(reference))
+    return ids
 
 
 def brief_result(result: Any) -> Any:
@@ -75,6 +89,8 @@ def brief_result(result: Any) -> Any:
         boundary = data.get("execution_boundary") or {}
         return {
             "returned_count": boundary.get("returned_count"),
+            # The authoritative list of refs this run may cite downstream.
+            "evidence_references": _reference_ids(data.get("evidence_references")),
             "activities": brief,
         }
     # Entity exploration: timeline is the salient part.
@@ -90,51 +106,9 @@ def brief_result(result: Any) -> Any:
                         if activity.get(key) is not None
                     }
                 )
-        return {"returned_count": data.get("returned_count"), "timeline": brief}
+        return {
+            "returned_count": data.get("returned_count"),
+            "evidence_references": _reference_ids(data.get("evidence_references")),
+            "timeline": brief,
+        }
     return data
-
-
-class ToolObservationSummarizer:
-    """Produce a one-sentence observation for a whole investigation round."""
-
-    def __init__(self, model: Any):
-        self.model = model
-
-    def summarize_round(self, items: list[tuple[str, Any]]) -> str | None:
-        """Summarize one round's tool results in a single LLM call.
-
-        ``items`` is a list of ``(tool_name, result)`` for every tool executed
-        in the round. Returns ``None`` on failure or when there is nothing to say.
-        """
-        briefs: list[dict[str, Any]] = []
-        for tool_name, result in items:
-            brief = brief_result(result)
-            if brief is not None:
-                briefs.append({"tool": tool_name, "result": brief})
-        if not briefs:
-            return None
-        messages = [
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": json.dumps({"round": briefs}, ensure_ascii=False),
-            },
-        ]
-
-        def invoke_once() -> str:
-            response = self.model.invoke(messages)
-            content = getattr(response, "content", "")
-            if isinstance(content, list):
-                content = "".join(str(part) for part in content)
-            return str(content or "").strip()
-
-        try:
-            text = invoke_llm(
-                invoke_once,
-                parse_max_attempts=1,
-                transport_max_attempts=2,
-                transport_backoff=1.0,
-            )
-        except Exception:
-            return None
-        return text or None

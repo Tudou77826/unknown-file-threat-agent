@@ -7,3 +7,5 @@ outputs/
 .env
 .venv/
 log/
+downloads/
+outputs-serve.log

@@ -16,6 +16,28 @@ license: Internal
 6. Check legitimate package provenance, approved endpoints and operations baselines.
 7. Request finish only after every required active Evidence Role was attempted.
 
+## Reference authorization (mandatory)
+
+Every query is executed against exactly one authorized host and time window.
+Two classes of identifiers exist and they are **not** interchangeable:
+
+- **Context references** — entity IDs minted from the alert payload (e.g. a
+  reported process chain). They describe what upstream *claimed*; they are not
+  evidence and cannot be used as query input for raw records or metrics.
+- **Authorized activity references** — activity IDs actually returned by a
+  query in *this* run. Only these may be passed to `get_raw_records` and
+  `calculate_activity_metrics`.
+
+Consequence for planning: to inspect raw telemetry or compute metrics for a
+process, first issue an activity query that returns it
+(`query_process_activities`, `query_network_activities`, …), then reference the
+returned activity IDs. Referencing context entity IDs directly is rejected by
+the boundary and wastes a round.
+
+Scope violations are rejected, never silently widened: a rejected call returns
+`reference_not_authorized` with the reason. Read the reason and change your
+next query rather than repeating the same call.
+
 ## Controlled scenario activation
 
 - A model may activate only a scenario present in `activatable_scenarios`.

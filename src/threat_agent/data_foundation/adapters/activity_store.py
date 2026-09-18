@@ -1,5 +1,59 @@
 from __future__ import annotations
 
+
+class _LockedConnection:
+    """sqlite3 connection proxy that serializes execute* across threads.
+
+    create_agent executes tool calls on worker threads that share one
+    connection; interleaved parameter binding produced intermittent
+    sqlite3.InterfaceError("bad parameter or other API misuse")."""
+
+    def __init__(self, connection):
+        import threading
+
+        self._connection = connection
+        self._lock = threading.RLock()
+
+    def execute(self, sql, params=()):
+        with self._lock:
+            return self._connection.execute(sql, params)
+
+    def executemany(self, sql, seq):
+        with self._lock:
+            return self._connection.executemany(sql, seq)
+
+    def executescript(self, script):
+        with self._lock:
+            return self._connection.executescript(script)
+
+    def commit(self):
+        with self._lock:
+            return self._connection.commit()
+
+    def close(self):
+        with self._lock:
+            return self._connection.close()
+
+    def __enter__(self):
+        self._lock.acquire()
+        return self._connection.__enter__()
+
+    def __exit__(self, *args):
+        try:
+            return self._connection.__exit__(*args)
+        finally:
+            self._lock.release()
+
+    def __setattr__(self, name, value):
+        if name in ("_connection", "_lock"):
+            object.__setattr__(self, name, value)
+        else:
+            setattr(self._connection, name, value)
+
+    def __getattr__(self, name):
+        return getattr(self._connection, name)
+
+
 import json
 import sqlite3
 from pathlib import Path
@@ -20,10 +74,14 @@ _ACTIVITY_ADAPTER = TypeAdapter(NormalizedActivity)
 class SQLiteActivityStore:
     """Local storage adapter for raw records and normalized activities."""
 
-    def __init__(self, path: Path | str):
+    def __init__(self, path: Path | str, *, check_same_thread: bool = True):
         self.path = Path(path).resolve()
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.connection = sqlite3.connect(str(self.path))
+        # Agent runtimes built on create_agent execute tools on worker
+        # threads; sequential cross-thread use requires check_same_thread=False.
+        self.connection = _LockedConnection(
+            sqlite3.connect(str(self.path), check_same_thread=check_same_thread)
+        )
         self.connection.row_factory = sqlite3.Row
         self.entity_projector = DeterministicEntityProjector()
         self.initialize()

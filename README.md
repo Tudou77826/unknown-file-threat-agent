@@ -1,112 +1,82 @@
 # Unknown-File Threat Agent
 
-面向 Linux 未知文件告警的证据化安全分析平台。当前实现通过 LangGraph 父图编排研判与处置建议两个循环，并提供 JSONL/Fixture 与 SQLite 参考数据适配器、可追溯案件视图和数据质量对照 Demo。
+面向 Linux 未知文件告警的证据化安全调查 Demo。系统将规范化安全活动、实体关系和
+受控原始记录提供给 AI 调查工具；正式研判循环采用 create_agent + middleware，
+案件图负责生命周期、报告后的处置建议和审批中断。
 
-当前代码覆盖文件来源、后门/C2、数据窃取、勒索、受控跨主机调查、结构化处置建议、Checkpoint 和只读展示。RAG 仅保留接口与 Null Adapter；生产数据源、知识检索和处置执行尚未接入。
+## 当前边界
+
+- 内置两个版本化参考数据集和 L0～L3 数据 Profile，用于展示数据能力对调查问题的影响；
+- SQLite 仅是本地参考 Adapter；生产 EDR、SIEM、数据湖和知识检索尚未接入；
+- API 与页面是本地 Demo，不具备认证、RBAC、真实租户解析或敏感事件展示控制；
+- 运行记录可在重启后查询，但正在执行的任务不能从中断位置续跑。
+
+这些限制的设计依据见
+[Feature 08](.sdd/features/08-investigation-platform-foundation/README.md)。
 
 ## 文档
 
-- [软件架构与 Feature 设计](.sdd/README.md)
+- [软件架构与 Feature 索引](.sdd/README.md)
 - [整体软件架构](.sdd/softwareArchitecture.md)
+- [运行时收敛与调查数据 Port 设计](.sdd/features/15-agent-middleware-foundation/runtime-convergence-design.md)
 - [当前研判引擎设计](.sdd/features/02-judgment-engine/README.md)
-- [历史文档归档](.sdd/archive/README.md)
 - [运行时 Linux 调查 Skill](investigation_skills/linux-unknown-file/SKILL.md)
 
-`.sdd` 是现行软件设计的唯一入口。归档文档用于追溯，不代表当前实现。
+## 安装与验证
 
-## 代码结构
+项目要求 Python 3.10 或更高版本，并使用 uv 管理锁定依赖。
 
-```text
-src/threat_agent/      按业务能力组织的应用代码
-├── bootstrap/         配置、依赖组装和 CLI
-├── contracts/         跨模块稳定契约
-├── case_management/   案件父图、审批、Checkpoint 和结果提交
-├── data_foundation/   证据查询端口与本地数据适配器
-├── judgment/          研判领域、LangGraph 子图和调查工具
-├── response_advisory/ 处置建议领域、LangGraph 子图和上下文端口
-├── knowledge/         RAG 端口与 Null Adapter
-├── presentation/      只读 Store、API 和序列化投影
-└── shared/            无业务含义的基础类型
-cases/                 18 个确定性对照 Case
-demo_data/             版本化参考数据清单与 L0～L3 Data Profile
-tests/                 自动化测试
-investigation_skills/  结构化 LLM Planner 运行时调查知识
-.sdd/                  现行设计和历史归档
-```
+~~~powershell
+uv sync --extra dev --locked
+uv run pytest -q
+uv run threat-agent-demo --help
+~~~
 
-## 安装
+## 参考数据对照
 
-项目要求 Python 3.10 或更高版本。使用 `uv` 创建项目环境并安装测试依赖：
+以下命令只构建参考数据与数据就绪度对照，不调用模型：
 
-```powershell
-uv sync --extra dev
-```
+~~~powershell
+uv run threat-agent-demo --database outputs/demo-reference.sqlite --output outputs/demo-comparison.json
+~~~
 
-## 离线确定性运行
+输出包含两个参考数据集在各个 Data Profile 下可回答的调查问题。它不代表生产
+检出率、模型效果或真实环境数据质量。
 
-```powershell
-.\.venv\Scripts\python.exe -m threat_agent.bootstrap.cli `
-  --case cases\c2_malicious `
-  --mode deterministic `
-  --output outputs\c2_malicious
-```
+## 启动本地 Demo
 
-其他可用 Case 位于 `cases/`。
+~~~powershell
+uv run threat-agent-demo --serve
+~~~
 
-## 数据质量对照 Demo
+浏览器访问 /demo/c2-malicious-reference 或 /demo/c2-benign-reference。页面始终使用
+框架中间件研判路径；不提供图路径与 middleware 路径的 A/B 选择。
 
-一次运行会初始化本地 SQLite 参考数据，并执行恶意与合法两个数据集的 L0～L3 共 8 条路径：
+要从页面启动在线调查，请在项目根目录的 .env 中配置兼容 OpenAI 的模型服务：
 
-```powershell
-python -m threat_agent.bootstrap.demo `
-  --database outputs\demo-reference.sqlite `
-  --output outputs\demo-comparison.json
-```
-
-启动只读展示页：
-
-```powershell
-python -m threat_agent.bootstrap.demo --serve
-```
-
-浏览器访问 `/demo/c2-malicious-reference` 或 `/demo/c2-benign-reference`。四列结果是可重复的确定性基线；配置模型后，可点击任一数据层，用双 LLM 实时重跑并查看调查事件轨迹。页面展示的是结构化决策和工具事件，不暴露或伪造模型内部思维。参考数据仅用于展示数据能力与研判质量的关系，不代表生产准确率。
-
-## 双 LLM 运行
-
-在项目根目录 `.env` 中配置：
-
-```text
+~~~text
 THREAT_AGENT_API_KEY=<key>
 THREAT_AGENT_API_BASE=<OpenAI-compatible endpoint>
 MODEL_NAME=<model>
 JUDGMENT_MODEL_NAME=<optional judgment model override>
 RESPONSE_MODEL_NAME=<optional response model override>
 MODEL_DISABLE_PROXY=<optional, true to bypass proxy env vars>
-```
+~~~
 
-`MODEL_DISABLE_PROXY=true` 让模型请求忽略 `HTTP(S)_PROXY`/`ALL_PROXY` 等代理环境变量、始终直连模型服务，适用于系统代理无法访问模型服务的机器；对所有模型角色统一生效。
+模型消息、工具参数和原始结果只应用于本地演示排障；不要将该服务暴露给不受控调用方。
 
-然后运行：
+## 代码结构
 
-```powershell
-.\.venv\Scripts\python.exe -m threat_agent.bootstrap.cli `
-  --case cases\c2_malicious `
-  --mode llm `
-  --output outputs\c2_malicious_agent
-```
-
-也可以使用 `run_case.ps1` 或 `run_case.sh`。
-
-## 测试
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest -q
-```
-
-当前回归基线为 118 项测试和 18 个 Case；其中包含模块依赖方向、配置、双循环、参考数据和 8 条 Profile 路径检查。
-
-如果尚未运行 `uv sync`、项目本地 `.venv` 不存在，可使用当前 Python 环境执行：
-
-```powershell
-python -m pytest -q
-```
+~~~text
+src/threat_agent/
+├── bootstrap/          配置、依赖组装和 CLI
+├── contracts/          跨模块稳定契约
+├── case_management/    案件生命周期、审批与 Checkpoint
+├── data_foundation/    调查数据 Port 与本地 Adapter
+├── judgment/           调查工具、报告接地与研判领域模型
+├── agent_middleware/   可复用的边界、预算和上下文治理组件
+├── response_advisory/  独立的处置建议图
+├── knowledge/          RAG Port 与 Null Adapter
+├── presentation/       API、只读投影和 Demo 页面
+└── shared/             无业务语义的基础类型
+~~~

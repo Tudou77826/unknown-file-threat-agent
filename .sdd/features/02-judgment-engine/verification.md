@@ -19,4 +19,6 @@
 - 重复查询、无收益循环和修复次数受预算约束。
 - `JudgmentResult` 满足跨 Feature 契约。
 
-当前 119 项测试和 18 个 Case 是回归基线，其中包含模块依赖方向和参考数据 Profile 检查；新增数据模型、模型版本、RAG 或场景能力后必须扩展回归集。
+测试数量不是该 Feature 的静态契约。当前回归基线应由 `uv run pytest -q` 和
+`uv run pytest --collect-only` 实时取得，其中包含模块依赖方向和参考数据
+Profile 检查；新增数据模型、模型版本、RAG 或场景能力后必须扩展回归集。

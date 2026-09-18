@@ -6,7 +6,7 @@ from typing import Any, Callable
 
 from ...contracts import InvestigationReport
 from ...contracts.investigation import CandidateVerdict, VerdictLevel
-from ...shared.llm import invoke_llm
+from ...shared.llm import invoke_llm, structured_output_method
 from ..domain.models import InvestigationState
 from .report_draft import ReportDraft
 from .report_validation import (
@@ -18,7 +18,7 @@ PROMPT_VERSION = "investigation-report/1.1"
 
 
 def report_context(state: InvestigationState) -> dict[str, Any]:
-    return {
+    context: dict[str, Any] = {
         "case_id": state.case_id,
         "authorized_scope": state.scope.model_dump(mode="json"),
         "entities": [item.model_dump(mode="json") for item in state.entities],
@@ -38,6 +38,18 @@ def report_context(state: InvestigationState) -> dict[str, Any]:
             "write all natural-language content in Simplified Chinese",
         ],
     }
+    if state.knowledge_guidance:
+        # 基线检索合并后的调查指引：内容连同来源类别与适用限制一起给出，
+        # 但知识条目不是案件证据——引用约束由 instructions 与接地校验双重保证。
+        context["knowledge_guidance"] = [
+            item.model_dump(mode="json") for item in state.knowledge_guidance
+        ]
+        context["instructions"].append(
+            "knowledge_guidance is external reference only: it may guide wording, "
+            "hypotheses and next-step suggestions, but must never be cited as "
+            "supporting_evidence_refs or stated as a fact about this case"
+        )
+    return context
 
 
 def evidence_catalog(state: InvestigationState) -> dict[str, Any]:
@@ -81,7 +93,9 @@ class StructuredReportComposer:
 
     def __init__(self, model: Any, event_sink: Callable | None = None, *, tenant_id: str = "default"):
         self.model_name = str(getattr(model, "model_name", getattr(model, "model", "unknown")))
-        self.structured_model = model.with_structured_output(ReportDraft, method="json_mode")
+        self.structured_model = model.with_structured_output(
+            ReportDraft, method=structured_output_method(model)
+        )
         self.event_sink = event_sink or (lambda _kind, _message, _details=None: None)
         self.tenant_id = tenant_id
         schema = json.dumps(ReportDraft.model_json_schema(), ensure_ascii=False)

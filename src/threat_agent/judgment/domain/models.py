@@ -5,7 +5,7 @@ from typing import Annotated, Any, Literal, TypeAlias
 from pydantic import Field
 
 from ...contracts.evidence import Entity, Scope
-from ...contracts import InvestigationReport, InvestigationToolLedger
+from ...contracts import InvestigationReport, InvestigationToolLedger, KnowledgeItem
 from ...contracts.investigation import CandidateVerdict
 from ...shared import StrictModel
 
@@ -72,6 +72,9 @@ class InvestigationState(StrictModel):
     tool_calls: list[ToolCall] = Field(default_factory=list)
     verdict: CandidateVerdict | None = None
     tool_ledger: InvestigationToolLedger = Field(default_factory=InvestigationToolLedger)
+    # 基线检索合并后的调查指引：只作指引进入研判上下文，不属于案件证据，
+    # 不得出现在 Verdict 的支撑引用里（事实隔离，设计 §7-6）。
+    knowledge_guidance: list[KnowledgeItem] = Field(default_factory=list)
     investigation_report: InvestigationReport | None = None
     report_validation_errors: list[str] = Field(default_factory=list)
     finished: bool = False

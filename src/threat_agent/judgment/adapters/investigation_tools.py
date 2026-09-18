@@ -37,7 +37,7 @@ from ...contracts import (
     SocketActivityQuery,
     ToolRuntimeContext,
 )
-from ...data_foundation import DataAccessError, SQLiteActivityQueryAdapter, SQLiteActivityStore
+from ...data_foundation import DataAccessError, EntityTimelineQuery, InvestigationDataPort
 from ..application.boundary import BoundaryViolationError, InvestigationBoundaryPort
 
 
@@ -121,13 +121,11 @@ class InvestigationToolGateway:
 
     def __init__(
         self,
-        store: SQLiteActivityStore,
-        query_adapter: SQLiteActivityQueryAdapter,
+        data: InvestigationDataPort,
         boundary: InvestigationBoundaryPort,
         event_sink: Callable[[str, str, dict[str, Any] | None], None] | None = None,
     ):
-        self.store = store
-        self.query_adapter = query_adapter
+        self.data = data
         self.boundary = boundary
         self.event_sink = event_sink or (lambda _kind, _message, _details=None: None)
 
@@ -306,7 +304,7 @@ class InvestigationToolGateway:
                 }
             },
         )
-        return getattr(self.query_adapter, f"query_{activity_type}")(query)
+        return getattr(self.data, f"query_{activity_type}")(query)
 
     def query_process_activities(self, raw, context, ledger):
         request = ProcessActivitiesInput.model_validate(raw)
@@ -342,7 +340,7 @@ class InvestigationToolGateway:
         if identity is None:
             raise DataAccessError("Unknown entity reference")
         entity_id = identity.entity_id
-        relations = self.store.find_relations(
+        relations = self.data.find_relations(
             context.tenant_id, entity_id, request.relation_direction
         ) if "relations" in request.include else []
         resolved, candidate, out_of_scope = self._split_relations_by_host(
@@ -359,31 +357,26 @@ class InvestigationToolGateway:
                 filter(None, [context.scope.end_time, _aware(request.end_time)]),
                 default=None,
             )
-            for activity in self.store.list_activities(context.tenant_id):
-                refs = set(activity.subject_refs) | set(activity.actor_refs) | set(activity.target_refs)
-                if not refs.intersection(alias_refs):
-                    continue
-                # Entity timelines must not carry other hosts' activities: a
-                # shared entity (e.g. an external endpoint) is reachable from
-                # the alert host, but the timeline stays on the alert host.
-                activity_host = getattr(activity, "host_ref", None)
-                if activity_host is not None and activity_host not in context.scope.host_ids:
-                    continue
-                if lower is not None and activity.observed_at < lower:
-                    continue
-                if upper is not None and activity.observed_at > upper:
-                    continue
-                timeline.append(activity)
-        offset = self._decode_offset(request.cursor)
-        page = timeline[offset:offset + request.limit]
-        next_cursor = str(offset + request.limit) if offset + request.limit < len(timeline) else None
+            timeline_page = self.data.list_entity_timeline(EntityTimelineQuery(
+                tenant_id=context.tenant_id,
+                entity_refs=alias_refs,
+                host_refs=set(context.scope.host_ids),
+                start_time=lower,
+                end_time=upper,
+                cursor=request.cursor,
+                limit=request.limit,
+            ))
+            timeline = timeline_page.activities
+            next_cursor = timeline_page.next_cursor
+        else:
+            next_cursor = None
         result = EntityExplorationResult(
             identity=identity if "identity" in request.include else None,
             resolved_relations=resolved,
             candidate_relations=candidate,
             out_of_scope_relations=out_of_scope,
-            timeline=page,
-            returned_count=len(page),
+            timeline=timeline,
+            returned_count=len(timeline),
             next_cursor=next_cursor,
         )
         return result
@@ -464,24 +457,17 @@ class InvestigationToolGateway:
         return None
 
     def _resolve_identity_of_ref(self, tenant_id: str, ref: str):
-        identity = self.store.get_entity(tenant_id, ref)
-        if identity is not None:
-            return identity
-        for identity in self.store.list_entities(tenant_id):
-            if any(alias.source_id == ref for alias in identity.aliases):
-                return identity
-        return None
+        return self.data.resolve_entity(tenant_id, ref)
 
     def get_raw_records(self, raw, context, ledger):
         request = GetRawRecordsInput.model_validate(raw)
         records = []
         for activity_ref in request.activity_refs[:request.max_records]:
-            activity = self.store.get_activity(context.tenant_id, activity_ref)
-            if activity is None:
+            raw_record = self.data.get_raw_record(context.tenant_id, activity_ref)
+            if raw_record is None:
                 raise DataAccessError(f"Unknown activity reference: {activity_ref}")
-            payload = self.store.get_raw_payload(context.tenant_id, activity.raw_record_ref)
-            if payload is None:
-                raise DataAccessError(f"Raw record is unavailable for activity: {activity_ref}")
+            activity = raw_record.activity
+            payload = raw_record.payload
             if request.field_paths:
                 payload = {
                     path: value for path in request.field_paths
@@ -503,7 +489,7 @@ class InvestigationToolGateway:
 
     def calculate_activity_metrics(self, raw, context, ledger):
         request = CalculateActivityMetricsInput.model_validate(raw)
-        activities = [self.store.get_activity(context.tenant_id, ref) for ref in request.activity_refs]
+        activities = self.data.get_activities(context.tenant_id, request.activity_refs)
         if any(item is None for item in activities):
             raise DataAccessError("Metric input contains an unknown activity reference")
         actual = [item for item in activities if item is not None]
@@ -587,16 +573,4 @@ class InvestigationToolGateway:
         value = walk(path)
         if value is None and not path.startswith("data."):
             value = walk(f"data.{path}")
-        return value
-
-    @staticmethod
-    def _decode_offset(cursor: str | None) -> int:
-        if cursor is None:
-            return 0
-        try:
-            value = int(cursor)
-        except ValueError as error:
-            raise DataAccessError("Invalid entity timeline cursor") from error
-        if value < 0:
-            raise DataAccessError("Invalid entity timeline cursor")
         return value

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, Protocol, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command, interrupt
 
 from ...contracts import InvestigationReport, JudgmentResult, ResponsePlan
+from ...shared.execution import ExecutionContext, bind_execution_context
 from .contract_builders import build_judgment_result
-from ...judgment import JudgmentGraph
 from ...judgment.domain.models import InvestigationState
 from ...response_advisory import ResponseGraph
 
@@ -24,6 +24,12 @@ class CaseGraphState(TypedDict, total=False):
     route: Literal["judged", "response", "response_approval", "complete"]
 
 
+class JudgmentStagePort(Protocol):
+    """The framework-neutral subgraph contract consumed by case governance."""
+
+    compiled: Any
+
+
 class CaseGraph:
     """Parent graph for durable case lifecycle orchestration.
 
@@ -34,7 +40,7 @@ class CaseGraph:
 
     def __init__(
         self,
-        judgment_graph: JudgmentGraph,
+        judgment_graph: JudgmentStagePort,
         *,
         checkpointer: Any,
         response_graph: ResponseGraph | None = None,
@@ -91,19 +97,29 @@ class CaseGraph:
             },
             "recursion_limit": self.recursion_limit,
         }
-        return self.compiled.invoke(
-            {
-                "tenant_id": tenant_id,
-                "run_id": run_id,
-                "lifecycle_status": "investigating",
-                "investigation": state.model_copy(deep=True),
-                "judgment_result": None,
-                "investigation_report": None,
-                "response_plan": None,
-                "approval_status": None,
-            },
-            config=config,
-        )
+        # 授权执行上下文在框架入口一次绑定、全程继承（设计 §7 授权继承）：
+        # 研判循环、知识能力层与处置子图都在这条链上读取身份，业务代码不传递。
+        with bind_execution_context(
+            ExecutionContext(
+                tenant_id=tenant_id,
+                case_id=state.case_id,
+                actor_id=f"case-graph/{run_id}",
+                run_id=run_id,
+            )
+        ):
+            return self.compiled.invoke(
+                {
+                    "tenant_id": tenant_id,
+                    "run_id": run_id,
+                    "lifecycle_status": "investigating",
+                    "investigation": state.model_copy(deep=True),
+                    "judgment_result": None,
+                    "investigation_report": None,
+                    "response_plan": None,
+                    "approval_status": None,
+                },
+                config=config,
+            )
 
     def resume_response(
         self,
@@ -113,6 +129,8 @@ class CaseGraph:
         run_id: str = "primary",
         approved: bool,
         approved_by: str,
+        comment: str | None = None,
+        edited_plan: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         config = {
             "configurable": {
@@ -120,10 +138,65 @@ class CaseGraph:
             },
             "recursion_limit": self.recursion_limit,
         }
-        return self.compiled.invoke(
-            Command(resume={"approved": approved, "approved_by": approved_by}),
-            config=config,
-        )
+        value: dict[str, Any] = {
+            "approved": approved,
+            "approved_by": approved_by,
+            # v2 optional fields (Feature 17): absent values stay v1-compatible.
+            "comment": comment,
+            "edited_plan": edited_plan,
+        }
+        with bind_execution_context(
+            ExecutionContext(
+                tenant_id=tenant_id,
+                case_id=case_id,
+                actor_id=f"case-graph/{run_id}",
+                run_id=run_id,
+            )
+        ):
+            return self.compiled.invoke(Command(resume=value), config=config)
+
+    def state_history(
+        self, *, tenant_id: str, case_id: str, run_id: str = "primary"
+    ) -> list[Any]:
+        """Checkpoint snapshots for the run, newest first (read-only: no
+        execution context is bound because nothing executes)."""
+
+        config = {"configurable": {"thread_id": self.thread_id(tenant_id, case_id, run_id)}}
+        return list(self.compiled.get_state_history(config))
+
+    def resume_from(
+        self,
+        *,
+        tenant_id: str,
+        case_id: str,
+        run_id: str = "primary",
+        checkpoint_id: str,
+        value: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Re-execute from a past checkpoint (debug time travel).
+
+        ``value=None`` replays the graph from the checkpoint; a dict value
+        resumes a pending interrupt. Goes through the same entry binding as
+        every other execution path — never around it.
+        """
+
+        config = {
+            "configurable": {
+                "thread_id": self.thread_id(tenant_id, case_id, run_id),
+                "checkpoint_id": checkpoint_id,
+            },
+            "recursion_limit": self.recursion_limit,
+        }
+        with bind_execution_context(
+            ExecutionContext(
+                tenant_id=tenant_id,
+                case_id=case_id,
+                actor_id=f"case-graph/{run_id}",
+                run_id=run_id,
+            )
+        ):
+            payload = Command(resume=value) if value is not None else None
+            return self.compiled.invoke(payload, config=config)
 
     @staticmethod
     def _route_after_judgment(case_state: CaseGraphState) -> CaseGraphState:
@@ -171,11 +244,28 @@ class CaseGraph:
         if not isinstance(decision, dict) or not isinstance(decision.get("approved"), bool):
             raise ValueError("Response approval resume value must contain boolean approved")
         approved_by = str(decision.get("approved_by") or "unknown")
+        comment = decision.get("comment")
+        edited_plan = decision.get("edited_plan")
+        effective_plan = plan
+        if edited_plan:
+            # An editor's plan must satisfy the same contract as the planner's
+            # own output; invalid edits fail loudly instead of silently passing.
+            effective_plan = ResponsePlan.model_validate(edited_plan)
+        status_suffix = f"comment:{comment}" if comment else ""
         return {
-            "approval_status": (
-                f"response_approved_by:{approved_by}"
-                if decision["approved"]
-                else f"response_denied_by:{approved_by}"
+            "response_plan": effective_plan,
+            "approval_status": " ".join(
+                part
+                for part in (
+                    (
+                        f"response_approved_by:{approved_by}"
+                        if decision["approved"]
+                        else f"response_denied_by:{approved_by}"
+                    ),
+                    f"edited_by:{approved_by}" if edited_plan else "",
+                    status_suffix,
+                )
+                if part
             ),
             "lifecycle_status": "advised",
             "route": "complete",

@@ -16,13 +16,16 @@
 | 01 | [data-foundation](features/01-data-foundation/README.md) | 安全数据接入、规范化、存储、查询、Coverage 和数据访问控制 | 已有查询端口与本地适配器；生产数据源待接入 |
 | 02 | [judgment-engine](features/02-judgment-engine/README.md) | LLM 驱动的未知文件调查、确定性分析和结论校验 | LangGraph 研判子图已实现 |
 | 03 | [response-advisory](features/03-response-advisory/README.md) | 独立的 LLM 处置建议循环和结构化处置方案 | LangGraph 处置建议子图已实现 |
-| 04 | [rag-knowledge](features/04-rag-knowledge/README.md) | 调查知识、组织策略和历史案件检索 | 单独规划；本次仅预留接口 |
+| 04 | [rag-knowledge](features/04-rag-knowledge/README.md) | 调查知识、组织策略和历史案件检索 | 适配层需求设计已明确；代码仍仅预留查询契约与 Null Adapter |
 | 05 | [case-governance](features/05-case-governance/README.md) | 案件生命周期、身份、审批、审计和执行边界 | 父图、Checkpoint 与审批中断已实现；执行集成待建设 |
 | 06 | [platform-architecture-migration](features/06-platform-architecture-migration/README.md) | 将现有原型迁移到目标架构、原生 LangGraph 子图和纵向代码边界 | 已完成 |
 | 07 | [data-driven-investigation-quality-demo](features/07-data-driven-investigation-quality-demo/README.md) | 用受控数据 Profile 展示数据源对研判与处置质量的决定性影响，并统一外置运行配置 | 已实现并通过 8 条 Profile 路径验收 |
 | 08 | [investigation-platform-foundation](features/08-investigation-platform-foundation/README.md) | 安全活动模型、正式调查报告、持久化运行审计和最小调查运行接口 | 已完成首版架构收敛；容量实测后置为独立需求 |
 | 13 | [single-host-investigation-boundary](features/13-single-host-investigation-boundary/README.md) | 初期单租户、单主机可信调查边界，关闭跨主机扩展并统一工具边界校验 | 已实施；单元与架构测试通过，C2 双数据集真实 LLM 回归通过 |
 | 14 | [evidence-grounded-report-repair](features/14-evidence-grounded-report-repair/README.md) | 引用失效时基于授权证据重新研判，阻止无证据结论通过修复发布 | 已实施；单元与架构测试通过，C2 双数据集真实 LLM 回归通过 |
+| 15 | [agent-middleware-foundation](features/15-agent-middleware-foundation/README.md) | 将边界、预算和上下文治理收敛到框架 middleware，并固定正式研判运行时 | 已实施；Demo 与调查 API 仅保留 create_agent + middleware 路径 |
+| 16 | [agent-eval-framework](features/16-agent-eval-framework/README.md) | 跨项目 Agent 评测框架：调度、并发、限流、产物持久化、确定性打分与分层套件 | 设计待审批；尚未实现 |
+| 17 | [runtime-workbench](features/17-runtime-workbench/README.md) | 常驻运行工作台：案件运行面、审批台、调测面（轨迹/断点恢复）、Langfuse 可观测旁路与评测运行面挂载 | 设计待审批；尚未实现 |
 
 ## 文档规则
 

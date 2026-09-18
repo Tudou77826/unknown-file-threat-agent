@@ -1,0 +1,27 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- D:\dev\workspace-ai\SecAgent\unknown-file-threat-agent\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: D:\dev\workspace-ai\SecAgent\unknown-file-threat-agent
+configfile: pyproject.toml
+plugins: anyio-4.15.1, langsmith-0.12.4
+collecting ... collected 17 items
+
+tests/test_rk_acceptance.py::test_rk_01_business_surface_has_no_supplier_or_authorization_fields PASSED [  5%]
+tests/test_rk_acceptance.py::test_rk_01_authorization_is_bound_by_the_framework_only PASSED [ 11%]
+tests/test_rk_acceptance.py::test_rk_02_baseline_always_runs_and_three_entries_answer PASSED [ 17%]
+tests/test_rk_acceptance.py::test_rk_02_baseline_degrades_explicitly_without_blocking PASSED [ 23%]
+tests/test_rk_acceptance.py::test_rk_03_disposal_presents_all_sources_and_keeps_constraints PASSED [ 29%]
+tests/test_rk_acceptance.py::test_rk_04_supplier_swap_via_config_only PASSED [ 35%]
+tests/test_rk_acceptance.py::test_rk_05_traceable_references_and_scores_stay_diagnostic PASSED [ 41%]
+tests/test_rk_acceptance.py::test_rk_06_tenant_restricted_item_never_reaches_other_tenants PASSED [ 47%]
+tests/test_rk_acceptance.py::test_rk_06_injected_knowledge_cannot_become_evidence PASSED [ 52%]
+tests/test_rk_acceptance.py::test_rk_07_failure_states_distinguishable[empty] PASSED [ 58%]
+tests/test_rk_acceptance.py::test_rk_07_failure_states_distinguishable[not_configured] PASSED [ 64%]
+tests/test_rk_acceptance.py::test_rk_07_failure_states_distinguishable[permission_denied] PASSED [ 70%]
+tests/test_rk_acceptance.py::test_rk_07_failure_states_distinguishable[timeout] PASSED [ 76%]
+tests/test_rk_acceptance.py::test_rk_07_failure_states_distinguishable[error] PASSED [ 82%]
+tests/test_rk_acceptance.py::test_rk_07_any_knowledge_failure_never_blocks_the_core_flow PASSED [ 88%]
+tests/test_rk_acceptance.py::test_rk_08_supplier_selection_is_config_only PASSED [ 94%]
+tests/test_rk_acceptance.py::test_rk_09_reference_adapter_covers_all_simulated_behaviors PASSED [100%]
+
+============================= 17 passed in 2.77s ==============================

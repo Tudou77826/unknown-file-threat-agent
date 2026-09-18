@@ -9,9 +9,9 @@ description = "Evidence-grounded Linux unknown-file threat investigation agent"
 requires-python = ">=3.10"
 dependencies = [
   "pydantic>=2.10",
-  "langgraph>=1.0,<1.1",
+  "langgraph>=1.2,<1.3",
   "langgraph-checkpoint-sqlite>=3.1,<3.2",
-  "langchain>=1.2,<1.3",
+  "langchain>=1.3,<1.4",
   "langchain-openai>=1.1,<1.2",
   "python-dotenv>=1.0,<2",
   "fastapi>=0.115,<1",

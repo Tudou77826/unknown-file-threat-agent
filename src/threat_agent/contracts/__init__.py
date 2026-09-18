@@ -3,7 +3,20 @@
 from .case import InitialCase
 from .evidence import Coverage, Entity, Evidence, EvidenceBundle, EvidenceQuery, EvidenceStatus, Scope
 from .investigation import CandidateVerdict, JudgmentResult, VerdictLevel
-from .knowledge import KnowledgeCitation, KnowledgeQuery, KnowledgeResult
+from .knowledge import (
+    KnowledgeConsultation,
+    KnowledgeConsultationContext,
+    KnowledgeConsultationResult,
+    KnowledgeConsultationStatus,
+    KnowledgeIntent,
+    KnowledgeItem,
+    KnowledgeRelevance,
+    KnowledgeScene,
+    KnowledgeSourceCategory,
+    KnowledgeSourceOutcome,
+    KnowledgeSourceStatus,
+    knowledge_item_ref,
+)
 from .presentation import CaseReadModel
 from .response import ResponseAction, ResponsePlan
 from .response_context import ResponseContext
@@ -56,6 +69,7 @@ from .activity_query import (
 )
 from .investigation_tools import (
     ActivityMetricResult,
+    AttackTechniqueLookupInput,
     AssetActivitiesInput,
     BoundaryDenied,
     BoundaryErrorCode,
@@ -64,9 +78,13 @@ from .investigation_tools import (
     ExploreEntityInput,
     FileActivitiesInput,
     GetRawRecordsInput,
+    InterpretTelemetryFieldInput,
     InvestigationToolLedger,
     InvestigationToolName,
     InvestigationToolTrace,
+    JudgmentExperienceLookupInput,
+    KnowledgeConsultationRecord,
+    KnowledgeToolName,
     NetworkActivitiesInput,
     OutOfScopeRelationClue,
     PackageActivitiesInput,
@@ -87,15 +105,40 @@ from .demo import (
     ReferenceDatasetMetadata,
     SourceCoverageRule,
 )
+from .intake import AlertIntakeRequest
+from .workbench import (
+    ApprovalDecision,
+    ApprovalDecisionKind,
+    ApprovalRequestReadModel,
+    CheckpointRef,
+    DebugStateSummary,
+    RunControlAction,
+    RunExecutionOutcome,
+    RunExecutionRequest,
+    RunSource,
+    RunSummary,
+    TrajectoryEntry,
+    TrajectoryReadModel,
+    TrajectoryRound,
+)
 
 __all__ = [
     "CaseReadModel",
     "EvidenceQuery",
     "InitialCase",
     "JudgmentResult",
-    "KnowledgeCitation",
-    "KnowledgeQuery",
-    "KnowledgeResult",
+    "KnowledgeConsultation",
+    "KnowledgeConsultationContext",
+    "KnowledgeConsultationResult",
+    "KnowledgeConsultationStatus",
+    "KnowledgeIntent",
+    "KnowledgeItem",
+    "KnowledgeRelevance",
+    "KnowledgeScene",
+    "KnowledgeSourceCategory",
+    "KnowledgeSourceOutcome",
+    "KnowledgeSourceStatus",
+    "knowledge_item_ref",
     "ResponseAction",
     "ResponsePlan",
     "ResponseContext",
@@ -177,4 +220,23 @@ __all__ = [
     "ActivityMetricResult",
     "InvestigationToolTrace",
     "InvestigationToolLedger",
+    "AttackTechniqueLookupInput",
+    "InterpretTelemetryFieldInput",
+    "JudgmentExperienceLookupInput",
+    "KnowledgeConsultationRecord",
+    "KnowledgeToolName",
+    "AlertIntakeRequest",
+    "ApprovalDecision",
+    "ApprovalDecisionKind",
+    "ApprovalRequestReadModel",
+    "CheckpointRef",
+    "DebugStateSummary",
+    "RunControlAction",
+    "RunExecutionOutcome",
+    "RunExecutionRequest",
+    "RunSource",
+    "RunSummary",
+    "TrajectoryEntry",
+    "TrajectoryReadModel",
+    "TrajectoryRound",
 ]

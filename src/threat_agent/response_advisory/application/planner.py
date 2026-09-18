@@ -3,8 +3,12 @@ from __future__ import annotations
 import json
 from typing import Any, Callable, Protocol
 
-from ...contracts import JudgmentResult, KnowledgeResult, ResponseContext
-from ...shared.llm import invoke_llm
+from ...contracts import (
+    JudgmentResult,
+    KnowledgeConsultationResult,
+    ResponseContext,
+)
+from ...shared.llm import invoke_llm, structured_output_method
 from ..domain.models import ResponseProposal
 
 
@@ -12,7 +16,7 @@ class ResponsePlanner(Protocol):
     def propose(
         self,
         judgment: JudgmentResult,
-        knowledge: list[KnowledgeResult],
+        knowledge: KnowledgeConsultationResult | None,
         validation_errors: list[str],
         response_context: ResponseContext | None = None,
     ) -> ResponseProposal: ...
@@ -80,7 +84,7 @@ class StructuredResponsePlanner:
         self.model = model
         self.event_sink = event_sink or (lambda _kind, _message, _details=None: None)
         self.structured_model = model.with_structured_output(
-            ResponseProposal, method="json_mode"
+            ResponseProposal, method=structured_output_method(model)
         )
         self.system_prompt = (
             "Return one JSON object matching the ResponseProposal schema. "
@@ -91,8 +95,8 @@ class StructuredResponsePlanner:
             "Create a response advisory plan. Judgment facts are read-only. "
             "Every action must include rationale, preconditions, expected impact, "
             "approval class, rollback steps, verification steps, and resolvable "
-            "judgment references. approval_class must be exactly one of none, "
-            "operator, security_lead, business_owner. Never claim that an action "
+            "judgment references. approval_class must be exactly one of none, operator, "
+            "security_lead, business_owner. Never claim that an action "
             "was executed. "
             "Every action must read like an operational work card, not a slogan: "
             "rationale cites the judgment evidence and explains the causal chain; "
@@ -103,6 +107,21 @@ class StructuredResponsePlanner:
             "terminates or deletes — regardless of how you name it — must carry "
             "approval_class of operator or above and non-empty rollback_steps, "
             "and its expected_impact must state the availability cost. "
+            # 处置知识并列呈现规则（设计 §6-3）：知情权优先，不按来源取舍
+            "The knowledge object is merged disposal knowledge: every qualified item "
+            "from every source is present, labeled with source_category and its "
+            "category_limitations. Do not drop, downweight or hide any item because "
+            "of its source; weigh items by relevance only. When multiple references "
+            "disagree, present them side by side in your rationale, state that "
+            "multiple references exist, and give at most one recommendation with "
+            "reasons — never silently discard a reference. When two same-level "
+            "policies conflict, present both, mark the conflict explicitly, and "
+            "require human confirmation via approval_class of security_lead or "
+            "above. Knowledge presentation never weakens the final constraints: "
+            "every action must still pass asset-condition checks, disposal policy "
+            "and the approval flow. Cite knowledge you relied on in "
+            "knowledge_refs using each item's exact "
+            "knowledge_id@version#chunk_id reference. "
             "If judgment.publication_status is 'fallback', the verdict did not "
             "survive grounding validation: use ONLY the action types "
             "re_run_analysis, collect_more_data or manual_review. Any other "
@@ -121,13 +140,13 @@ class StructuredResponsePlanner:
     def propose(
         self,
         judgment: JudgmentResult,
-        knowledge: list[KnowledgeResult],
+        knowledge: KnowledgeConsultationResult | None,
         validation_errors: list[str],
         response_context: ResponseContext | None = None,
     ) -> ResponseProposal:
         payload = {
             "judgment": judgment.model_dump(mode="json"),
-            "knowledge": [item.model_dump(mode="json") for item in knowledge],
+            "knowledge": knowledge.model_dump(mode="json") if knowledge else None,
             "validation_errors": validation_errors,
             "response_context": (
                 response_context.model_dump(mode="json") if response_context else None

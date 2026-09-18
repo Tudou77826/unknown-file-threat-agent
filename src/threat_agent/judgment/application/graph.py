@@ -12,7 +12,9 @@ from ..domain.models import (
     InvestigationState,
     ToolCall,
 )
+from ...knowledge import NullKnowledgeSupplier, SecurityKnowledgeService
 from .boundary import BoundaryViolationError
+from .knowledge_baseline import run_knowledge_baseline
 from .policy import PolicyError, validate_action
 
 
@@ -24,6 +26,64 @@ class JudgmentGraphState(TypedDict, total=False):
     action: InvestigationAction | None
     pending_actions: list[InvestigationAction]
     route: Route
+
+
+def publish_investigation_report(
+    state: InvestigationState,
+    composer,
+    *,
+    validator=None,
+    coordinator=None,
+    fallback_builder=None,
+    publisher=None,
+    tenant_id: str = "default",
+    run_id: str = "primary",
+):
+    """Run the report pipeline shared by every judgment runtime.
+
+    Stages per Feature 14: draft -> grounding validation -> constrained
+    rejudgment within budget -> cited-evidence gate -> final consistency ->
+    publish grounded or fallback. Reference filtering, evidence capability
+    math and fallback field assembly live in the collaborators.
+    """
+    from .evidence_gate import gate_verdict
+    from .report_repair import ReportRepairCoordinator
+    from .report_validation import ReportGroundingValidator
+    from .reporting import DeterministicFallbackBuilder, ReportPublisher
+
+    validator = validator or ReportGroundingValidator()
+    coordinator = coordinator or ReportRepairCoordinator(composer, validator)
+    fallback_builder = fallback_builder or DeterministicFallbackBuilder()
+    publisher = publisher or ReportPublisher(
+        tenant_id=tenant_id,
+        run_id=run_id,
+        model_name=str(getattr(composer, "model_name", "unknown")),
+    )
+
+    draft = composer.compose_draft(state)
+    outcome = coordinator.evaluate(
+        state, draft, max_rejudgments=state.budget.max_report_rejudgments
+    )
+    draft = outcome.draft
+    state.budget.report_rejudgments_used = outcome.rejudgments_used
+
+    issues = outcome.issues
+    if not issues:
+        gated_verdict = gate_verdict(state, draft.verdict)
+        draft = draft.model_copy(update={"verdict": gated_verdict})
+        # Final consistency after the deterministic gate (downgrade adds a
+        # limitation; grounding must still hold on the gated draft).
+        issues = validator.validate(state, draft)
+
+    if issues:
+        state.report_validation_errors = [
+            f"{issue.code}@{issue.location}" for issue in issues
+        ]
+        fallback_draft = fallback_builder.build_draft(state, issues)
+        return publisher.publish(state, fallback_draft, publication_status="fallback")
+
+    state.report_validation_errors = []
+    return publisher.publish(state, draft, publication_status="grounded")
 
 
 class JudgmentGraph:
@@ -48,6 +108,7 @@ class JudgmentGraph:
         report_coordinator=None,
         fallback_builder=None,
         report_publisher=None,
+        knowledge_service: SecurityKnowledgeService | None = None,
         recursion_limit: int = 1000,
     ):
         self.planner = planner
@@ -59,18 +120,23 @@ class JudgmentGraph:
         self.report_coordinator = report_coordinator
         self.fallback_builder = fallback_builder
         self.report_publisher = report_publisher
+        # 未配置部署默认走 Null 供应方：基线检索仍执行并显式记录 not_configured
+        self.knowledge_service = knowledge_service or SecurityKnowledgeService(
+            NullKnowledgeSupplier()
+        )
         self.recursion_limit = recursion_limit
         builder = StateGraph(JudgmentGraphState)
         builder.add_node("prepare_iteration", self._prepare_iteration)
         builder.add_node("plan_action", self._plan_action)
         builder.add_node("validate_action", self._validate_action)
         builder.add_node("execute_action", self._execute_action)
+        builder.add_node("retrieve_knowledge_baseline", self._retrieve_knowledge_baseline)
         builder.add_node("evaluate_verdict", self._evaluate_verdict)
         builder.add_edge(START, "prepare_iteration")
         builder.add_conditional_edges(
             "prepare_iteration",
             lambda value: value["route"],
-            {"plan": "plan_action", "finish": "evaluate_verdict", "end": END},
+            {"plan": "plan_action", "finish": "retrieve_knowledge_baseline", "end": END},
         )
         builder.add_edge("plan_action", "validate_action")
         builder.add_conditional_edges(
@@ -78,7 +144,7 @@ class JudgmentGraph:
             lambda value: value["route"],
             {
                 "execute": "execute_action",
-                "finish": "evaluate_verdict",
+                "finish": "retrieve_knowledge_baseline",
                 "validate": "validate_action",
                 "retry": "prepare_iteration",
             },
@@ -88,6 +154,7 @@ class JudgmentGraph:
             lambda value: value["route"],
             {"continue": "prepare_iteration", "validate": "validate_action", "retry": "prepare_iteration", "end": END},
         )
+        builder.add_edge("retrieve_knowledge_baseline", "evaluate_verdict")
         builder.add_edge("evaluate_verdict", END)
         self.compiled = builder.compile(checkpointer=checkpointer)
 
@@ -238,6 +305,13 @@ class JudgmentGraph:
         state.tool_calls.append(call)
         return self._next_action(state, pending)
 
+    def _retrieve_knowledge_baseline(self, graph_state: JudgmentGraphState) -> JudgmentGraphState:
+        """证据包组装完成后的固定基线检索节点：必定执行，失败只记录不阻断。"""
+
+        state = graph_state["investigation"].model_copy(deep=True)
+        run_knowledge_baseline(state, self.knowledge_service)
+        return {"investigation": state, "action": None, "route": "finish"}
+
     def _evaluate_verdict(self, graph_state: JudgmentGraphState) -> JudgmentGraphState:
         state = graph_state["investigation"].model_copy(deep=True)
         if self.report_composer is not None:
@@ -251,56 +325,17 @@ class JudgmentGraph:
         return {"investigation": state, "action": None, "route": "end"}
 
     def _publish_report(self, state: InvestigationState):
-        """Orchestrate the report stages; implement none of them inline.
-
-        Stages per Feature 14: draft -> grounding validation -> constrained
-        rejudgment within budget -> cited-evidence gate -> final consistency ->
-        publish grounded or fallback. Reference filtering, evidence capability
-        math and fallback field assembly live in the collaborators.
-        """
-        from .evidence_gate import gate_verdict
-        from .report_repair import ReportRepairCoordinator
-        from .report_validation import ReportGroundingValidator
-        from .reporting import DeterministicFallbackBuilder, ReportPublisher
-
-        composer = self.report_composer
-        validator = self.report_validator or ReportGroundingValidator()
-        coordinator = self.report_coordinator or ReportRepairCoordinator(
-            composer, validator
-        )
-        fallback_builder = self.fallback_builder or DeterministicFallbackBuilder()
-        publisher = self.report_publisher or ReportPublisher(
+        """Orchestrate the report stages via the shared publication flow."""
+        return publish_investigation_report(
+            state,
+            self.report_composer,
+            validator=self.report_validator,
+            coordinator=self.report_coordinator,
+            fallback_builder=self.fallback_builder,
+            publisher=self.report_publisher,
             tenant_id=self.tenant_id,
             run_id=self.run_id,
-            model_name=str(getattr(composer, "model_name", "unknown")),
         )
-
-        draft = composer.compose_draft(state)
-        outcome = coordinator.evaluate(
-            state, draft, max_rejudgments=state.budget.max_report_rejudgments
-        )
-        draft = outcome.draft
-        state.budget.report_rejudgments_used = outcome.rejudgments_used
-
-        issues = outcome.issues
-        if not issues:
-            gated_verdict = gate_verdict(state, draft.verdict)
-            draft = draft.model_copy(update={"verdict": gated_verdict})
-            # Final consistency after the deterministic gate (downgrade adds a
-            # limitation; grounding must still hold on the gated draft).
-            issues = validator.validate(state, draft)
-
-        if issues:
-            state.report_validation_errors = [
-                f"{issue.code}@{issue.location}" for issue in issues
-            ]
-            fallback_draft = fallback_builder.build_draft(state, issues)
-            return publisher.publish(
-                state, fallback_draft, publication_status="fallback"
-            )
-
-        state.report_validation_errors = []
-        return publisher.publish(state, draft, publication_status="grounded")
 
     @staticmethod
     def _record_rejected(state: InvestigationState, action: InvestigationAction, error: str) -> None:
