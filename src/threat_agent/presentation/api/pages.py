@@ -475,6 +475,11 @@ details.entry pre{white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.55 Con
 .wf{height:6px;border-radius:var(--r-xs);background:var(--info-soft);margin:3px 0 2px;position:relative}
 .wf i{position:absolute;left:0;top:0;height:100%;border-radius:var(--r-xs);background:linear-gradient(90deg,#0d9488,#0891b2);opacity:.8;min-width:2px}
 .know{font-size:12px;border-left:3px solid var(--ok);padding:5px 9px;margin:6px 0;background:var(--surface);border-radius:0 8px 8px 0}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:6px 0}
+.form-grid label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted)}
+.form-grid input,.form-grid select{padding:7px 10px;border:1px solid var(--line);border-radius:var(--r-sm);font-size:13px;background:#fff;color:var(--ink)}
+.form-checks{display:flex;gap:18px;flex-wrap:wrap;margin:10px 0 0}
+.form-checks label.chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);cursor:pointer}
 .know-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px}
 .know-item{padding:2px 0 2px 4px;line-height:1.5;word-break:break-all}
 .know-note{padding:2px 0 2px 4px;color:var(--muted);line-height:1.4}
@@ -1493,7 +1498,7 @@ loadCheckpoints();
 
 
 
-def render_settings(overview: dict) -> str:
+def render_settings(overview: dict, *, model_service: dict | None = None) -> str:
     def esc(v):
         return _html.escape("" if v is None else str(v))
 
@@ -1501,15 +1506,87 @@ def render_settings(overview: dict) -> str:
         f"<div class='metric'><small>{esc(label)}</small><b class='mono'>{esc(value)}</b></div>"
         for label, value in overview.get("items", [])
     )
+    knowledge_label = {"reference": "内置参考语料", "attack": "ATT&CK 真实语料", "null": "未接入"}.get(
+        str(overview.get("knowledge_adapter")), str(overview.get("knowledge_adapter")))
+
+    # 模型服务配置表单：预填"已保存"值（重启后生效的值），无保存值时回落当前生效值
+    ms = model_service or {}
+    saved = ms.get("saved") or ms.get("effective") or {}
+    effective = ms.get("effective") or {}
+    f = {key: esc(saved.get(key, "")) for key in
+         ("provider", "base_url", "model_name", "context_window_tokens")}
+    f["context_window_tokens"] = f["context_window_tokens"] or "100000"
+    chk = lambda key: " checked" if saved.get(key) else ""  # noqa: E731
+    drift = ms.get("restart_required")
+    drift_banner = (
+        "<div class='banner amber' style='margin:0 0 12px'>已保存的配置与当前运行值不同，"
+        "重启服务后生效。</div>" if drift else ""
+    )
+    form = (
+        "<div class='card'><h2>模型服务配置 <span class='hint'>保存写入 .env · 重启服务后生效</span></h2>"
+        + drift_banner
+        + "<div class='form-grid'>"
+        + "<label>协议格式<select id='ms-provider'>"
+        + "<option value='openai'" + (" selected" if f["provider"] != "anthropic" else "") + ">OpenAI 兼容（/chat/completions）</option>"
+        + "<option value='anthropic'" + (" selected" if f["provider"] == "anthropic" else "") + ">Anthropic Messages（/v1/messages）</option>"
+        + "</select></label>"
+        + "<label>服务地址 Base URL<input id='ms-base-url' class='mono' placeholder='https://api.example.com/v1' value='" + f["base_url"] + "'></label>"
+        + "<label>模型 ID<input id='ms-model' class='mono' placeholder='model-name' value='" + f["model_name"] + "'></label>"
+        + "<label>上下文窗口（tokens）<input id='ms-ctx' type='number' min='1024' max='1000000' step='1024' class='mono' value='" + f["context_window_tokens"] + "'></label>"
+        + "<label>API Key（留空保持不变）<input id='ms-key' type='password' placeholder='不回显 · 留空=不修改'></label>"
+        + "</div>"
+        + "<div class='form-checks'>"
+        + "<label class='chk'><input type='checkbox' id='ms-tls'" + chk("disable_tls_verify") + "> 禁用 TLS 证书校验（自签名证书的内网端点）</label>"
+        + "<label class='chk'><input type='checkbox' id='ms-proxy'" + chk("disable_proxy") + "> 禁用系统代理（直连模型端点）</label>"
+        + "</div>"
+        + "<div style='display:flex;gap:10px;align-items:center;margin-top:12px'>"
+        + "<button class='btn primary' id='ms-save'>保存配置</button>"
+        + "<span class='muted' id='ms-msg' style='font-size:12px'></span></div>"
+        + "<details class='muted' style='margin-top:10px;font-size:12px'><summary>当前生效值（重启前不变）</summary>"
+        + "<div class='metric'><small>协议</small><b class='mono'>" + esc(effective.get("provider", "")) + "</b></div>"
+        + "<div class='metric'><small>服务地址</small><b class='mono'>" + esc(effective.get("base_url", "")) + "</b></div>"
+        + "<div class='metric'><small>模型 ID</small><b class='mono'>" + esc(effective.get("model_name", "")) + "</b></div>"
+        + "<div class='metric'><small>上下文窗口</small><b class='mono'>" + esc(effective.get("context_window_tokens", "")) + "</b></div>"
+        + "<div class='metric'><small>禁用 TLS 校验 / 禁用代理</small><b>"
+        + ("开" if effective.get("disable_tls_verify") else "关") + " / "
+        + ("开" if effective.get("disable_proxy") else "关") + "</b></div>"
+        + "</details></div>"
+    )
+
     body = (
-        "<div class='card'><h2>研判模型</h2>" + rows + "</div>"
+        form
+        + "<div class='card'><h2>研判模型</h2>" + rows + "</div>"
         "<div class='card'><h2>知识源</h2>"
-        "<div class='metric'><small>当前状态</small><b>"
-        + esc({"reference": "内置参考语料", "null": "未接入"}.get(
-            str(overview.get("knowledge_adapter")), str(overview.get("knowledge_adapter"))))
+        "<div class='metric'><small>当前状态</small><b>" + esc(knowledge_label)
         + "</b></div>"
         "<p class='muted' style='font-size:12px'>接入组织知识服务后，研判与处置会自动引用其检索结果，"
         "调查流程无需改动。</p></div>"
-        "<p class='muted'>以上为当前生效配置，由部署方维护。</p>"
+        "<p class='muted'>模型服务与知识源之外的部分为当前生效配置，由部署方维护。</p>"
     )
-    return shell("设置", "settings", body, sub="只读 · 修改走 .env 后重启")
+    page_script = r"""
+<script>
+document.addEventListener("click", async e=>{
+  if(e.target.id!=="ms-save")return;
+  const msg=document.getElementById("ms-msg");
+  const payload={
+    provider:document.getElementById("ms-provider").value,
+    base_url:document.getElementById("ms-base-url").value.trim(),
+    model_name:document.getElementById("ms-model").value.trim(),
+    context_window_tokens:parseInt(document.getElementById("ms-ctx").value,10),
+    disable_tls_verify:document.getElementById("ms-tls").checked,
+    disable_proxy:document.getElementById("ms-proxy").checked
+  };
+  const key=document.getElementById("ms-key").value;
+  if(key)payload.api_key=key;
+  if(!payload.base_url){msg.textContent="服务地址不能为空";return}
+  if(!payload.model_name){msg.textContent="模型 ID 不能为空";return}
+  const {ok,data,error}=await safeFetch("/api/settings/model-service",{
+    method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  if(!ok){msg.textContent="保存失败："+(error||"");return}
+  if(data&&data.validation_error){msg.textContent="校验失败："+data.validation_error;return}
+  msg.textContent="已保存 · 重启服务后生效";
+  toast("模型服务配置已保存，重启服务后生效");
+  setTimeout(()=>location.reload(),1500);
+});
+</script>"""
+    return shell("设置", "settings", body + page_script, sub="模型服务 · 知识源 · 生效配置")

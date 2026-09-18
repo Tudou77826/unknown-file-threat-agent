@@ -86,6 +86,9 @@ class ModelSettings(FrozenSettings):
     # variables and always connects directly — for machines whose system proxy
     # cannot reach the model endpoint.
     disable_proxy: bool = False
+    # When True the model client skips TLS certificate verification — for
+    # intranet endpoints fronted by self-signed certificates.
+    disable_tls_verify: bool = False
 
 
 class DemoSettings(FrozenSettings):
@@ -168,6 +171,7 @@ class AppSettings(FrozenSettings):
         common_model_name = get("MODEL_NAME")
         common_context_window = get("MODEL_CONTEXT_WINDOW_TOKENS", 100000)
         disable_proxy = get("MODEL_DISABLE_PROXY", False)
+        disable_tls_verify = get("MODEL_DISABLE_TLS_VERIFY", False)
 
         def model(role: str) -> ModelSettings:
             prefix = role.upper()
@@ -187,6 +191,7 @@ class AppSettings(FrozenSettings):
                 max_retries=get(f"{prefix}_MODEL_MAX_RETRIES", 2),
                 temperature=get(f"{prefix}_MODEL_TEMPERATURE", 0),
                 disable_proxy=disable_proxy,
+                disable_tls_verify=disable_tls_verify,
             )
 
         judgment_model = model("judgment")
@@ -210,6 +215,7 @@ class AppSettings(FrozenSettings):
             max_retries=get("REPORT_MODEL_MAX_RETRIES", judgment_model.max_retries),
             temperature=get("REPORT_MODEL_TEMPERATURE", 0),
             disable_proxy=judgment_model.disable_proxy,
+            disable_tls_verify=judgment_model.disable_tls_verify,
         )
 
         settings = cls(
@@ -305,9 +311,18 @@ def build_chat_model(settings: ModelSettings):
     if settings.api_key is None or not settings.model_name:
         raise RuntimeError("Chat model configuration is incomplete")
     # trust_env=False makes the client ignore HTTP(S)_PROXY/ALL_PROXY so the
-    # connection to the model endpoint is always direct. Timeout and retries
-    # stay in effect: both are applied per-request by the SDK layer.
-    http_client = httpx.Client(trust_env=False) if settings.disable_proxy else None
+    # connection to the model endpoint is always direct; verify=False skips
+    # TLS certificate verification (self-signed intranet endpoints). Timeout
+    # and retries stay in effect: both are applied per-request by the SDK.
+    needs_client = settings.disable_proxy or settings.disable_tls_verify
+    http_client = (
+        httpx.Client(
+            trust_env=not settings.disable_proxy,
+            verify=not settings.disable_tls_verify,
+        )
+        if needs_client
+        else None
+    )
     if settings.provider == "anthropic":
         from langchain_anthropic import ChatAnthropic
 
@@ -327,7 +342,12 @@ def build_chat_model(settings: ModelSettings):
         kwargs["thinking"] = {"type": "disabled"}
         return ChatAnthropic(**kwargs)
     http_async_client = (
-        httpx.AsyncClient(trust_env=False) if settings.disable_proxy else None
+        httpx.AsyncClient(
+            trust_env=not settings.disable_proxy,
+            verify=not settings.disable_tls_verify,
+        )
+        if needs_client
+        else None
     )
     return ChatOpenAI(
         model=settings.model_name,

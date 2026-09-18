@@ -650,6 +650,7 @@ def main() -> None:
             build_event_service,
             build_settings_overview,
             build_knowledge_overview,
+            build_model_service_settings,
             build_run_service,
         )
 
@@ -665,6 +666,7 @@ def main() -> None:
             build_knowledge_overview(settings),
             build_event_service(settings),
             build_settings_overview(settings),
+            build_model_service_settings(settings, project_root=PROJECT_ROOT),
         )
         uvicorn.run(app, host=settings.presentation.host, port=settings.presentation.port)
     else:

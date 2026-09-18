@@ -906,3 +906,69 @@ def build_settings_overview(settings: AppSettings) -> dict[str, Any]:
             settings.observability.backend, settings.observability.backend)),
     ]
     return {"items": items, "knowledge_adapter": settings.knowledge.adapter}
+
+
+class ModelServiceSettingsSurface:
+    """Settings-page adapter over the .env model-service block: the page form
+    is pre-filled with saved values (what applies on restart) and a separate
+    effective block shows what the running process actually uses."""
+
+    def __init__(self, settings: AppSettings, *, project_root: Path = PROJECT_ROOT):
+        from .settings_store import ModelServiceSettingsStore
+
+        self._settings = settings
+        self._store = ModelServiceSettingsStore(project_root / ".env")
+
+    def _effective(self) -> dict[str, Any]:
+        model = self._settings.judgment_model
+        return {
+            "provider": model.provider,
+            "base_url": model.base_url,
+            "model_name": model.model_name or "",
+            "context_window_tokens": model.context_window_tokens,
+            "disable_proxy": model.disable_proxy,
+            "disable_tls_verify": model.disable_tls_verify,
+        }
+
+    def read(self) -> dict[str, Any]:
+        try:
+            saved = self._store.read()
+            saved_payload: dict[str, Any] | None = (
+                saved.model_dump(mode="json", exclude={"api_key"}) if saved else None
+            )
+        except Exception:
+            saved_payload = None
+        return {
+            "saved": saved_payload,
+            "effective": self._effective(),
+            "restart_required": saved_payload is not None and saved_payload != self._effective(),
+        }
+
+    def save(self, payload: dict) -> dict[str, Any]:
+        from .settings_store import ModelServiceConfig
+
+        try:
+            api_key = str(payload.get("api_key") or "").strip()
+            config = ModelServiceConfig(
+                provider=str(payload.get("provider") or "openai"),
+                base_url=str(payload.get("base_url") or ""),
+                model_name=str(payload.get("model_name") or ""),
+                context_window_tokens=int(payload.get("context_window_tokens") or 0),
+                disable_proxy=bool(payload.get("disable_proxy")),
+                disable_tls_verify=bool(payload.get("disable_tls_verify")),
+                api_key=api_key or None,
+            )
+        except Exception as error:  # noqa: BLE001 — 表单校验失败结构化返回给页面
+            return {"saved": False, "validation_error": str(error)}
+        self._store.save(config)
+        saved = self._store.read()
+        values = saved.model_dump(mode="json", exclude={"api_key"}) if saved else None
+        return {
+            "saved": True,
+            "restart_required": values is not None and values != self._effective(),
+            "values": values,
+        }
+
+
+def build_model_service_settings(settings: AppSettings, *, project_root: Path = PROJECT_ROOT):
+    return ModelServiceSettingsSurface(settings, project_root=project_root)

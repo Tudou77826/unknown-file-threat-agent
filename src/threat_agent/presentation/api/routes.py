@@ -58,6 +58,14 @@ class EventServicePort(Protocol):
     def data_samples(self, activity_type: str, limit: int = 20) -> list: ...
 
 
+class ModelServiceSettingsPort(Protocol):
+    """Management-plane read/write for the model-service block (bootstrap
+    owns the .env file; the page only sees validated values)."""
+
+    def read(self) -> dict: ...
+    def save(self, payload: dict) -> dict: ...
+
+
 def _fmt_dur(value):
     if value is None:
         return "—"
@@ -101,6 +109,7 @@ def create_app(
     knowledge_overview: dict | None = None,
     event_service: EventServicePort | None = None,
     settings_overview: dict | None = None,
+    model_service_settings: ModelServiceSettingsPort | None = None,
 ) -> FastAPI:
     app = FastAPI(title="Unknown File Threat Agent", version="2.0")
 
@@ -594,7 +603,28 @@ def create_app(
     def settings_page() -> str:
         if settings_overview is None:
             raise HTTPException(status_code=503, detail="Settings surface is not configured")
-        return pages.render_settings(settings_overview)
+        model_service = None
+        if model_service_settings is not None:
+            try:
+                model_service = model_service_settings.read()
+            except Exception:
+                model_service = None
+        return pages.render_settings(settings_overview, model_service=model_service)
+
+    @app.get("/api/settings/model-service")
+    def get_model_service_settings() -> dict[str, Any]:
+        if model_service_settings is None:
+            raise HTTPException(status_code=503, detail="Model-service settings are not configured")
+        return model_service_settings.read()
+
+    @app.post("/api/settings/model-service")
+    def save_model_service_settings(payload: dict[str, Any]) -> dict[str, Any]:
+        if model_service_settings is None:
+            raise HTTPException(status_code=503, detail="Model-service settings are not configured")
+        result = model_service_settings.save(payload)
+        if result.get("validation_error"):
+            raise HTTPException(status_code=422, detail=result["validation_error"])
+        return result
 
     @app.get("/workbench/approvals", response_class=HTMLResponse)
     def approvals_page() -> str:
