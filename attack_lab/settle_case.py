@@ -144,7 +144,11 @@ def _counter_evidence(
                 hashes[rel] = parts[0]
     for rel, digest in sorted(hashes.items()):
         owner = owners.get(rel, "NOT-OWNED")
-        owned = owner not in {"NOT-OWNED", ""}
+        owned = (
+            owner not in {"NOT-OWNED", ""}
+            and "not owned" not in owner
+            and not owner.startswith("file ")
+        )
         evidence.append(
             {
                 "event_id": f"baseline-package-{digest[:12]}",
@@ -205,6 +209,8 @@ def settle(*, source: Path, bundle: Path, host_id: str, suite_root: Path, worksp
     lines = (bundle / "audit.log").read_text(encoding="utf-8", errors="replace").splitlines()
     window_lines = _filter_window(lines, start_ms, end_ms)
     envelopes = parse_auditd_lines(window_lines, host_id=host_id)
+    envelopes.extend(_parse_conn_poll(bundle, host_id))
+    envelopes = _scope_to_case(envelopes, draft.case_id, workspace_root_hint)
 
     workspace_root = f"{(workspace_root_hint or '/opt/secval-lab/cases').rstrip('/')}/{draft.case_id}"
     path_hashes = _load_path_hashes(bundle, workspace_root)
@@ -288,6 +294,101 @@ def settle(*, source: Path, bundle: Path, host_id: str, suite_root: Path, worksp
         f"{len(grouped)} files, judgment {digest[:12]} — review GT then refresh digests"
     )
     return case_dir
+
+
+def _parse_conn_poll(bundle: Path, host_id: str):
+    """conn_poll.log: repeated (timestamp, ss -tnp) blocks → network
+    envelopes. auditd's connect leaves only the sockaddr pointer; the
+    remote 4-tuple comes from this poller. De-duplicated per (pid, remote)."""
+
+    import re as _re
+    from threat_agent.capability_validation import RawTelemetryEnvelope
+
+    path = bundle / "conn_poll.log"
+    if not path.exists():
+        return []
+    envelopes = []
+    seen = set()
+    ts_ms = 0
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = line.strip()
+        if line.isdigit():
+            ts_ms = int(line)
+            continue
+        match = _re.search(
+            r"(\S+):(\d+)\s+users:\(\(\"([^\"]+)\",pid=(\d+)", line
+        )
+        if not match or not ts_ms:
+            continue
+        peer_ip = match.group(1).strip("[]").split("%")[0]
+        peer_port = int(match.group(2))
+        comm = match.group(3)
+        pid = int(match.group(4))
+        if (pid, peer_ip, peer_port) in seen:
+            continue
+        seen.add((pid, peer_ip, peer_port))
+        captured = (
+            datetime.fromtimestamp(ts_ms / 1000, tz=timezone.utc)
+            .isoformat(timespec="milliseconds")
+            .replace("+00:00", "Z")
+        )
+        envelopes.append(
+            RawTelemetryEnvelope(
+                kind="network",
+                collector="ss-poller/1",
+                captured_at=captured,
+                host_id=host_id,
+                payload={
+                    "pid": pid, "ppid": 0, "uid": "", "euid": "",
+                    "exe": "", "comm": comm,
+                    "remote_ip": peer_ip, "remote_port": peer_port, "protocol": "tcp",
+                },
+            )
+        )
+    return envelopes
+
+
+def _scope_to_case(envelopes, case_id, root_hint):
+    """The audit rules see the whole host (aegis/panel churn included); the
+    replay should carry the case's own activity: workspace paths, /etc
+    persistence writes, and the process closure of the case's pids."""
+
+    root = f"{(root_hint or '/opt/secval-lab/cases').rstrip('/')}/{case_id}"
+    case_pids = set()
+    for envelope in envelopes:
+        exe = str(envelope.payload.get("exe", ""))
+        if exe.startswith(root + "/"):
+            case_pids.add(int(envelope.payload.get("pid", 0)))
+    # parent closure: walk ppid links until no new pid joins
+    changed = True
+    while changed:
+        changed = False
+        for envelope in envelopes:
+            payload = envelope.payload
+            if "pid" not in payload:
+                continue
+            pid, ppid = int(payload["pid"]), int(payload.get("ppid", 0) or 0)
+            if pid in case_pids and ppid and ppid not in case_pids:
+                case_pids.add(ppid)
+                changed = True
+    kept = []
+    for envelope in envelopes:
+        payload = envelope.payload
+        pid = int(payload.get("pid", 0) or 0)
+        if envelope.kind == "process" and pid in case_pids:
+            kept.append(envelope)
+            continue
+        if envelope.kind == "file":
+            path = str(payload.get("path", ""))
+            if path.startswith(root + "/") or path.startswith("/etc/"):
+                kept.append(envelope)
+                continue
+        if envelope.kind == "network" and pid in case_pids:
+            kept.append(envelope)
+            continue
+        if envelope.kind in {"command", "authentication"}:
+            kept.append(envelope)
+    return kept
 
 
 def main() -> None:

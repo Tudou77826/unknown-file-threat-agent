@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SecLab 剧本：在采集窗口内执行（collect.sh 已 cd 到工作区）。载荷无害。
 set -euo pipefail
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # T1547.006：.ko + insmod（需靶机内核头；不可用则跳过本剧本）
 if ! command -v cc >/dev/null || [ ! -d /lib/modules/"$(uname -r)" ]; then echo "SKIP: kernel headers unavailable"; exit 0; fi
 cat > kmod.c <<'EOC'

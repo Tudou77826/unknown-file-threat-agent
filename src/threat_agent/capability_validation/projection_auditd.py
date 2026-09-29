@@ -165,22 +165,35 @@ def _classify(
         )
     if call in FILE_SYSCALLS:
         paths = records.get("PATH", [])
-        by_nametype = {p.get("nametype", "NORMAL"): p for p in paths}
+        cwd_records = records.get("CWD", [])
+        cwd = cwd_records[0].get("cwd", "").strip('"') if cwd_records else ""
+        # Relative PATH names resolve against the PARENT dir item (dirfd),
+        # falling back to the event CWD.
+        parent = next((p for p in paths if p.get("nametype") == "PARENT"), None)
+        prefix = parent.get("name", "").strip('"') if parent else cwd
+
+        def _resolve(item: dict[str, str]) -> str:
+            name = item.get("name", "").strip('"')
+            if name.startswith("/") or not name:
+                return name
+            return f"{prefix.rstrip('/')}/{name}" if prefix else name
+
+        file_items = [p for p in paths if p.get("nametype") != "PARENT"]
         if call in {"rename", "renameat", "renameat2"}:
-            old = by_nametype.get("DELETE")
-            new = by_nametype.get("CREATE")
+            old = next((p for p in file_items if p.get("nametype") == "DELETE"), None)
+            new = next((p for p in file_items if p.get("nametype") == "CREATE"), None)
             if old and new:
                 payload = {
                     **common,
                     "op": "rename",
-                    "path": new.get("name", "").strip('"'),
-                    "renamed_from": old.get("name", "").strip('"'),
+                    "path": _resolve(new),
+                    "renamed_from": _resolve(old),
                 }
                 return RawTelemetryEnvelope(kind="file", collector=collector, payload=payload, **base)
             return None  # incomplete rename trace
-        first = paths[0] if paths else {}
-        nametype = first.get("nametype", "NORMAL")
-        path = first.get("name", "").strip('"')
+        target = file_items[0] if file_items else ({} if not parent else {})
+        nametype = target.get("nametype", "NORMAL")
+        path = _resolve(target)
         if not path:
             return None
         flags = int(syscall.get("a2", "0") or "0", 16) if call in {"open", "openat"} else 0

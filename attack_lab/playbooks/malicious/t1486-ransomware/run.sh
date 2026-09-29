@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SecLab 剧本：在采集窗口内执行（collect.sh 已 cd 到工作区）。载荷无害。
 set -euo pipefail
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # T1486：加密器加密蜜罐目录，随后解密恢复（演练不留损）
 cat > cryptor.c <<'EOC'
 #include <stdio.h>

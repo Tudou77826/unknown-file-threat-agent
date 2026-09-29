@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SecLab 剧本：在采集窗口内执行（collect.sh 已 cd 到工作区）。载荷无害。
 set -euo pipefail
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # T1505.003：web 根写入 web shell + HTTP 触发
 mkdir -p webroot
 cat > webroot/shell.php <<'EOS'
