@@ -19,6 +19,7 @@
 
 - [requirements.md](requirements.md)：目标、范围边界、功能与非功能要求、验收条件。
 - [design.md](design.md)：总体架构、Case 与 Replay 模型、被测链路、评分体系、OpenAEV 集成边界、运行模式。
+- [telemetry-scope.md](telemetry-scope.md)：Replay 自建采集范围对齐（探针十类）、与 Canonical 模型的映射与缺口。
 - [implementation-plan.md](implementation-plan.md)：PoC 分步实施与验证门槛。
 
 ## 状态
