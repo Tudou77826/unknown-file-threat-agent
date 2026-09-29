@@ -50,4 +50,7 @@ python attack_lab/settle_case.py \
 - auditd 无文件 hash —— 锚点来自 collect.sh 工作区摘要清单（判定对象必须在剧本工作区落盘）；
 - DNS / 字节数 / 文件读取不在探针范围（telemetry-scope.md）；
 - t1547-006 依赖内核头；t1505-003 的 web 服务为 python 静态模拟，PHP 真实执行需靶机装 php-fpm（可后补）；
-- 父进程关联依赖 ps 快照；窗口外进程（开机早于采集）无启动时间时按窗口内首次 exec 时间近似。
+- 父进程关联依赖 ps 快照；窗口外进程（开机早于采集）无启动时间时按窗口内首次 exec 时间近似；
+- 超长 EXECVE 参数被 auditd 拆分为 `a1[0]/a1[1]` 分片时当前不拼接（丢弃该参数，事件保留）；
+- ps `lstart` 为靶机本地时区，跨时区靶机会使 process_ref 启动时间偏移（关联关系不受影响）；
+- 被拒操作（EACCES/EPERM）在采集规则内但投影时丢弃（不产生幻影创建/连接证据）。

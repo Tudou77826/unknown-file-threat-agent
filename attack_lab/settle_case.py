@@ -119,6 +119,7 @@ def _counter_evidence(
     events: list[dict],
     bundle: Path,
     host_id: str,
+    observed_at: str,
 ) -> list[dict]:
     """Environment-baseline evidence: package ownership of the judgment
     artifacts + endpoint approval of every observed remote IP."""
@@ -150,7 +151,7 @@ def _counter_evidence(
                 "event_type": "package_provenance",
                 "domain": "reputation",
                 "source_system": "rpm-inventory",
-                "observed_at": _iso_now() + "T00:00:00Z",
+                "observed_at": observed_at,
                 "host_id": host_id,
                 "subject_refs": [f"file:{host_id}:{digest}"],
                 "data": {
@@ -179,7 +180,7 @@ def _counter_evidence(
                 "event_type": "approved_endpoint",
                 "domain": "reputation",
                 "source_system": "cmdb-baseline",
-                "observed_at": _iso_now() + "T00:00:00Z",
+                "observed_at": observed_at,
                 "host_id": host_id,
                 "subject_refs": [f"endpoint:{ip}"],
                 "data": {"remote_ip": ip, "approved": ip in approved},
@@ -210,7 +211,13 @@ def settle(*, source: Path, bundle: Path, host_id: str, suite_root: Path, worksp
     starts = _load_ps_starts(bundle)
     projector = AuditDProjector(host_id=host_id)
     events = projector.project_batch(envelopes, path_hashes=path_hashes, process_starts=starts)
-    events.extend(_counter_evidence(events, bundle, host_id))
+    from datetime import datetime, timezone as _tz
+    observed_at = (
+        datetime.fromtimestamp(end_ms / 1000, tz=_tz.utc)
+        .isoformat(timespec="milliseconds")
+        .replace("+00:00", "Z")
+    )
+    events.extend(_counter_evidence(events, bundle, host_id, observed_at))
 
     case_dir = suite_root / draft.case_id
     replay_dir = case_dir / "replay"

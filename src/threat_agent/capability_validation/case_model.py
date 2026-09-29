@@ -12,7 +12,7 @@ import re
 from enum import Enum
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from ._base import StrictModel
 
@@ -159,3 +159,22 @@ class TestCase(StrictModel):
 
     def variant_ids(self) -> list[str]:
         return [spec.variant_id for spec in self.parameters.variants]
+
+    @model_validator(mode="after")
+    def _expected_ai_consistent_with_truth(self) -> "TestCase":
+        """The AI is scored against the file-level truth: an expectation
+        that contradicts the ground truth is an authoring error, not a
+        meaningful test."""
+
+        if self.expected_ai.verdict is not None:
+            implied = "malicious" if self.ground_truth.file.judgment in (
+                FileJudgment.malicious,
+                FileJudgment.abused,
+            ) else "benign"
+            if self.expected_ai.verdict != implied:
+                raise ValueError(
+                    f"expected_ai.verdict={self.expected_ai.verdict} contradicts "
+                    f"ground_truth.file.judgment={self.ground_truth.file.judgment.value} "
+                    f"(implies {implied})"
+                )
+        return self

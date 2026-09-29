@@ -185,6 +185,54 @@ def _load_settle():
     return module
 
 
+def test_denied_syscalls_produce_no_phantom_events():
+    """The collector rules capture EACCES/EPERM-denied operations; a denied
+    create/connect must not become replay evidence."""
+
+    log = [
+        'type=SYSCALL msg=audit(1760000000.050:100): arch=c000003e syscall=257 success=no exit=-13 a0=ffffff9c a1=7ffd0001 a2=241 items=1 ppid=900 pid=1000 comm="curl" exe="/usr/bin/curl" key="secval"',
+        'type=PATH msg=audit(1760000000.050:100): item=0 name="/etc/shadow.new" nametype=CREATE',
+        'type=SYSCALL msg=audit(1760000000.300:101): arch=c000003e syscall=42 success=no exit=-111 a0=3 a1=020020FB7F000001 a2=10 ppid=900 pid=1001 comm="x" exe="/usr/bin/x" key="secval"',
+        'type=SYSCALL msg=audit(1760000000.400:102): arch=c000003e syscall=59 success=no exit=-13 a0=1 items=0 ppid=900 pid=1002 comm="denied" exe="/usr/bin/denied" key="secval"',
+    ]
+    envelopes = parse_auditd_lines(log, host_id=HOST)
+    assert envelopes == []
+    assert AuditDProjector(host_id=HOST).project_batch(envelopes) == []
+
+
+def test_rename_keeps_both_paths_by_nametype():
+    """Two PATH records in one event must not collapse — rename relies on
+    DELETE (old) + CREATE (new); order-independent."""
+
+    log = [
+        'type=SYSCALL msg=audit(1760000000.100:200): arch=c000003e syscall=82 success=yes exit=0 items=2 ppid=900 pid=1100 comm="mv" exe="/usr/bin/mv" key="secval"',
+        'type=PATH msg=audit(1760000000.100:200): item=0 name="/ws/old.bin" nametype=DELETE',
+        'type=PATH msg=audit(1760000000.100:200): item=1 name="/ws/new.bin" nametype=CREATE',
+        # reversed record order — same event, must classify identically
+        'type=SYSCALL msg=audit(1760000000.200:201): arch=c000003e syscall=82 success=yes exit=0 items=2 ppid=900 pid=1101 comm="mv" exe="/usr/bin/mv" key="secval"',
+        'type=PATH msg=audit(1760000000.200:201): item=0 name="/ws/new2.bin" nametype=CREATE',
+        'type=PATH msg=audit(1760000000.200:201): item=1 name="/ws/old2.bin" nametype=DELETE',
+    ]
+    envelopes = parse_auditd_lines(log, host_id=HOST)
+    files = [e for e in envelopes if e.kind == "file"]
+    assert len(files) == 2
+    assert {f.payload["op"] for f in files} == {"rename"}
+    assert files[0].payload["path"] == "/ws/new.bin"
+    assert files[0].payload["renamed_from"] == "/ws/old.bin"
+    assert files[1].payload["path"] == "/ws/new2.bin"
+    assert files[1].payload["renamed_from"] == "/ws/old2.bin"
+
+
+def test_expected_ai_contradicting_truth_is_rejected():
+    payload = json.loads((PLAYBOOK / "case.json").read_text(encoding="utf-8"))
+    from threat_agent.capability_validation import TestCase as TestCaseModel
+
+    TestCaseModel.model_validate(payload)  # draft is consistent
+    payload["expected_ai"]["verdict"] = "benign"  # GT says malicious
+    with pytest.raises(Exception, match="contradicts"):
+        TestCaseModel.model_validate(payload)
+
+
 def test_settle_pipeline_end_to_end(tmp_path: Path):
     bundle = tmp_path / "bundle"
     _build_bundle(bundle)
@@ -230,6 +278,11 @@ def test_settle_pipeline_end_to_end(tmp_path: Path):
     assert endpoints and endpoints[0]["data"] == {
         "remote_ip": "127.0.0.1", "approved": False,
     }
+    # Baseline evidence is observed during the capture window — not the day
+    # the bundle happened to be settled.
+    assert all(
+        event["observed_at"].startswith("2025-10-09") for event in counter
+    ), [event["observed_at"] for event in counter]
 
     from threat_agent.capability_validation import ValidationSuiteRepository
 

@@ -98,7 +98,11 @@ def _parse_sockaddr(hex_addr: str) -> tuple[str, int, str] | None:
 def parse_auditd_lines(lines: Iterable[str], *, host_id: str, collector: str = "auditd-collector/1") -> list[RawTelemetryEnvelope]:
     """Group audit records by (timestamp, serial) and classify into probe kinds."""
 
-    groups: dict[tuple[str, str], dict[str, dict[str, str]]] = defaultdict(dict)
+    # rtype → list of field dicts: one audit event may carry several records
+    # of the same type (rename yields two PATH entries — keep them all).
+    groups: dict[tuple[str, str], dict[str, list[dict[str, str]]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
     raws: dict[tuple[str, str], dict[str, str]] = defaultdict(dict)
     order: list[tuple[str, str]] = []
     for line in lines:
@@ -109,7 +113,7 @@ def parse_auditd_lines(lines: Iterable[str], *, host_id: str, collector: str = "
         key = (ts, serial)
         if key not in groups:
             order.append(key)
-        groups[key][rtype] = _fields(rest)
+        groups[key][rtype].append(_fields(rest))
         raws.setdefault(key, {})[rtype] = rest
 
     envelopes: list[RawTelemetryEnvelope] = []
@@ -123,76 +127,102 @@ def parse_auditd_lines(lines: Iterable[str], *, host_id: str, collector: str = "
 
 
 def _classify(
-    records: dict[str, dict[str, str]],
+    records: dict[str, list[dict[str, str]]],
     raws: dict[str, str],
     ts_ms: int,
     host_id: str,
     collector: str,
 ) -> RawTelemetryEnvelope | None:
     base = {"captured_at": _iso(ts_ms), "host_id": host_id}
-    syscall = records.get("SYSCALL", {})
-    if syscall:
-        call = SYSCALL_NAMES.get(syscall.get("syscall", ""), "")
-        pid = int(syscall.get("pid", "0") or 0)
-        common = {
-            **base,
-            "pid": pid,
-            "ppid": int(syscall.get("ppid", "0") or 0),
-            "uid": syscall.get("uid", ""),
-            "euid": syscall.get("euid", ""),
-            "exe": syscall.get("exe", "").strip('"'),
-            "comm": syscall.get("comm", "").strip('"'),
-        }
-        if call == "execve":
-            # Args must come from the raw line: quoted values are literal,
-            # unquoted are hex — field stripping would lose that distinction.
-            raw_execve = raws.get("EXECVE", "")
-            args: list[str] = []
-            for index, quoted, plain in re.findall(r'a(\d+)=(?:"([^"]*)"|(\S+))', raw_execve):
-                args.append(quoted if quoted else _decode_arg(plain))
-            return RawTelemetryEnvelope(
-                kind="process", collector=collector, payload={**common, "args": args}, **base
-            )
-        if call in FILE_SYSCALLS:
-            paths = [v for k, v in records.items() if k == "PATH"]
-            nametype = paths[0].get("nametype", "NORMAL") if paths else "NORMAL"
-            path = paths[0].get("name", "").strip('"') if paths else ""
-            if not path:
-                return None
-            flags = int(syscall.get("a2", "0") or "0", 16) if call in {"open", "openat"} else 0
-            if call in {"rename", "renameat", "renameat2"} and len(paths) >= 2:
-                operation = "rename"
-                path = paths[1].get("name", "").strip('"')
-                payload = {**common, "op": operation, "path": path, "renamed_from": paths[0].get("name", "").strip('"')}
-            elif nametype == "CREATE" or flags & OPEN_CREAT_FLAG:
-                payload = {**common, "op": "create", "path": path}
-            elif nametype == "DELETE":
-                payload = {**common, "op": "delete", "path": path}
-            elif flags & OPEN_WRITE_FLAGS and nametype == "NORMAL":
-                payload = {**common, "op": "write", "path": path}
-            else:
-                return None  # reads are out of probe scope
-            return RawTelemetryEnvelope(kind="file", collector=collector, payload=payload, **base)
-        if call == "connect":
-            parsed = _parse_sockaddr(syscall.get("a1", ""))
-            if parsed is None:
-                return None
-            ip, port, protocol = parsed
-            return RawTelemetryEnvelope(
-                kind="network",
-                collector=collector,
-                payload={**common, "remote_ip": ip, "remote_port": port, "protocol": protocol},
-                **base,
-            )
-        if call in {"setuid", "setgid", "mount"}:
-            return RawTelemetryEnvelope(
-                kind="syscall",
-                collector=collector,
-                payload={**common, "syscall": call, "result": syscall.get("success", "")},
-                **base,
-            )
+    syscall_records = records.get("SYSCALL", [])
+    if not syscall_records:
+        return _classify_user_record(records, raws, base, host_id, collector)
+    syscall = syscall_records[0]
+    if syscall.get("success") != "yes":
+        # The collector rules capture EACCES/EPERM-denied operations too;
+        # denied syscalls must not become phantom create/connect evidence.
         return None
+    call = SYSCALL_NAMES.get(syscall.get("syscall", ""), "")
+    pid = int(syscall.get("pid", "0") or 0)
+    common = {
+        **base,
+        "pid": pid,
+        "ppid": int(syscall.get("ppid", "0") or 0),
+        "uid": syscall.get("uid", ""),
+        "euid": syscall.get("euid", ""),
+        "exe": syscall.get("exe", "").strip('"'),
+        "comm": syscall.get("comm", "").strip('"'),
+    }
+    if call == "execve":
+        # Args must come from the raw line: quoted values are literal,
+        # unquoted are hex — field stripping would lose that distinction.
+        raw_execve = raws.get("EXECVE", "")
+        args: list[str] = []
+        for index, quoted, plain in re.findall(r'a(\d+)=(?:"([^"]*)"|(\S+))', raw_execve):
+            args.append(quoted if quoted else _decode_arg(plain))
+        return RawTelemetryEnvelope(
+            kind="process", collector=collector, payload={**common, "args": args}, **base
+        )
+    if call in FILE_SYSCALLS:
+        paths = records.get("PATH", [])
+        by_nametype = {p.get("nametype", "NORMAL"): p for p in paths}
+        if call in {"rename", "renameat", "renameat2"}:
+            old = by_nametype.get("DELETE")
+            new = by_nametype.get("CREATE")
+            if old and new:
+                payload = {
+                    **common,
+                    "op": "rename",
+                    "path": new.get("name", "").strip('"'),
+                    "renamed_from": old.get("name", "").strip('"'),
+                }
+                return RawTelemetryEnvelope(kind="file", collector=collector, payload=payload, **base)
+            return None  # incomplete rename trace
+        first = paths[0] if paths else {}
+        nametype = first.get("nametype", "NORMAL")
+        path = first.get("name", "").strip('"')
+        if not path:
+            return None
+        flags = int(syscall.get("a2", "0") or "0", 16) if call in {"open", "openat"} else 0
+        if nametype == "CREATE" or flags & OPEN_CREAT_FLAG:
+            payload = {**common, "op": "create", "path": path}
+        elif nametype == "DELETE":
+            payload = {**common, "op": "delete", "path": path}
+        elif flags & OPEN_WRITE_FLAGS and nametype == "NORMAL":
+            payload = {**common, "op": "write", "path": path}
+        else:
+            return None  # reads are out of probe scope
+        return RawTelemetryEnvelope(kind="file", collector=collector, payload=payload, **base)
+    if call == "connect":
+        parsed = _parse_sockaddr(syscall.get("a1", ""))
+        if parsed is None:
+            return None
+        ip, port, protocol = parsed
+        return RawTelemetryEnvelope(
+            kind="network",
+            collector=collector,
+            payload={**common, "remote_ip": ip, "remote_port": port, "protocol": protocol},
+            **base,
+        )
+    if call in {"setuid", "setgid", "mount"}:
+        return RawTelemetryEnvelope(
+            kind="syscall",
+            collector=collector,
+            payload={**common, "syscall": call, "result": syscall.get("success", "")},
+            **base,
+        )
+    return None
+
+
+def _classify_user_record(
+    records: dict[str, list[dict[str, str]]],
+    raws: dict[str, str],
+    base: dict[str, str],
+    host_id: str,
+    collector: str,
+) -> RawTelemetryEnvelope | None:
     if "USER_CMD" in records:
+        fields = records["USER_CMD"][0]
         message = raws.get("USER_CMD", "")
         cmd_match = re.search(r"cmd=(?:\"([^\"]*)\"|([0-9A-Fa-f]+))", message)
         cwd_match = re.search(r"cwd=\"([^\"]*)\"", message)
@@ -202,14 +232,15 @@ def _classify(
             collector=collector,
             payload={
                 **base,
-                "user": records["USER_CMD"].get("auid", ""),
+                "user": fields.get("auid", ""),
                 "cmd": command,
                 "cwd": cwd_match.group(1) if cwd_match else "",
-                "result": "success" if 'res=success' in message else "failure",
+                "result": "success" if "res=success" in message else "failure",
             },
             **base,
         )
     if "USER_LOGIN" in records:
+        fields = records["USER_LOGIN"][0]
         message = raws.get("USER_LOGIN", "")
         acct = re.search(r'acct="?([^" ]+)"?', message)
         addr = re.search(r"addr=([0-9.]+)", message)
@@ -221,7 +252,7 @@ def _classify(
                 "user": acct.group(1) if acct else "",
                 "source_ip": addr.group(1) if addr else "",
                 "result": "success" if "res=success" in message else "failure",
-                "service": records["USER_LOGIN"].get("exe", "").strip('"'),
+                "service": fields.get("exe", "").strip('"'),
             },
             **base,
         )
