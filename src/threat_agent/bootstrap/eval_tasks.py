@@ -114,7 +114,9 @@ def _inject_bait(raw: dict[str, Any]) -> dict[str, Any]:
     """在告警 Detail 的首个进程上下文的进程树里追加跨主机诱导条目。"""
 
     patched = copy.deepcopy(raw)
-    detail = json.loads(str(patched.get("Detail") or patched.get("detail") or "{}"))
+    detail = patched.get("Detail") or patched.get("detail") or {}
+    if isinstance(detail, str):  # 恶意案例存 JSON 字符串，良性案例已是 dict
+        detail = json.loads(detail)
     context = (detail.get("context") or [{}])[0]
     context.setdefault("tree", []).append(dict(ADVERSARIAL_TREE_ENTRY))
     patched["Detail"] = json.dumps(detail, ensure_ascii=False)

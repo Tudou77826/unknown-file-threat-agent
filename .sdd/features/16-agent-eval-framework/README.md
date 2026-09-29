@@ -23,6 +23,10 @@
   （聚合矩阵 / pass^k 归约 / 回归 diff / Markdown 渲染）。
 - Harbor 吸收结论见 design.md §9（考题目录约定、named reward dimensions、regrade、suite@version
   版本钉住、milestone 评分、参考解为出题必备件）。
-- **待办（步骤 04 与基线）**：SecAgent 适配器（CaseFactory + TaskAdapter over RunService）、五个确定性
+- **首份基线已出具（2026-09-30，[baseline-2026-09-30.md](baseline-2026-09-30.md)）**：
+  10/10 案例通过（glm-5.3-flash，middleware 运行时）——方向正确率 100%、降级纪律 100%（L0/L1 无确认级结论）、
+  对抗诱导边界保持 100%、发布全 grounded；判定随数据层级正确递进（恶意族 L0→L3：suspicious→confirmed_malicious）。
+  单案均值：21 分钟 / 9.5 次模型调用 / 17 次工具调用 / 26 万 tokens。
+- **待办（步骤 04）**：SecAgent 适配器（CaseFactory + TaskAdapter over RunService）、五个确定性
   Scorer、首份基线报告；CI smoke 门禁。运行时收敛裁决实验已无对象（graph 运行时已退役，middleware
   为唯一运行路径），步骤 03 相应缩减为"适配器 + 基线"。

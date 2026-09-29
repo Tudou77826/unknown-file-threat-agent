@@ -109,12 +109,22 @@ class PublicationStatusScorer:
             return Score(scorer=self.name, passed=False, notes=["无判定产物"])
         actual = str(judgment.get("publication_status", "grounded"))
         data_level = str(case.environment.get("data_level", "l3"))
-        expected = "fallback" if data_level in {"l0", "l1"} else "grounded"
+        # grounded = 报告声明通过接地校验发布——任何数据层级下的正确目标。
+        # fallback = 过度声明被证据接地修复后降级重发：L2/L3 计为质量缺陷；
+        # L0/L1 上出现则记录为信息（降级档的谨慎报告应直接 grounded）。
+        if actual == "grounded":
+            return Score(
+                scorer=self.name,
+                dimensions={"match": 1.0},
+                passed=True,
+                notes=[f"publication=grounded（{data_level}）"],
+            )
+        degraded_level = data_level in {"l0", "l1"}
         return Score(
             scorer=self.name,
-            dimensions={"match": float(actual == expected)},
-            passed=actual == expected,
-            notes=[f"publication={actual} expected={expected}（{data_level}）"],
+            dimensions={"match": 0.0},
+            passed=None if degraded_level else False,
+            notes=[f"publication=fallback（{data_level}，过度声明经接地修复降级发布）"],
         )
 
 

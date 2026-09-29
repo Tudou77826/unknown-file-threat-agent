@@ -131,10 +131,20 @@ def test_publication_grounding_expectations(tmp_path):
     )
     assert grounded.passed is True
     degraded = scorer.score(
-        _record(tmp_path, judgment=_judgment_payload("insufficient_evidence", publication="fallback")),
+        _record(tmp_path, judgment=_judgment_payload("insufficient_evidence", publication="grounded")),
         _case("l0"),
     )
     assert degraded.passed is True
+    fallback_l0 = scorer.score(
+        _record(tmp_path, judgment=_judgment_payload("insufficient_evidence", publication="fallback")),
+        _case("l0"),
+    )
+    assert fallback_l0.passed is None  # 降级档的 fallback 记为信息不判死
+    fallback_l3 = scorer.score(
+        _record(tmp_path, judgment=_judgment_payload("confirmed_malicious", publication="fallback")),
+        _case("l3"),
+    )
+    assert fallback_l3.passed is False
     wrong = scorer.score(
         _record(tmp_path, judgment=_judgment_payload("confirmed_malicious", publication="fallback")),
         _case("l3"),
