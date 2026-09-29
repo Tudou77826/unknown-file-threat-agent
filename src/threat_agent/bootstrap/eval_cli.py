@@ -1,0 +1,139 @@
+"""F16 步骤 03 — 评测 CLI：跑批 → 回填产物清单 → 离线打分 → 报表。
+
+用法：
+    python -m threat_agent.bootstrap.eval_cli --name baseline        # 全套件
+    python -m threat_agent.bootstrap.eval_cli --smoke                # 单案例冒烟
+    python -m threat_agent.bootstrap.eval_cli --score-only --name baseline  # 只重打分
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+from ..agent_eval.core import Case, RunRecord
+from ..agent_eval.rate_limit import RateLimitConfig, RateLimiter
+from ..agent_eval.reporter import render_markdown, summarize
+from ..agent_eval.runner import Runner, RunnerConfig
+from ..agent_eval.scoring import ScoreRunner
+from ..bootstrap.eval_scorers import default_scorers
+from ..bootstrap.eval_tasks import SUITE, SecAgentEvalTask, build_eval_cases
+from ..bootstrap.settings import AppSettings
+
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _fill_artifacts(results) -> None:
+    """把 artifacts 目录清单回填进 RunRecord（内核只负责执行与落盘）。"""
+
+    for result in results:
+        artifacts_dir = Path(result.workdir) / "artifacts"
+        if artifacts_dir.exists():
+            result.record.artifacts = {
+                path.stem: path.name
+                for path in sorted(artifacts_dir.iterdir())
+                if path.is_file()
+            }
+        (Path(result.workdir) / "run_record.json").write_text(
+            result.record.model_dump_json(), encoding="utf-8"
+        )
+
+
+def _load_cases(output_dir: Path, fresh_cases: list[Case]) -> dict[str, Case]:
+    """score-only 依赖运行时落盘的 cases.json（含 ground_truth）。"""
+
+    path = output_dir / "cases.json"
+    if path.exists():
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        return {item["case_id"]: Case.model_validate(item) for item in payload}
+    return {case.case_id: case for case in fresh_cases}
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--name", default="baseline", help="输出目录名（outputs/eval/<name>）")
+    parser.add_argument("--epochs", type=int, default=1)
+    parser.add_argument("--workers", type=int, default=2)
+    parser.add_argument("--timeout", type=float, default=900.0)
+    parser.add_argument("--rpm", type=int, default=60, help="0=不限")
+    parser.add_argument("--fresh", action="store_true")
+    parser.add_argument("--smoke", action="store_true", help="只跑 1 个代表案例（L3 恶意）")
+    parser.add_argument("--score-only", action="store_true", help="跳过执行，仅对已有 run 重打分")
+    args = parser.parse_args(argv)
+
+    output_dir = PROJECT_ROOT / "outputs" / "eval" / args.name
+    settings = AppSettings.load(cli_overrides={})
+    cases = build_eval_cases(PROJECT_ROOT / "demo_data")
+    if args.smoke:
+        cases = [
+            case
+            for case in cases
+            if case.case_id.endswith("-l3") and "adversarial" not in case.tags
+        ][:1]
+
+    if not args.score_only:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / "cases.json").write_text(
+            json.dumps([case.model_dump(mode="json") for case in cases], ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        task = SecAgentEvalTask(
+            settings=settings,
+            project_root=PROJECT_ROOT,
+            reference_dir=output_dir / "reference",
+        )
+        limiter = RateLimiter(RateLimitConfig(rpm=args.rpm, tpm=0)) if args.rpm else None
+        runner = Runner(
+            task,
+            output_dir=output_dir,
+            config=RunnerConfig(
+                workers=args.workers,
+                epochs=args.epochs,
+                fresh=args.fresh,
+                timeout_seconds=args.timeout,
+            ),
+            limiter=limiter,
+            on_event=lambda event: print(
+                f"[{event.get('type')}] {event.get('run_id', '')} "
+                f"{event.get('status', '') or str(event.get('error', ''))[:120]}",
+                flush=True,
+            ),
+        )
+        results = runner.run_suite(cases)
+        _fill_artifacts(results)
+        records = [result.record for result in results]
+    else:
+        records = []
+        runs_dir = output_dir / "runs"
+        if runs_dir.exists():
+            for record_path in sorted(runs_dir.glob("*/run_record.json")):
+                records.append(
+                    RunRecord.model_validate_json(record_path.read_text(encoding="utf-8"))
+                )
+
+    case_by_id = _load_cases(output_dir, cases)
+    score_runner = ScoreRunner(default_scorers(output_dir))
+    pairs = [
+        (record, case_by_id[record.case_ref])
+        for record in records
+        if record.case_ref in case_by_id
+    ]
+    scores = score_runner.score_all(
+        pairs,
+        workdir_of=lambda run_id: output_dir / "runs" / run_id.replace("#", "_") / "artifacts",
+    )
+    report = summarize(records, case_by_id, scores)
+    (output_dir / "report.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=2, default=str), encoding="utf-8"
+    )
+    (output_dir / "report.md").write_text(
+        render_markdown(report, title=f"SecAgent Eval — {args.name}"), encoding="utf-8"
+    )
+    print(f"report: {output_dir / 'report.md'}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
