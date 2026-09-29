@@ -1,0 +1,21 @@
+{
+  "suite_id": "seccap-poc",
+  "suite_version": "2026.09.1",
+  "created": "2026-09-29",
+  "storage": {
+    "backend": "git",
+    "artifact_max_bytes": 10485760
+  },
+  "cases": [
+    {
+      "case_id": "c2-malicious-elf",
+      "directory": "c2-malicious-elf",
+      "content_digest": "fce9cedef17804971ea3f38975e684f2ec9287452fca7ee6f93d89d4aa335572"
+    },
+    {
+      "case_id": "c2-benign-baseline",
+      "directory": "c2-benign-baseline",
+      "content_digest": "8a6e02ec2003b02678f89c78bb06da63b6d74d4e7f45a181622d46dc3706764d"
+    }
+  ]
+}

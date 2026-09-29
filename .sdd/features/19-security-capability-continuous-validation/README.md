@@ -21,7 +21,8 @@
 - [design.md](design.md)：总体架构、Case 与 Replay 模型、被测链路、评分体系、OpenAEV 集成边界、运行模式。
 - [telemetry-scope.md](telemetry-scope.md)：Replay 自建采集范围对齐（探针十类）、与 Canonical 模型的映射与缺口。
 - [implementation-plan.md](implementation-plan.md)：PoC 分步实施与验证门槛。
+- [verification.md](verification.md)：各步骤验收记录。
 
 ## 状态
 
-需求已登记（2026-09-21）。设计已审批（2026-09-29）并完成评审修订：规则侧对接外部态势感知系统（攻击运行期采集结果，不建注入通道），技术选择限定 Linux + 落文件 + 单主机，补充良性基线与漏检受理回执口径。尚未实现。
+设计已审批并完成评审修订（2026-09-29）。步骤 01（Case 与 Replay 契约）已实施并验收：`capability_validation` 契约包 + `validation_cases/seccap-poc@2026.09.1` 首批套件（恶意 + 良性基线），验证门槛全过（见 verification.md）。步骤 02 起待实施。

@@ -329,3 +329,22 @@ def test_agent_eval_is_a_standalone_kernel():
     assert not violations, "agent_eval must not import threat_agent business modules:\n" + "\n".join(
         violations
     )
+
+
+def test_capability_validation_is_a_standalone_package():
+    """Feature 19: capability-validation contracts stay extractable — same
+    discipline as agent_eval / agent_middleware. Alignment with the
+    data-foundation ingestion path is enforced by tests, not imports."""
+
+    violations: list[str] = []
+    for path in (PACKAGE_ROOT / "capability_validation").rglob("*.py"):
+        for imported in _absolute_imports(path):
+            if imported == "threat_agent" or imported.startswith("threat_agent."):
+                if imported == "threat_agent.capability_validation" or imported.startswith(
+                    "threat_agent.capability_validation."
+                ):
+                    continue
+                violations.append(f"{path.relative_to(PACKAGE_ROOT)} -> {imported}")
+    assert not violations, "capability_validation must not import threat_agent business modules:\n" + "\n".join(
+        violations
+    )

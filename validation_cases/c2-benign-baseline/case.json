@@ -1,0 +1,63 @@
+{
+  "schema_version": "1.0",
+  "case_id": "c2-benign-baseline",
+  "attack_tags": [
+    "baseline"
+  ],
+  "scenario": "良性基线：合法 vendor 监控代理（/opt/vendor/monitor-agent）随 systemd 服务运行，回连厂商批准的采集端点。用于误报率统计。",
+  "judgment_target": {
+    "file_path": "/opt/vendor/monitor-agent",
+    "file_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "file_type": "elf"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": false,
+      "basis": "无攻击剧本：systemd 服务为合法 vendor 部署，外连端点在批准清单"
+    },
+    "file": {
+      "judgment": "benign",
+      "basis": "rpm 包归属 vendor-monitor-3.2.1，签名有效，仓库可信；端点已批准"
+    },
+    "source": "人工确认：良性基线剧本"
+  },
+  "expected_rule": {
+    "expected_hit": false,
+    "note": "良性基线不应产生告警；若告警计入误报",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "benign",
+    "risk_level": "none"
+  },
+  "key_evidence": [
+    "包归属正证据（rpm-inventory：owns_file/signature_valid/repository_trusted）",
+    "端点批准正证据（cmdb-baseline：approved）",
+    "服务路径与包记录一致"
+  ],
+  "risk_level": "none",
+  "recommended_action": "无需处置",
+  "telemetry": {
+    "event_files": [
+      "counter_evidence.jsonl",
+      "network.jsonl",
+      "persistence.jsonl",
+      "process.jsonl"
+    ],
+    "environment_baseline_sources": [
+      "rpm-inventory",
+      "cmdb-baseline"
+    ]
+  },
+  "provenance": {
+    "origin": "hand-written",
+    "environment": "reference",
+    "collector": null,
+    "created": "2026-09-29",
+    "notes": "由 cases/c2_benign 转换"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

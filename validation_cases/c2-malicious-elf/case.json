@@ -1,0 +1,75 @@
+{
+  "schema_version": "1.0",
+  "case_id": "c2-malicious-elf",
+  "attack_tags": [
+    "T1543.002",
+    "T1071.001"
+  ],
+  "scenario": "攻击者投递隐藏路径 ELF 后门（/tmp/.cache/sysupd），以 systemd 服务持久化，并以 root 权限持续回连 C2 端点（443/TCP 直连 IP）。",
+  "judgment_target": {
+    "file_path": "/tmp/.cache/sysupd",
+    "file_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "file_type": "elf"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "systemd unit 写入并 enable（T1543.002 达成）；root 进程持续外连 C2 端点 443/TCP（T1071.001 达成）"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "非包管理器来源的隐藏路径 ELF；通信端点不在批准清单；无合法业务解释"
+    },
+    "source": "人工确认：手写参考剧本，双层 GT 由剧本设计直接推导"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "剧本设计目标为规则可检出（服务持久化 + 可疑外连）；漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "risk_level": "critical"
+  },
+  "key_evidence": [
+    "systemd unit 写入并 enable（persistence 域）",
+    "非包归属负证据（rpm-inventory）",
+    "C2 端点不在批准清单（cmdb-baseline 负证据）",
+    "root 执行隐藏路径 ELF 且父进程为 sshd→bash"
+  ],
+  "risk_level": "critical",
+  "recommended_action": "隔离主机，停用并清除 sysupd.service 与对应文件，阻断 C2 端点，排查 sshd 入口",
+  "telemetry": {
+    "event_files": [
+      "counter_evidence.jsonl",
+      "network.jsonl",
+      "persistence.jsonl",
+      "process.jsonl"
+    ],
+    "environment_baseline_sources": [
+      "rpm-inventory",
+      "cmdb-baseline"
+    ]
+  },
+  "provenance": {
+    "origin": "hand-written",
+    "environment": "reference",
+    "collector": null,
+    "created": "2026-09-29",
+    "notes": "由 cases/c2_malicious 转换；C2 端点参数化为 {{c2_endpoint}}"
+  },
+  "parameters": {
+    "defaults": {
+      "c2_endpoint": "203.0.113.50"
+    },
+    "variants": [
+      {
+        "variant_id": "alt-endpoint",
+        "description": "同一剧本更换 C2 端点",
+        "parameters": {
+          "c2_endpoint": "198.51.100.77"
+        }
+      }
+    ]
+  }
+}
