@@ -23,6 +23,6 @@
   （聚合矩阵 / pass^k 归约 / 回归 diff / Markdown 渲染）。
 - Harbor 吸收结论见 design.md §9（考题目录约定、named reward dimensions、regrade、suite@version
   版本钉住、milestone 评分、参考解为出题必备件）。
-- **待办（步骤 03/04）**：SecAgent 适配器（CaseFactory + TaskAdapter over RunService）、五个确定性
+- **待办（步骤 04 与基线）**：SecAgent 适配器（CaseFactory + TaskAdapter over RunService）、五个确定性
   Scorer、首份基线报告；CI smoke 门禁。运行时收敛裁决实验已无对象（graph 运行时已退役，middleware
   为唯一运行路径），步骤 03 相应缩减为"适配器 + 基线"。
