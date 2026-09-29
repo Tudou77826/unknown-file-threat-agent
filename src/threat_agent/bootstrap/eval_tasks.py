@@ -195,6 +195,7 @@ class SecAgentEvalTask:
                 json.dumps(
                     {"kind": kind, "message": message, "details": details or {}},
                     ensure_ascii=False,
+                    default=str,  # 事件 details 可能携带 datetime 等非 JSON 对象
                 )
                 + "\n"
             )
@@ -285,8 +286,12 @@ def _usage_from_events(events_path: Path, ledger_tool_calls: int) -> dict[str, i
             except ValueError:
                 continue
             details = event.get("details") or {}
-            usage = details.get("usage") if isinstance(details, dict) else None
-            if isinstance(usage, dict):
+            usage = (
+                details.get("token_usage") or details.get("usage")
+                if isinstance(details, dict)
+                else None
+            )
+            if isinstance(usage, dict) and usage.get("total_tokens"):
                 model_calls += 1
                 total_tokens += int(usage.get("total_tokens") or 0)
     return {

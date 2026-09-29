@@ -112,6 +112,35 @@ def invoke_llm(
 __all__ = ["classify_llm_error", "invoke_llm"]
 
 
+class _NoToolCallError(OutputParserException):
+    """Bound tool was not called — retryable at the parse level."""
+
+
+def forced_structured(model, schema):
+    """Anthropic-family structured output with a FORCED tool choice.
+
+    glm-class models answer long report prompts in prose instead of calling
+    the bound tool (the planner loop works because it re-binds tools every
+    turn); tool_choice=any makes the single bound schema unavoidable.
+    Returns a runnable producing ``schema`` instances.
+    """
+
+    from langchain_core.runnables import RunnableLambda
+
+    if not hasattr(model, "bind_tools"):  # 测试替身等非工具模型走原路径
+        return model.with_structured_output(schema, method=structured_output_method(model))
+    bound = model.bind_tools([schema], tool_choice={"type": "any"})
+
+    def _invoke(messages, config=None, **kwargs):
+        message = bound.invoke(messages, config)
+        calls = getattr(message, "tool_calls", None) or []
+        if not calls:
+            raise _NoToolCallError("model did not call the bound structured tool")
+        return schema.model_validate(calls[0]["args"])
+
+    return RunnableLambda(_invoke)
+
+
 def structured_output_method(model) -> str:
     """json_mode is an OpenAI-family capability; Anthropic-family models
     reach structured output through tool calling."""

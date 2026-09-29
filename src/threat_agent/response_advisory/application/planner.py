@@ -8,7 +8,7 @@ from ...contracts import (
     KnowledgeConsultationResult,
     ResponseContext,
 )
-from ...shared.llm import invoke_llm, structured_output_method
+from ...shared.llm import forced_structured, invoke_llm, structured_output_method
 from ..domain.models import ResponseProposal
 
 
@@ -83,9 +83,12 @@ class StructuredResponsePlanner:
     def __init__(self, model: Any, event_sink: Callable | None = None):
         self.model = model
         self.event_sink = event_sink or (lambda _kind, _message, _details=None: None)
-        self.structured_model = model.with_structured_output(
-            ResponseProposal, method=structured_output_method(model)
-        )
+        if structured_output_method(model) == "json_mode":
+            self.structured_model = model.with_structured_output(
+                ResponseProposal, method="json_mode"
+            )
+        else:
+            self.structured_model = forced_structured(model, ResponseProposal)
         self.system_prompt = (
             "Return one JSON object matching the ResponseProposal schema. "
             "The top-level keys are actions, missing_context and residual_risk; "

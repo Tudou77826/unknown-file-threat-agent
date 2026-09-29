@@ -6,7 +6,7 @@ from typing import Any, Callable
 
 from ...contracts import InvestigationReport
 from ...contracts.investigation import CandidateVerdict, VerdictLevel
-from ...shared.llm import invoke_llm, structured_output_method
+from ...shared.llm import forced_structured, invoke_llm, structured_output_method
 from ..domain.models import InvestigationState
 from .report_draft import ReportDraft
 from .report_validation import (
@@ -93,9 +93,12 @@ class StructuredReportComposer:
 
     def __init__(self, model: Any, event_sink: Callable | None = None, *, tenant_id: str = "default"):
         self.model_name = str(getattr(model, "model_name", getattr(model, "model", "unknown")))
-        self.structured_model = model.with_structured_output(
-            ReportDraft, method=structured_output_method(model)
-        )
+        if structured_output_method(model) == "json_mode":
+            self.structured_model = model.with_structured_output(
+                ReportDraft, method="json_mode"
+            )
+        else:
+            self.structured_model = forced_structured(model, ReportDraft)
         self.event_sink = event_sink or (lambda _kind, _message, _details=None: None)
         self.tenant_id = tenant_id
         schema = json.dumps(ReportDraft.model_json_schema(), ensure_ascii=False)

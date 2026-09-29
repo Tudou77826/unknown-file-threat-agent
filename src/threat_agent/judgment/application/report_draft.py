@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
 from ...contracts import ReportStatement
 from ...contracts.investigation import CandidateVerdict
@@ -36,6 +36,16 @@ class ReportDraft(StrictModel):
     asserted_end: datetime | None = None
     confirmed_relation_refs: list[str] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)
+
+    @field_validator("asserted_start", "asserted_end", mode="before")
+    @classmethod
+    def _nullish_to_none(cls, value):
+        # Some models (e.g. glm) serialize unset optional datetimes as the
+        # string "null"/"" instead of omitting the field — normalize at the
+        # LLM boundary so the parse-retry loop isn't burned on it.
+        if isinstance(value, str) and value.strip().lower() in {"null", "none", "", "n/a"}:
+            return None
+        return value
 
     @model_validator(mode="after")
     def _normalize_asserted_times(self) -> "ReportDraft":

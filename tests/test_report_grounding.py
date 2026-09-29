@@ -484,3 +484,21 @@ def test_response_planner_prompt_carries_impact_exemplars():
     assert "中断" in prompt and "可逆" in prompt
     # Conservative exemplar teaches the fallback shape.
     assert "manual_review" in prompt and "collect_more_data" in prompt
+
+
+def test_report_draft_normalizes_nullish_datetime_strings():
+    """glm 类模型把未设置的 datetime 填成字符串 "null"——边界归一为 None。"""
+    from threat_agent.judgment.application.report_draft import ReportDraft
+
+    base = {
+        "verdict": {"level": "confirmed_malicious", "threat_type": "backdoor_c2", "summary": "s"},
+        "executive_summary": "s",
+    }
+    draft = ReportDraft.model_validate({**base, "asserted_start": "null", "asserted_end": ""})
+    assert draft.asserted_start is None and draft.asserted_end is None
+    from datetime import datetime, timezone
+
+    ok = ReportDraft.model_validate(
+        {**base, "asserted_start": "2026-04-23T03:21:00Z"}
+    )
+    assert ok.asserted_start == datetime(2026, 4, 23, 3, 21, tzinfo=timezone.utc)
