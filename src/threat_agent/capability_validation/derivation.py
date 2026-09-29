@@ -74,7 +74,8 @@ def _materialize(
         validate_canonical_event(event)
     leftovers = sorted(
         set(
-            find_unresolved_placeholders(input_record)
+            find_unresolved_placeholders(case.model_dump())
+            + find_unresolved_placeholders(input_record)
             + find_unresolved_placeholders(events)
             + (find_unresolved_placeholders(coverage) if coverage else [])
         )

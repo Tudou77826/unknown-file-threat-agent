@@ -112,12 +112,16 @@ src/threat_agent/
 ├── response_advisory/  # 处置 domain/application/ports/adapters
 ├── knowledge/          # RAG 端口与 Null Adapter
 ├── presentation/       # 只读 API、Store 和契约序列化
+├── agent_middleware/   # 独立中间件包（边界/预算/上下文治理）
+├── agent_eval/         # 跨项目评测内核（Feature 16）
+├── capability_validation/  # 能力验证 Case/Replay 契约（Feature 19）
 └── shared/             # ID、基础模型等无业务含义代码
 ```
 
 依赖约束如下：
 
 - `contracts` 和 `shared` 不依赖任何业务能力；
+- `agent_middleware`、`agent_eval`、`capability_validation` 为独立抽包，不 import 任何其他 threat_agent 子包（与主干的对齐由测试外侧保证）；
 - `data_foundation` 不依赖案件、研判、处置或展示流程；
 - `judgment` 只消费数据 Port，不直接依赖 SQLite 或外部安全平台 SDK；
 - `presentation` 只消费稳定契约，不读取调查状态或 Checkpoint；

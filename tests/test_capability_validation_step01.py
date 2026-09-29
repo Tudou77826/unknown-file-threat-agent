@@ -149,6 +149,93 @@ def test_artifact_size_limit(tmp_path: Path):
         repo._enforce_artifact_limit(case_dir)
 
 
+def test_raw_telemetry_kind_is_probe_scoped():
+    from threat_agent.capability_validation import RawTelemetryEnvelope
+
+    RawTelemetryEnvelope(
+        kind="process", collector="auditd/1", captured_at="t", host_id="h", payload={}
+    )
+    with pytest.raises(ValidationError, match="telemetry kind"):
+        RawTelemetryEnvelope(
+            kind="made_up", collector="x/1", captured_at="t", host_id="h", payload={}
+        )
+
+
+def test_ground_truth_must_be_literal(tmp_path: Path):
+    payload = json.loads(
+        (SUITE_ROOT / "c2-malicious-elf" / "case.json").read_text(encoding="utf-8")
+    )
+    # A *declared* parameter name in GT is the dangerous case: it survives
+    # the shared-truth restore as a literal {{...}} instead of erroring.
+    payload["ground_truth"]["file"]["basis"] = "端点 {{c2_endpoint}} 不在批准清单"
+    suite = tmp_path / "suite"
+    suite.mkdir()
+    shutil_copytree(SUITE_ROOT / "c2-malicious-elf", suite / "c2-malicious-elf")
+    (suite / "c2-malicious-elf" / "case.json").write_text(
+        json.dumps(payload, ensure_ascii=False), encoding="utf-8"
+    )
+    manifest = json.loads((SUITE_ROOT / "manifest.json").read_text(encoding="utf-8"))
+    for entry in manifest["cases"]:
+        entry["content_digest"] = None  # case.json was rewritten; unpin for this probe
+    (suite / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(ValueError, match="ground truth must be literal"):
+        ValidationSuiteRepository(suite).load()
+
+
+def test_manifest_rejects_duplicate_case_references():
+    from threat_agent.capability_validation import SuiteManifest
+
+    entry = {"case_id": "a", "directory": "d"}
+    with pytest.raises(ValidationError, match="duplicate case"):
+        SuiteManifest.model_validate(
+            {
+                "suite_id": "s",
+                "suite_version": "v1",
+                "created": "2026-09-29",
+                "cases": [entry, dict(entry)],
+            }
+        )
+
+
+def test_anchor_checks_path_and_type(tmp_path: Path):
+    payload = json.loads(
+        (SUITE_ROOT / "c2-benign-baseline" / "case.json").read_text(encoding="utf-8")
+    )
+    payload["judgment_target"]["file_path"] = "/elsewhere/agent"
+    case_dir = tmp_path / "case"
+    shutil_copytree(SUITE_ROOT / "c2-benign-baseline", case_dir)
+    (case_dir / "case.json").write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    from threat_agent.capability_validation import ReplayBundle
+
+    with pytest.raises(ValueError, match="path mismatch"):
+        ReplayBundle.load(case_dir)
+
+
+def test_manifest_artifact_limit_overrides_default(tmp_path: Path):
+    suite = tmp_path / "suite"
+    case_dir = suite / "case"
+    (case_dir / "replay" / "artifacts").mkdir(parents=True)
+    (case_dir / "replay" / "artifacts" / "small.bin").write_bytes(b"\0" * 100)
+    (suite / "manifest.json").write_text(
+        json.dumps(
+            {
+                "suite_id": "s",
+                "suite_version": "v1",
+                "created": "2026-09-29",
+                "storage": {"artifact_max_bytes": 50},
+                "cases": [{"case_id": "case", "directory": "case"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    repo = ValidationSuiteRepository(suite)
+    assert repo._artifact_limit(repo.load_manifest()) == 50
+    # The manifest-declared limit is the one load() enforces (artifact is
+    # 100 bytes; built-in default would allow it).
+    with pytest.raises(ValueError, match="exceeds"):
+        repo.load()
+
+
 def shutil_copytree(src: Path, dst: Path) -> None:
     import shutil
 

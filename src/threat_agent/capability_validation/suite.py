@@ -17,7 +17,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from ._base import StrictModel
 from .case_model import TestCase
@@ -40,6 +40,15 @@ class SuiteManifest(StrictModel):
     created: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
     storage: dict[str, object] = Field(default_factory=dict)
     cases: list[CaseEntry] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _unique_case_references(self) -> "SuiteManifest":
+        for field in ("case_id", "directory"):
+            values = [getattr(entry, field) for entry in self.cases]
+            duplicates = sorted({value for value in values if values.count(value) > 1})
+            if duplicates:
+                raise ValueError(f"duplicate case {field} in manifest: {duplicates}")
+        return self
 
 
 class LoadedCase:
@@ -68,6 +77,7 @@ class ValidationSuiteRepository:
 
     def load(self, *, verify_digests: bool = True) -> tuple[SuiteManifest, list[LoadedCase]]:
         manifest = self.load_manifest()
+        self.max_artifact_bytes = self._artifact_limit(manifest)
         loaded: list[LoadedCase] = []
         for entry in manifest.cases:
             case_dir = (self.root / entry.directory).resolve()
@@ -97,6 +107,7 @@ class ValidationSuiteRepository:
         """Recompute and persist content digests after a reviewed case change."""
 
         manifest = self.load_manifest()
+        self.max_artifact_bytes = self._artifact_limit(manifest)
         for entry in manifest.cases:
             entry.content_digest = digest_case_directory((self.root / entry.directory).resolve())
         self.manifest_path.write_text(
@@ -104,6 +115,19 @@ class ValidationSuiteRepository:
             encoding="utf-8",
         )
         return manifest
+
+    @staticmethod
+    def _artifact_limit(manifest: SuiteManifest) -> int:
+        """The manifest's storage declaration wins over the built-in default,
+        so tightening a suite's storage policy needs no code change."""
+
+        declared = manifest.storage.get("artifact_max_bytes")
+        try:
+            return int(declared) if declared else MAX_ARTIFACT_BYTES
+        except (TypeError, ValueError) as error:
+            raise ValueError(
+                f"manifest storage.artifact_max_bytes is not an integer: {declared!r}"
+            ) from error
 
     def _enforce_artifact_limit(self, case_dir: Path) -> None:
         artifacts = case_dir / "replay" / "artifacts"

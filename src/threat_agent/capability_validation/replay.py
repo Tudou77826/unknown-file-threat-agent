@@ -28,7 +28,7 @@ import re
 from pathlib import Path
 from typing import Any, Protocol
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from ._base import StrictModel
 from .case_model import TestCase
@@ -81,6 +81,16 @@ class RawTelemetryEnvelope(StrictModel):
     host_id: str = Field(min_length=1)
     payload: dict[str, Any]
 
+    @field_validator("kind")
+    @classmethod
+    def _kind_in_scope(cls, value: str) -> str:
+        if value not in RAW_TELEMETRY_KINDS:
+            raise ValueError(
+                f"unknown telemetry kind {value!r}; must be one of the "
+                f"probe-aligned kinds (telemetry-scope.md)"
+            )
+        return value
+
 
 class RawTelemetryProjector(Protocol):
     """Projection contract: raw probe-aligned telemetry → canonical events."""
@@ -123,6 +133,7 @@ class ReplayBundle:
         case = TestCase.model_validate(
             json.loads((case_dir / "case.json").read_text(encoding="utf-8"))
         )
+        _check_truth_is_literal(case)
         replay_dir = case_dir / "replay"
         input_record = json.loads(
             (replay_dir / "input.json").read_text(encoding="utf-8")
@@ -159,6 +170,30 @@ def _check_anchor(case: TestCase, input_record: dict[str, Any]) -> None:
         raise ValueError(
             f"judgment target hash mismatch for {case.case_id}: "
             f"case.json {case.judgment_target.file_hash} vs input.json {input_hash}"
+        )
+    input_path = str(input_record.get("File_path") or input_record.get("file_path") or "")
+    if input_path != case.judgment_target.file_path:
+        raise ValueError(
+            f"judgment target path mismatch for {case.case_id}: "
+            f"case.json {case.judgment_target.file_path} vs input.json {input_path}"
+        )
+    input_type = str(input_record.get("File_type") or input_record.get("file_type") or "")
+    if input_type != case.judgment_target.file_type:
+        raise ValueError(
+            f"judgment target type mismatch for {case.case_id}: "
+            f"case.json {case.judgment_target.file_type} vs input.json {input_type}"
+        )
+
+
+def _check_truth_is_literal(case: TestCase) -> None:
+    """Ground truth is shared verbatim across variants, so placeholders can
+    never resolve there — any ``{{name}}`` in GT is an authoring error."""
+
+    leftover = find_unresolved_placeholders(case.ground_truth.model_dump())
+    if leftover:
+        raise ValueError(
+            f"case {case.case_id} ground truth contains placeholders {leftover}; "
+            f"ground truth must be literal"
         )
 
 
