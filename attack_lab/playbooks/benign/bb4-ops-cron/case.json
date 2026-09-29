@@ -1,0 +1,57 @@
+{
+  "schema_version": "1.0",
+  "case_id": "bb4-ops-cron",
+  "attack_tags": [
+    "baseline"
+  ],
+  "scenario": "运维写入日志清理 cron 任务并手动执行一次。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/bb4-ops-cron/logclean.sh",
+    "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "file_type": "script"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": false,
+      "basis": "无攻击剧本（合法 cron 写入）"
+    },
+    "file": {
+      "judgment": "benign",
+      "basis": "批准的运维 cron 清理脚本"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": false,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "benign",
+    "risk_level": "none"
+  },
+  "key_evidence": [
+    "cron 文件写入（运维来源）",
+    "脚本执行",
+    "无外连"
+  ],
+  "risk_level": "none",
+  "recommended_action": "无需处置",
+  "telemetry": {
+    "event_files": [
+      "generated-by-settle"
+    ],
+    "environment_baseline_sources": []
+  },
+  "provenance": {
+    "origin": "hand-written",
+    "environment": "lab",
+    "collector": null,
+    "created": "2026-09-29",
+    "notes": "剧本 bb4-ops-cron"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

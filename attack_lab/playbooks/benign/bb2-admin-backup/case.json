@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0",
+  "case_id": "bb2-admin-backup",
+  "attack_tags": [
+    "baseline"
+  ],
+  "scenario": "管理员按变更单将应用目录打包备份至工作区。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/bb2-admin-backup/backup.tar.gz",
+    "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "file_type": "archive"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": false,
+      "basis": "无攻击剧本"
+    },
+    "file": {
+      "judgment": "benign",
+      "basis": "运维变更单内的常规备份，来源与目的地均为批准资产"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": false,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "benign",
+    "risk_level": "none"
+  },
+  "key_evidence": [
+    "tar 执行（运维会话）",
+    "备份归档创建"
+  ],
+  "risk_level": "none",
+  "recommended_action": "无需处置",
+  "telemetry": {
+    "event_files": [
+      "generated-by-settle"
+    ],
+    "environment_baseline_sources": []
+  },
+  "provenance": {
+    "origin": "hand-written",
+    "environment": "lab",
+    "collector": null,
+    "created": "2026-09-29",
+    "notes": "剧本 bb2-admin-backup"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

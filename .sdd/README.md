@@ -26,7 +26,7 @@
 | 15 | [agent-middleware-foundation](features/15-agent-middleware-foundation/README.md) | 将边界、预算和上下文治理收敛到框架 middleware，并固定正式研判运行时 | 已实施；Demo 与调查 API 仅保留 create_agent + middleware 路径 |
 | 16 | [agent-eval-framework](features/16-agent-eval-framework/README.md) | 跨项目 Agent 评测框架：调度、并发、限流、产物持久化、确定性打分与分层套件 | 设计待审批；尚未实现 |
 | 17 | [runtime-workbench](features/17-runtime-workbench/README.md) | 常驻运行工作台：案件运行面、审批台、调测面（轨迹/断点恢复）、Langfuse 可观测旁路与评测运行面挂载 | 设计待审批；尚未实现 |
-| 19 | [security-capability-continuous-validation](features/19-security-capability-continuous-validation/README.md) | 标准攻击与 AI 自主攻击持续产数据，统一 Ground Truth 下评测规则检出、AI 补漏与整体感知覆盖 | 步骤 01（Case/Replay 契约）已实施验收；步骤 02 起待实施 |
+| 19 | [security-capability-continuous-validation](features/19-security-capability-continuous-validation/README.md) | 标准攻击与 AI 自主攻击持续产数据，统一 Ground Truth 下评测规则检出、AI 补漏与整体感知覆盖 | 步骤 01 已验收；步骤 02 桌面阶段完成（采集器/转换器/剧本库），靶场执行待环境 |
 
 ## 文档规则
 

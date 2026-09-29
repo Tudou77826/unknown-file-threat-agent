@@ -1,5 +1,22 @@
 # Feature 19 — Verification
 
+## 步骤 02 桌面阶段（已验收 2026-09-29，靶场阶段待环境）
+
+交付物：
+
+- 技术选择目录 [attack-catalog.md](attack-catalog.md)：12 恶意（11 新剧本 + 既有 c2-malicious-elf）+ 6 良性（5 新 + 既有 c2-benign-baseline），每条恶意刻意配良性对照；含排除记录（T1055.001 非 Linux、T1136.001 无 Canonical 事件族、T1210 跨主机、脚本类载荷降级）。
+- `attack_lab/`：采集器（auditd 规则 + collect.sh 编排：窗口标注、ps/ss/rpm/包归属快照、工作区归档与哈希清单）、16 个剧本（run.sh + case.json GT 草案）、`settle_case.py` 沉淀管线、README 运行手册。
+- `capability_validation/projection_auditd.py`：步骤 01 预留的投影转换器——auditd 行 → 探针范围信封 → canonical 事件；进程身份稳定化（首见 exec 时间 + ps 启动时间）、ppid 父链派生、/etc/systemd/system 写入派生 systemd_event、sockaddr 四元组解析。
+- `ReferenceEventParser` 新增 `file_event` 分支（§2 文件事件此前落 ExtensionActivity，丢失 FileActivity 结构）。
+
+验收（`tests/test_capability_validation_step02.py`，5 例；全量 304 过）：
+
+- auditd 分类：进程/文件/网络/命令四类信封，EXECVE 参数引号/十六进制双语义，USER_CMD 跨空格 msg 提取，sockaddr → ip:port；
+- 投影：process_exec 携带工作区 hash 锚点 file_ref，ppid 父链派生，unit 写入 → persistence 域 systemd_event；
+- **端到端**：合成 bundle（audit.log + 哈希清单 + ps 快照 + 包归属 + 批准端点）→ settle → 产出可加载 Case（套件校验全过：清单一致、GT 字面、锚点三字段一致、摘要钉住），窗口外记录剔除，反证含 owns_file=false 与未批准端点。
+
+靶场阶段待办（依赖环境，见 attack_lab/README.md 前置条件表）：部署采集器与剧本 → 逐 Case 真实执行 → settle → GT 人工复核 → 入正式套件；规则侧告警与受理回执对应关系人工记录（步骤 03 采集建好后自动化）。步骤 02 验证门槛中「Replay 重放结果稳定」在靶场 Case 入库后复验。
+
 ## 步骤 01：Case 与 Replay 契约（已验收 2026-09-29）
 
 交付物：

@@ -26,6 +26,7 @@ from .derivation import (
     derive_variant,
     materialize_default,
 )
+from .projection_auditd import AuditDProjector, parse_auditd_lines
 from .replay import (
     BASELINE_SOURCE_KINDS,
     RAW_TELEMETRY_KINDS,
@@ -46,6 +47,7 @@ from .suite import (
 )
 
 __all__ = [
+    "AuditDProjector",
     "BASELINE_SOURCE_KINDS",
     "BehavioralGroundTruth",
     "CaseEntry",
@@ -75,6 +77,7 @@ __all__ = [
     "digest_case_directory",
     "find_unresolved_placeholders",
     "materialize_default",
+    "parse_auditd_lines",
     "substitute",
     "validate_canonical_event",
 ]

@@ -1,0 +1,58 @@
+{
+  "schema_version": "1.0",
+  "case_id": "t1543-002-systemd-service",
+  "attack_tags": [
+    "T1543.002"
+  ],
+  "scenario": "落盘后门 ELF，写入 systemd unit 并 enable，随服务执行回连。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/t1543-002-systemd-service/payload.elf",
+    "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "file_type": "elf"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "unit 写入 + wants 符号链接 enable + 服务执行（T1543.002 达成）"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "隐藏目的的 systemd 服务载荷，非包归属，外连未批准端点"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "risk_level": "critical"
+  },
+  "key_evidence": [
+    "systemd unit 写入（persistence）",
+    "enable 符号链接",
+    "root 执行隐藏路径 ELF",
+    "未批准端点外连"
+  ],
+  "risk_level": "critical",
+  "recommended_action": "停用并清除服务与载荷，阻断 C2",
+  "telemetry": {
+    "event_files": [
+      "generated-by-settle"
+    ],
+    "environment_baseline_sources": []
+  },
+  "provenance": {
+    "origin": "hand-written",
+    "environment": "lab",
+    "collector": null,
+    "created": "2026-09-29",
+    "notes": "剧本 t1543-002-systemd-service"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

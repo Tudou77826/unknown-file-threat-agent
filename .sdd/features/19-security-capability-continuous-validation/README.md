@@ -20,9 +20,10 @@
 - [requirements.md](requirements.md)：目标、范围边界、功能与非功能要求、验收条件。
 - [design.md](design.md)：总体架构、Case 与 Replay 模型、被测链路、评分体系、OpenAEV 集成边界、运行模式。
 - [telemetry-scope.md](telemetry-scope.md)：Replay 自建采集范围对齐（探针十类）、与 Canonical 模型的映射与缺口。
+- [attack-catalog.md](attack-catalog.md)：步骤 02 技术选择目录（12 恶意 + 6 良性，含排除记录）。
 - [implementation-plan.md](implementation-plan.md)：PoC 分步实施与验证门槛。
 - [verification.md](verification.md)：各步骤验收记录。
 
 ## 状态
 
-设计已审批并完成评审修订（2026-09-29）。步骤 01（Case 与 Replay 契约）已实施并验收：`capability_validation` 契约包 + `validation_cases/seccap-poc@2026.09.1` 首批套件（恶意 + 良性基线），验证门槛全过（见 verification.md）。步骤 02 起待实施。
+设计已审批并完成评审修订（2026-09-29）。步骤 01（Case 与 Replay 契约）已实施并验收。步骤 02 桌面阶段已实施（技术选择目录、auditd 采集器与投影转换器、沉淀管线、16 个剧本，合成数据端到端验证通过，见 verification.md）；靶场阶段待环境就绪（Linux 靶机 + 态势感知探针，运行手册 attack_lab/README.md）。

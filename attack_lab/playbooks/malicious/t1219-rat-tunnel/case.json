@@ -1,0 +1,57 @@
+{
+  "schema_version": "1.0",
+  "case_id": "t1219-rat-tunnel",
+  "attack_tags": [
+    "T1219"
+  ],
+  "scenario": "部署远控隧道 ELF 并建立出站连接。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/t1219-rat-tunnel/tunnel.elf",
+    "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "file_type": "elf"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "隧道部署 + 出站长连接（T1219 达成）"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "非包归属隧道工具，长连接外网端点"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "risk_level": "critical"
+  },
+  "key_evidence": [
+    "tunnel ELF 创建",
+    "出站连接（未批准端点）",
+    "长驻进程"
+  ],
+  "risk_level": "critical",
+  "recommended_action": "阻断并清除隧道，排查安装来源",
+  "telemetry": {
+    "event_files": [
+      "generated-by-settle"
+    ],
+    "environment_baseline_sources": []
+  },
+  "provenance": {
+    "origin": "hand-written",
+    "environment": "lab",
+    "collector": null,
+    "created": "2026-09-29",
+    "notes": "剧本 t1219-rat-tunnel"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "schema_version": "1.0",
+  "case_id": "t1574-006-ldpreload",
+  "attack_tags": [
+    "T1574.006"
+  ],
+  "scenario": "写入恶意 .so 并以 LD_PRELOAD 劫持合法程序执行。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/t1574-006-ldpreload/libpreload.so",
+    "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "file_type": "elf"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "共享库写入 + preload 执行合法程序（T1574.006 达成）"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "非包归属的 LD_PRELOAD 库，构造函数外连"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "risk_level": "critical"
+  },
+  "key_evidence": [
+    ".so 文件创建",
+    "合法程序以 PRELOAD 执行异常库",
+    "未批准端点外连"
+  ],
+  "risk_level": "critical",
+  "recommended_action": "清除 .so 与相关环境配置，排查加载链",
+  "telemetry": {
+    "event_files": [
+      "generated-by-settle"
+    ],
+    "environment_baseline_sources": []
+  },
+  "provenance": {
+    "origin": "hand-written",
+    "environment": "lab",
+    "collector": null,
+    "created": "2026-09-29",
+    "notes": "剧本 t1574-006-ldpreload"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

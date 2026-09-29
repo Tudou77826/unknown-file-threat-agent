@@ -111,6 +111,15 @@ class ReferenceEventParser:
                 socket_ref=str(data["socket_id"]), direction=direction,
                 byte_count=data.get("bytes"),
             ))
+        elif event_type == "file_event":
+            # Feature 19 §2 文件事件（创建/写入/删除/改名），auditd 投影产出。
+            result.append(FileActivity(
+                **base, host_ref=host, file_ref=str(data.get("file_ref") or next(
+                    (x for x in subjects if x.startswith("file:")), f"file:{host}:unknown"
+                )),
+                path=data.get("path"), operation=str(data.get("operation", "create")),
+                acting_process_ref=data.get("acting_process_ref"),
+            ))
         elif event_type == "systemd_event":
             operation_map = {"unit_write": "define", "enable": "enable", "start": "start", "stop": "stop"}
             result.append(ServiceActivity(

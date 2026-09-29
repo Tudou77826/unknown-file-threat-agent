@@ -1,0 +1,57 @@
+{
+  "schema_version": "1.0",
+  "case_id": "t1037-004-rc-local",
+  "attack_tags": [
+    "T1037.004"
+  ],
+  "scenario": "写入 rc.local 启动项执行落盘载荷。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/t1037-004-rc-local/payload.elf",
+    "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "file_type": "elf"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "rc.local 追加启动命令 + 载荷执行（T1037.004 达成）"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "启动项指向的非包归属载荷"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "risk_level": "high"
+  },
+  "key_evidence": [
+    "rc.local 写入（persistence）",
+    "root 执行工作区 ELF",
+    "未批准端点外连"
+  ],
+  "risk_level": "high",
+  "recommended_action": "清除 rc.local 追加项与载荷",
+  "telemetry": {
+    "event_files": [
+      "generated-by-settle"
+    ],
+    "environment_baseline_sources": []
+  },
+  "provenance": {
+    "origin": "hand-written",
+    "environment": "lab",
+    "collector": null,
+    "created": "2026-09-29",
+    "notes": "剧本 t1037-004-rc-local"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

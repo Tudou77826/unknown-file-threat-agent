@@ -1,0 +1,57 @@
+{
+  "schema_version": "1.0",
+  "case_id": "t1567-002-exfil-upload",
+  "attack_tags": [
+    "T1567.002"
+  ],
+  "scenario": "将归档上传至外部存储端点。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/t1567-002-exfil-upload/exfil.tar.gz",
+    "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "file_type": "archive"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "归档上传外传（T1567.002 达成）"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "外传归档文件，目标为未批准外部端点"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "risk_level": "critical"
+  },
+  "key_evidence": [
+    "curl 上传外传",
+    "归档文件创建",
+    "未批准端点连接"
+  ],
+  "risk_level": "critical",
+  "recommended_action": "阻断外传端点，清除归档并评估数据暴露面",
+  "telemetry": {
+    "event_files": [
+      "generated-by-settle"
+    ],
+    "environment_baseline_sources": []
+  },
+  "provenance": {
+    "origin": "hand-written",
+    "environment": "lab",
+    "collector": null,
+    "created": "2026-09-29",
+    "notes": "剧本 t1567-002-exfil-upload"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

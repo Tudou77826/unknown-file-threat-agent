@@ -1,0 +1,58 @@
+{
+  "schema_version": "1.0",
+  "case_id": "t1005-t1560-001-archive",
+  "attack_tags": [
+    "T1005",
+    "T1560.001"
+  ],
+  "scenario": "tar 打包敏感目录产出归档，为外传做准备。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/t1005-t1560-001-archive/staging.tar.gz",
+    "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "file_type": "archive"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "系统工具聚合敏感文件并归档（T1005/T1560.001 达成）"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "敏感目录聚合归档，非业务备份窗口与目标"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "risk_level": "high"
+  },
+  "key_evidence": [
+    "tar 执行",
+    "归档文件创建",
+    "敏感目录读取上下文"
+  ],
+  "risk_level": "high",
+  "recommended_action": "清除归档，排查访问来源与外传企图",
+  "telemetry": {
+    "event_files": [
+      "generated-by-settle"
+    ],
+    "environment_baseline_sources": []
+  },
+  "provenance": {
+    "origin": "hand-written",
+    "environment": "lab",
+    "collector": null,
+    "created": "2026-09-29",
+    "notes": "剧本 t1005-t1560-001-archive"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

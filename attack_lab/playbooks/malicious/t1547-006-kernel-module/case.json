@@ -1,0 +1,57 @@
+{
+  "schema_version": "1.0",
+  "case_id": "t1547-006-kernel-module",
+  "attack_tags": [
+    "T1547.006"
+  ],
+  "scenario": "落盘内核模块 .ko 并 insmod 加载（环境敏感，需匹配靶机内核）。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/t1547-006-kernel-module/rootkit.ko",
+    "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "file_type": "elf"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": ".ko 写入 + insmod 加载（T1547.006 达成）"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "非签名非包归属内核模块，加载后驻留"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "risk_level": "critical"
+  },
+  "key_evidence": [
+    ".ko 文件创建",
+    "insmod 执行",
+    "非包归属负证据"
+  ],
+  "risk_level": "critical",
+  "recommended_action": "卸载模块、清除 .ko，检查内核完整性",
+  "telemetry": {
+    "event_files": [
+      "generated-by-settle"
+    ],
+    "environment_baseline_sources": []
+  },
+  "provenance": {
+    "origin": "hand-written",
+    "environment": "lab",
+    "collector": null,
+    "created": "2026-09-29",
+    "notes": "剧本 t1547-006-kernel-module"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}
