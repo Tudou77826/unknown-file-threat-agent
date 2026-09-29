@@ -46,6 +46,9 @@ while IFS= read -r f; do
   case "$owner" in "" | "file "* | *"not owned"*) owner=NOT-OWNED ;; esac
   printf '%s\t%s\n' "$f" "$owner" >> "$BUNDLE/workspace_owners.txt"
 done < "$BUNDLE/workspace_files.txt"
+# 等待 auditd 落盘（高负载时写入滞后，立即切片会丢窗口尾部记录）
+sleep 3
+
 # 审计日志按窗口切片（秒×1000 对齐毫秒窗口；传输与沉淀都只需要窗口内记录）
 awk -v s="$START_MS" -v e="$END_MS" '{
   if (match($0, /msg=audit\([0-9]+/)) {

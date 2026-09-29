@@ -228,6 +228,9 @@ def settle(*, source: Path, bundle: Path, host_id: str, suite_root: Path, worksp
     case_dir = suite_root / draft.case_id
     replay_dir = case_dir / "replay"
     events_dir = replay_dir / "events"
+    if events_dir.exists():
+        for stale in events_dir.glob("*.jsonl"):
+            stale.unlink()  # 上次沉淀的残留会让清单校验失配
     events_dir.mkdir(parents=True, exist_ok=True)
 
     grouped: dict[str, list[dict]] = {}

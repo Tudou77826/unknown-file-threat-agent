@@ -5,7 +5,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # 良性：内部镜像下载工具 + 执行（镜像端点在批准清单）
 "$HERE/common/build.sh" /tmp/secval-mirror-tool
 python3 -m http.server 18082 --directory /tmp >/dev/null 2>&1 &
-SRV=$!; sleep 0.5
-curl -sf -o mirror-tool http://127.0.0.1:18082/secval-mirror-tool && chmod 700 mirror-tool
+SRV=$!; sleep 1
+for i in 1 2 3 4 5; do curl -sf -o mirror-tool http://127.0.0.1:18082/secval-mirror-tool && break; sleep 0.5; done
+chmod 700 mirror-tool 2>/dev/null || true
 kill $SRV 2>/dev/null || true
 ./mirror-tool 2>/dev/null || ./mirror-tool 127.0.0.1 8443 || true

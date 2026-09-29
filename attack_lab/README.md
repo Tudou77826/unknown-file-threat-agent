@@ -54,3 +54,10 @@ python attack_lab/settle_case.py \
 - 超长 EXECVE 参数被 auditd 拆分为 `a1[0]/a1[1]` 分片时当前不拼接（丢弃该参数，事件保留）；
 - ps `lstart` 为靶机本地时区，跨时区靶机会使 process_ref 启动时间偏移（关联关系不受影响）；
 - 被拒操作（EACCES/EPERM）在采集规则内但投影时丢弃（不产生幻影创建/连接证据）。
+
+## 运行纪律（首轮实战教训，必读）
+
+1. **审计规则短窗口装卸**：小规格靶机（≤1GB 内存）上全机 execve 规则与常驻 agent（安骑士/云监控）叠加，会把 audit backlog 顶到 8192 上限，触发内核背压——**所有**被审计 syscall 按 `backlog_wait_time`（60s）阻塞，全机假死、load 飙到 80+。纪律：跑 Case 前装规则、跑完立即 `auditctl -D` + 删规则文件；连续批量运行时每 3~4 个 Case 泄一次压（`auditctl -s` 看 backlog 接近上限即停手）。
+2. **传输通道**：若 SFTP 被禁，bundle 走 base64 分块（exec 通道单行上限约 10KB 字符），已验证 4MB 包约 12 分钟；体积靠服务端噪音压缩控制（collect.sh 已内置）。
+3. **轮询器必须可被 kill**：不要用 `( ... ) &` 子壳包装后台循环——kill 只能杀到子壳，泄漏的循环在弱机上就是负载事故；直接 `timeout N bash -c ... &` 并 kill 后补 `pkill -P`。
+4. **靶机规格建议 ≥2C4G**；896MB 靶机可跑单 Case 验证链路，不适合连续批量。

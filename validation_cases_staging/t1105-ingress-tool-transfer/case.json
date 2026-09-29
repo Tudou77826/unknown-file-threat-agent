@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0",
+  "case_id": "t1105-ingress-tool-transfer",
+  "attack_tags": [
+    "T1105",
+    "T1222.002"
+  ],
+  "scenario": "curl 从外部拉取 ELF 后门，chmod 赋权并执行，回连 C2。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/t1105-ingress-tool-transfer/payload.elf",
+    "file_hash": "2aa7d4403a28340f2ac3b3c13b760a13a198af2d2e8a8feece7645795eea883f",
+    "file_type": "elf"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "curl 拉取 + chmod 700 + 执行 + 外连（T1105/T1222.002 达成）"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "外部拉取的未知来源 ELF，非包归属，回连未批准端点"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "risk_level": "high",
+    "note": null
+  },
+  "key_evidence": [
+    "文件创建事件（payload.elf）",
+    "chmod 权限修改",
+    "进程执行链 curl→payload",
+    "未批准端点外连"
+  ],
+  "risk_level": "high",
+  "recommended_action": "隔离主机，清除载荷并阻断 C2 端点",
+  "telemetry": {
+    "event_files": [
+      "counter_evidence.jsonl",
+      "network.jsonl",
+      "process.jsonl"
+    ],
+    "environment_baseline_sources": [
+      "rpm-inventory",
+      "cmdb-baseline"
+    ]
+  },
+  "provenance": {
+    "origin": "attack-run",
+    "environment": "lab-vm-aliyun-01",
+    "collector": "auditd-collector/1 + collect.sh/1",
+    "created": "2026-09-29",
+    "notes": "剧本 t1105-ingress-tool-transfer | settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

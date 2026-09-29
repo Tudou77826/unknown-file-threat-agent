@@ -1,0 +1,63 @@
+{
+  "schema_version": "1.0",
+  "case_id": "t1053-003-cron-persistence",
+  "attack_tags": [
+    "T1053.003"
+  ],
+  "scenario": "写入 cron 定时任务执行落盘载荷。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/t1053-003-cron-persistence/payload.elf",
+    "file_hash": "2aa7d4403a28340f2ac3b3c13b760a13a198af2d2e8a8feece7645795eea883f",
+    "file_type": "elf"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "cron 任务写入 + 载荷执行外连（T1053.003 达成）"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "cron 持久化载荷，非包归属，无合法业务解释"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "risk_level": "high",
+    "note": null
+  },
+  "key_evidence": [
+    "cron 文件写入（persistence）",
+    "root 执行工作区 ELF",
+    "未批准端点外连"
+  ],
+  "risk_level": "high",
+  "recommended_action": "清除 cron 任务与载荷，排查其余持久化点",
+  "telemetry": {
+    "event_files": [
+      "counter_evidence.jsonl",
+      "network.jsonl",
+      "process.jsonl"
+    ],
+    "environment_baseline_sources": [
+      "rpm-inventory",
+      "cmdb-baseline"
+    ]
+  },
+  "provenance": {
+    "origin": "attack-run",
+    "environment": "lab-vm-aliyun-01",
+    "collector": "auditd-collector/1 + collect.sh/1",
+    "created": "2026-09-29",
+    "notes": "剧本 t1053-003-cron-persistence | settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

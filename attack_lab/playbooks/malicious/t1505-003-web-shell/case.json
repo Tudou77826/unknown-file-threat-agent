@@ -6,7 +6,7 @@
   ],
   "scenario": "向 web 根写入 PHP web shell 并经 HTTP 触发。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1505-003-web-shell/shell.php",
+    "file_path": "/opt/secval-lab/cases/t1505-003-web-shell/webroot/shell.php",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "php"
   },

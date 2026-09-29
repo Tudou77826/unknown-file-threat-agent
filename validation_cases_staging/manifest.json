@@ -1,0 +1,26 @@
+{
+  "suite_id": "seccap-lab-staging",
+  "suite_version": "2026.09.29-lab",
+  "created": "2026-09-29",
+  "storage": {
+    "backend": "git",
+    "artifact_max_bytes": 10485760
+  },
+  "cases": [
+    {
+      "case_id": "t1037-004-rc-local",
+      "directory": "t1037-004-rc-local",
+      "content_digest": "57b27ba062b27a42016c85635079e43eb724275319ca3fe13cd30e571ec9968b"
+    },
+    {
+      "case_id": "t1053-003-cron-persistence",
+      "directory": "t1053-003-cron-persistence",
+      "content_digest": "5f6201fc1ada466e4feb62adf7f1f61fcf0d7e1e30e619efb95ec7e746abe518"
+    },
+    {
+      "case_id": "t1105-ingress-tool-transfer",
+      "directory": "t1105-ingress-tool-transfer",
+      "content_digest": "7ce35d3d7dd4aabeddfbf04d3a708a5e61803aefd6c1a844d2e9e73bc4a36c25"
+    }
+  ]
+}
