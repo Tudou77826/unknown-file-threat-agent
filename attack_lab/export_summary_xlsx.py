@@ -43,6 +43,78 @@ DEMO_ROWS = [
 ]
 
 
+
+# 已入选 PoC 的 12 条（T-ID -> 状态描述）
+SELECTED = {
+    "T1105": ("已构造·已采集·已评测", "工具传输(配 chmod T1222.002)；靶场证据缺口致置信保守"),
+    "T1222.002": ("随 T1105 剧本", "chmod 赋权环节"),
+    "T1543.002": ("已构造·已评测✓", "systemd 持久化；c2-malicious-elf 证据链完整精确命中；另有独立剧本待重采"),
+    "T1053.003": ("已构造·已评测", "cron 持久化；cron 写入事件缺失(采集缺口)"),
+    "T1505.003": ("已构造·已采集待重沉淀", "Web Shell；草案路径已修正"),
+    "T1574.006": ("已构造·已采集待重沉淀", "LD_PRELOAD 劫持"),
+    "T1547.006": ("已构造·待重采", "内核模块；需靶机 kernel-headers"),
+    "T1486": ("已构造·已采集待重沉淀", "勒索加密(演练后恢复)"),
+    "T1037.004": ("已构造·已评测", "rc.local 启动项；写入事件缺失(采集缺口)"),
+    "T1005": ("已构造·待重采", "本地收集归档(配 T1560.001)；引用 bug 已修"),
+    "T1560.001": ("随 T1005 剧本", "tar 归档环节"),
+    "T1219": ("已构造·已采集待重沉淀", "远控隧道"),
+    "T1567.002": ("已构造·已采集待重沉淀", "归档外传"),
+}
+EXCLUDED = {
+    "T1055.001": "排除: 语料核验非 Linux 平台",
+    "T1136.001": "排除: Canonical 无账号事件族(telemetry-scope 缺口4)",
+    "T1210": "排除: 跨主机, 违反 F13 单主机边界",
+}
+
+
+def build_full_pool() -> list[list]:
+    """全部可构造攻击 = Linux + 落文件可观测的完整技术池(ATT&CK v19.2)。"""
+    import json as _json
+    from collections import defaultdict as _dd
+
+    data = _json.loads((ROOT / "downloads" / "enterprise-attack.json").read_text(encoding="utf-8"))
+    objs = data["objects"]
+    comps = {o["id"]: o.get("name", "") for o in objs if o.get("type") == "x-mitre-data-component"}
+    an2c = _dd(set)
+    for o in objs:
+        if o.get("type") == "x-mitre-analytic":
+            for ls in o.get("x_mitre_log_source_references", []):
+                if ls.get("x_mitre_data_component_ref") in comps:
+                    an2c[o["id"]].add(comps[ls["x_mitre_data_component_ref"]])
+    ds2an = {o["id"]: o.get("x_mitre_analytic_refs", []) for o in objs if o.get("type") == "x-mitre-detection-strategy"}
+    t2ds = _dd(list)
+    for o in objs:
+        if o.get("type") == "relationship" and o.get("relationship_type") == "detects":
+            t2ds[o["target_ref"]].append(o["source_ref"])
+
+    def file_observable(t):
+        for ds in t2ds.get(t["id"], []):
+            for an in ds2an.get(ds, []):
+                if any("file" in c.lower() for c in an2c.get(an, set())):
+                    return True
+        return False
+
+    rows = []
+    for t in objs:
+        if t.get("type") != "attack-pattern" or t.get("revoked") or t.get("x_mitre_deprecated"):
+            continue
+        if not any("Linux" in p for p in t.get("x_mitre_platforms", [])):
+            continue
+        if not file_observable(t):
+            continue
+        tid = t["external_references"][0]["external_id"]
+        tactics = ", ".join(sorted({k["phase_name"] for k in t.get("kill_chain_phases", [])}))
+        if tid in SELECTED:
+            status, note = SELECTED[tid]
+            rows.append([tid, t["name"], tactics, status, note])
+        elif tid in EXCLUDED:
+            rows.append([tid, t["name"], tactics, "排除", EXCLUDED[tid]])
+        else:
+            rows.append([tid, t["name"], tactics, "可构造备选池", "满足 Linux+落盘约束, 未入 PoC(仅需 10-20 条)"])
+    rows.sort(key=lambda r: (0 if "已" in r[3] or r[3] == "排除" else 1, r[0]))
+    return rows
+
+
 def load_axis(dirname: str) -> list[dict]:
     rep = json.loads((ROOT / "outputs/eval" / dirname / "report.json").read_text(encoding="utf-8"))
     rows = []
@@ -146,8 +218,14 @@ def fill_sheet(ws, headers, rows, widths, color_col=None):
     ws.freeze_panes = "A2"
 
 
-ws1 = wb.active
-ws1.title = "攻击构造总览"
+ws0 = wb.active
+ws0.title = "可构造攻击全集"
+pool = build_full_pool()
+rows0 = [[i + 1, *r] for i, r in enumerate(pool)]
+fill_sheet(ws0, ["序号", "ATT&CK", "技术名称", "战术", "状态", "说明/理由"],
+           rows0, [5, 12, 34, 26, 20, 44], color_col=5)
+
+ws1 = wb.create_sheet("PoC选择目录")
 rows1 = [[i + 1, *c] for i, c in enumerate(CATALOG)]
 rows1 += [[len(CATALOG) + i + 1, *d] for i, d in enumerate(DEMO_ROWS)]
 fill_sheet(ws1, ["序号", "类别", "ATT&CK", "场景", "判定对象", "良性对照", "构造状态", "靶场采集", "沉淀入库", "评测状态", "备注"],
