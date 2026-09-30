@@ -15,7 +15,7 @@ from openpyxl.utils import get_column_letter
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 BUNDLE = ROOT / "bundles"
-OUT = ROOT.parent / "安全能力验证-攻击构造与评测汇总-2026-09-30.xlsx"
+OUT = pathlib.Path(__import__("os").environ.get("XLSX_OUT", str(ROOT.parent / "安全能力验证-攻击构造与评测汇总-2026-09-30.xlsx")))
 
 # ---------- 1) 攻击目录全集（attack-catalog.md + demo 数据轴） ----------
 CATALOG = [
@@ -57,7 +57,7 @@ def load_axis(dirname: str) -> list[dict]:
             "case": case["case_id"],
             "tags": ",".join(case.get("tags", [])),
             "verdict": j.get("verdict", {}).get("level", "-"),
-            "passed": case.get("all_epochs_passed"),
+            "passed": (case.get("pass_at_k") or {}).get("all_epochs_passed"),
             "dist": (vm.get("dimensions") or {}).get("distance"),
             "pub": j.get("publication_status", "-"),
             "evidence": len(j.get("evidence_refs", [])),
