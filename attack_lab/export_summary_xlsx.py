@@ -33,15 +33,17 @@ VERDICT_ZH = {
     "confirmed_malicious": "确认恶意", "likely_malicious": "倾向恶意", "suspicious": "可疑",
     "insufficient_evidence": "证据不足", "likely_benign": "倾向良性", "benign": "良性",
 }
-# 采集数据矩阵列（10 类）与标记：✓=采到且有效 △=已采集但该案例数据丢失 — =未采集/不适用
+# 采集数据矩阵列（10 类）与标记：有效=采到且有效 丢失=已采集但该案例数据丢失 未采=未采集/不适用
 DATA_COLUMNS = ["进程执行", "进程谱系", "文件写入", "网络四元组", "提权调用", "命令执行", "包归属", "端点基线", "监听端口", "工件哈希"]
 # 靶场干净采集（t1105/t1053/t1037）：文件写入=△（风暴/时序丢失）
-MARKS_FIELD = ["✓", "✓", "△", "✓", "✓", "✓", "✓", "✓", "✓", "✓"]
+MARKS_FIELD = ["有效"] * 10
+MARKS_FIELD[2] = "丢失"
 # 风暴期采集（已下载待重跑）：文件写入与其他遥测质量待复验，文件=△
-MARKS_STORM = ["✓", "✓", "△", "✓", "✓", "✓", "✓", "✓", "✓", "✓"]
+MARKS_STORM = ["有效"] * 10
+MARKS_STORM[2] = "丢失"
 # 手写基准（demo fixture：执行/谱系/持久化写入/网络/包归属/端点/哈希）
-MARKS_HAND = ["✓", "✓", "✓", "✓", "—", "—", "✓", "✓", "—", "✓"]
-MARKS_NONE = ["—"] * 10
+MARKS_HAND = ["有效", "有效", "有效", "有效", "未采", "未采", "有效", "有效", "未采", "有效"]
+MARKS_NONE = ["未采"] * 10
 # 入选技术 → 标记组
 TID_MARKS = {
     "T1105": MARKS_FIELD, "T1222.002": MARKS_FIELD, "T1037.004": MARKS_FIELD,
@@ -236,7 +238,7 @@ GREY_FILL = PatternFill("solid", fgColor="F5F5F5")
 THIN = Border(*[Side(style="thin", color="D0D0D0")] * 4)
 
 
-def fill_sheet(ws, headers, rows, widths, status_col=None):
+def fill_sheet(ws, headers, rows, widths, status_col=None, mark_cols=None):
     ws.append(headers)
     for c in range(1, len(headers) + 1):
         cell = ws.cell(1, c)
@@ -259,6 +261,17 @@ def fill_sheet(ws, headers, rows, widths, status_col=None):
                 row[status_col - 1].fill = WARN_FILL
             elif "不适用" in v or "备选池" in v:
                 row[status_col - 1].fill = GREY_FILL
+        if mark_cols:
+            for ci in mark_cols:
+                cell = row[ci - 1]
+                val = str(cell.value or "")
+                if val == "有效":
+                    cell.fill = OK_FILL
+                elif val == "丢失":
+                    cell.fill = WARN_FILL
+                elif val == "未采":
+                    cell.fill = GREY_FILL
+                cell.alignment = Alignment(horizontal="center", vertical="top")
     ws.freeze_panes = "A2"
     ws.auto_filter.ref = ws.dimensions
 
@@ -274,7 +287,7 @@ guide = [
     ["指标汇总", "两条评测轴的总体数字与结论。"],
     ["", ""],
     ["状态图例", "已评测（绿）= 真实跑完并出结论 ｜ 已采集待重跑（黄）= 靶场数据已采但风暴期质量不足 ｜ 已构造待采（黄）= 剧本就绪等靶场 ｜ 未构造备选池（灰）= 满足条件但本轮不需要 ｜ 不适用（灰）= 已排除并注明原因"],
-    ["采集矩阵图例", "✓ = 该类数据已采集且在本案例中有效 ｜ △ = 已采集但本案例数据在处理链中丢失（文件写入列的 △ 正是置信度保守的根因） ｜ — = 未采集或不适用。十列含义：进程执行（谁运行了什么）、进程谱系（父子链）、文件写入（落盘/改动）、网络四元组（连了谁）、提权调用（setuid/mount）、命令执行（shell 命令）、包归属（是否系统包）、端点基线（IP 是否批准）、监听端口、工件哈希（判定锚点）。"],
+    ["采集矩阵图例", "有效 = 采到且可用 ｜ 丢失 = 采集器采到了，但该案例在处理链中丢失（靶场案例的『文件写入=丢失』正是 AI 只判可疑不判确认的根因，重采后补齐） ｜ 未采 = 没有采集或不适用。十列含义：进程执行（谁运行了什么）、进程谱系（父子链）、文件写入（落盘/改动）、网络四元组（连了谁）、提权调用（setuid/mount）、命令执行（shell 命令）、包归属（是否系统包）、端点基线（IP 是否批准）、监听端口、工件哈希（判定锚点）。"],
     ["结论一", "AI 检出方向 100%：已测的恶意场景全部判到恶意侧、良性零误报。"],
     ["结论二", "置信度保守的根因是数据不是模型：靶场采集丢了文件/持久化写入证据，AI 在证据不足时拒绝下确认结论（正确的证据纪律）；证据完整的手写样本精确命中『确认恶意』。"],
     ["结论三", "下一步：靶场重采 11 个案例（采集器已修复）→ 复跑 → 形成 18+ 用例的完整检出基线。"],
@@ -284,7 +297,7 @@ fill_sheet(ws0, ["条目", "说明"], guide, [16, 110])
 # S1 攻击用例总表
 ws1 = wb.create_sheet("攻击用例总表")
 fill_sheet(ws1, ["序号", "类别", "ATT&CK", "技术名称", "所属战术", "场景说明", "当前状态", "评测结论 / 状态说明", "耗时与成本", *DATA_COLUMNS],
-           build_pool_rows(), [5, 10, 12, 22, 14, 38, 13, 38, 15, *([8] * 10)], status_col=7)
+           build_pool_rows(), [5, 10, 12, 22, 14, 38, 13, 38, 15, *([8] * 10)], status_col=7, mark_cols=range(10, 20))
 
 # S2 评测结果明细
 ws2 = wb.create_sheet("评测结果明细")
