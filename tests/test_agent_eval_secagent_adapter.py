@@ -203,3 +203,17 @@ def test_default_scorers_cover_the_five_dimensions():
         "verdict_match", "publication_status", "degradation_correctness",
         "boundary_interception", "cost_efficiency",
     }
+
+
+def test_validation_suite_factory_maps_ground_truth_and_tags():
+    from threat_agent.bootstrap.eval_tasks import build_validation_cases
+
+    cases = build_validation_cases([PROJECT_ROOT / "validation_cases"])
+    ids = {c.case_id for c in cases}
+    assert ids == {"c2-malicious-elf", "c2-benign-baseline"}
+    malicious = next(c for c in cases if c.case_id == "c2-malicious-elf")
+    assert malicious.ground_truth["verdict_level"] == "confirmed_malicious"
+    assert "T1543.002" in malicious.tags and "family:validation" in malicious.tags
+    assert malicious.environment["source"] == "validation"
+    benign = next(c for c in cases if c.case_id == "c2-benign-baseline")
+    assert benign.ground_truth["verdict_level"] == "benign"

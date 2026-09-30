@@ -123,13 +123,136 @@ def _inject_bait(raw: dict[str, Any]) -> dict[str, Any]:
     return patched
 
 
+def build_validation_cases(roots: list[Path]) -> list[Case]:
+    """F19 技术覆盖轴：把 validation_cases 套件（含 staging）转成评测 Case。
+
+    与 demo_data 的数据完整度轴互补——这里每个案例是一个 ATT&CK 技术场景
+    （或良性对照），replay 为全量遥测（等价 L3），考的是检出与不误报。
+    """
+
+    from ..capability_validation import ValidationSuiteRepository
+
+    cases: list[Case] = []
+    for root in roots:
+        try:
+            manifest, loaded = ValidationSuiteRepository(root).load()
+        except FileNotFoundError:
+            continue
+        for item in loaded:
+            validation_case = item.case
+            judgment = validation_case.ground_truth.file.judgment.value
+            cases.append(
+                Case(
+                    case_id=validation_case.case_id,
+                    suite=manifest.suite_id + "@" + manifest.suite_version,
+                    environment={
+                        "source": "validation",
+                        "dataset_id": validation_case.case_id,
+                        "dataset_version": manifest.suite_version,
+                        "data_level": "l3",  # replay 即全量遥测
+                    },
+                    ground_truth={
+                        "label": "malicious" if judgment != "benign" else "benign",
+                        "verdict_level": "confirmed_malicious" if judgment != "benign" else "benign",
+                        "host": "",
+                    },
+                    tags=frozenset(
+                        {"family:validation", "level:l3", *validation_case.attack_tags}
+                    ),
+                )
+            )
+    return cases
+
+
+def import_validation_datasets(store: SQLiteReferenceDataStore, roots: list[Path]) -> None:
+    """把 validation 套件的 replay 注册进参考存储并摄取事件（幂等）。"""
+
+    from ..capability_validation import ValidationSuiteRepository
+    from ..contracts import DatasetManifest
+    from ..data_foundation.adapters.activity_store import SQLiteActivityStore
+    from ..data_foundation.adapters.parsers import ReferenceEventParser
+    from ..data_foundation.application.ingestion import BatchIngestionService
+
+    for root in roots:
+        try:
+            manifest, loaded = ValidationSuiteRepository(root).load()
+        except FileNotFoundError:
+            continue
+        for item in loaded:
+            dataset_id = item.case.case_id
+            exists = store.connection.execute(
+                "SELECT COUNT(*) AS n FROM datasets WHERE dataset_id=? AND dataset_version=?",
+                (dataset_id, manifest.suite_version),
+            ).fetchone()["n"]
+            if exists:
+                continue
+            case_dir = root / item.case.case_id
+            # validation 布局是 replay/input.json，与 demo_data 不同，
+            # 手工注册元数据与输入记录
+            import hashlib
+
+            raw_bytes = (case_dir / "replay" / "input.json").read_bytes()
+            raw = json.loads(raw_bytes.decode("utf-8"))
+            internal_case_id = "case-" + hashlib.sha256(
+                str(raw.get("File_id") or case_dir.name).encode()
+            ).hexdigest()[:12]
+            from ..contracts import ReferenceDatasetMetadata
+
+            store.put_dataset(
+                ReferenceDatasetMetadata(
+                    dataset_id=dataset_id,
+                    dataset_version=manifest.suite_version,
+                    scenario=str(item.case.attack_tags[0]),
+                    label=(
+                        "benign_reference"
+                        if item.case.ground_truth.file.judgment.value == "benign"
+                        else "malicious_reference"
+                    ),
+                    random_seed=0,
+                    content_digest=hashlib.sha256(raw_bytes).hexdigest(),
+                )
+            )
+            store.put_case(dataset_id, manifest.suite_version, internal_case_id, raw)
+            activity_store = SQLiteActivityStore(
+                reference_activity_store_path(store.path, dataset_id), check_same_thread=False
+            )
+            parser = ReferenceEventParser()
+            try:
+                payloads = []
+                for path in sorted((case_dir / "replay" / "events").glob("*.jsonl")):
+                    payloads.extend(
+                        json.loads(line)
+                        for line in path.read_text(encoding="utf-8").splitlines()
+                        if line.strip()
+                    )
+                BatchIngestionService(activity_store, parser).ingest_payloads(
+                    DatasetManifest(
+                        tenant_id="default",
+                        source_identity="eval-validation-importer",
+                        dataset_id=dataset_id,
+                        dataset_version=manifest.suite_version,
+                        batch_id=f"{dataset_id}-{manifest.suite_version}",
+                        source_system="capability-validation",
+                        connector_version="eval/1.0",
+                        parser_name=parser.name,
+                        parser_version=parser.version,
+                        expected_record_count=len(payloads),
+                    ),
+                    payloads,
+                )
+            finally:
+                activity_store.close()
+
+
 class SecAgentEvalTask:
     """EvalTask 实现：真实 middleware 管线，每 run 独立活动库副本。"""
 
-    def __init__(self, *, settings: AppSettings, project_root: Path, reference_dir: Path):
+    def __init__(self, *, settings: AppSettings, project_root: Path, reference_dir: Path,
+                 validation_roots: list[Path] | None = None):
         self.settings = settings
         self.project_root = project_root
         self.reference_dir = reference_dir
+        self.validation_roots = validation_roots
         self._store_lock = threading.Lock()
         self._store: SQLiteReferenceDataStore | None = None
 
@@ -145,9 +268,12 @@ class SecAgentEvalTask:
                 "SELECT COUNT(*) AS n FROM datasets"
             ).fetchone()["n"]
             if not imported:
-                initialize_reference_demo(
-                    store, project_root=self.project_root, demo_data_root=None
-                )
+                if self.validation_roots:
+                    import_validation_datasets(store, self.validation_roots)
+                else:
+                    initialize_reference_demo(
+                        store, project_root=self.project_root, demo_data_root=None
+                    )
             self._store = store
             return store
 
@@ -170,7 +296,6 @@ class SecAgentEvalTask:
         store = self._reference_store()
         dataset_id = str(environment["dataset_id"])
         version = str(environment["dataset_version"])
-        profile_id = str(environment["profile_id"])
         run_id = f"eval-{case.case_id}-{epoch}"
 
         raw = self._raw_input(store, dataset_id, version)
@@ -203,7 +328,11 @@ class SecAgentEvalTask:
             )
 
         try:
-            profile = store.get_profile(dataset_id, version, profile_id)
+            profile = (
+                store.get_profile(dataset_id, version, str(environment["profile_id"]))
+                if environment.get("profile_id")
+                else None
+            )
             state = initialize_state(
                 raw, lookback_hours=eval_settings.application.investigation_lookback_hours
             )
@@ -218,13 +347,17 @@ class SecAgentEvalTask:
                 settings=eval_settings,
                 emit=emit,
                 run_id=run_id,
-                response_context_port=ReferenceResponseContextAdapter(
-                    store,
-                    dataset_id=dataset_id,
-                    dataset_version=version,
-                    profile=profile,
+                response_context_port=(
+                    ReferenceResponseContextAdapter(
+                        store,
+                        dataset_id=dataset_id,
+                        dataset_version=version,
+                        profile=profile,
+                    )
+                    if profile is not None
+                    else None
                 ),
-                visible_sources=set(profile.visible_sources),
+                visible_sources=set(profile.visible_sources) if profile is not None else None,
             )
             try:
                 result = assembly.graph.start(state, tenant_id=assembly.tenant_id, run_id=run_id)

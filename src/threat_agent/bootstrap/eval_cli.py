@@ -19,7 +19,12 @@ from ..agent_eval.reporter import render_markdown, summarize
 from ..agent_eval.runner import Runner, RunnerConfig
 from ..agent_eval.scoring import ScoreRunner
 from ..bootstrap.eval_scorers import default_scorers
-from ..bootstrap.eval_tasks import SUITE, SecAgentEvalTask, build_eval_cases
+from ..bootstrap.eval_tasks import (
+    SUITE,
+    SecAgentEvalTask,
+    build_eval_cases,
+    build_validation_cases,
+)
 from ..bootstrap.settings import AppSettings
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -60,18 +65,25 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--rpm", type=int, default=60, help="0=不限")
     parser.add_argument("--fresh", action="store_true")
     parser.add_argument("--smoke", action="store_true", help="只跑 1 个代表案例（L3 恶意）")
+    parser.add_argument("--suite", choices=["demo", "validation"], default="demo",
+                        help="demo=数据完整度轴（L0-L3）；validation=F19 技术覆盖轴（ATT&CK 剧本）")
     parser.add_argument("--score-only", action="store_true", help="跳过执行，仅对已有 run 重打分")
     args = parser.parse_args(argv)
 
     output_dir = PROJECT_ROOT / "outputs" / "eval" / args.name
     settings = AppSettings.load(cli_overrides={})
-    cases = build_eval_cases(PROJECT_ROOT / "demo_data")
+    validation_roots = None
+    if args.suite == "validation":
+        validation_roots = [PROJECT_ROOT / "validation_cases", PROJECT_ROOT / "validation_cases_staging"]
+        cases = build_validation_cases(validation_roots)
+    else:
+        cases = build_eval_cases(PROJECT_ROOT / "demo_data")
     if args.smoke:
         cases = [
             case
             for case in cases
             if case.case_id.endswith("-l3") and "adversarial" not in case.tags
-        ][:1]
+        ][:1] or cases[:1]  # validation 套件无 -l3 后缀，退回首个案例
 
     if not args.score_only:
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -83,6 +95,7 @@ def main(argv: list[str] | None = None) -> int:
             settings=settings,
             project_root=PROJECT_ROOT,
             reference_dir=output_dir / "reference",
+            validation_roots=validation_roots,
         )
         limiter = RateLimiter(RateLimitConfig(rpm=args.rpm, tpm=0)) if args.rpm else None
         runner = Runner(
