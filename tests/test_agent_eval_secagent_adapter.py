@@ -217,3 +217,59 @@ def test_validation_suite_factory_maps_ground_truth_and_tags():
     assert malicious.environment["source"] == "validation"
     benign = next(c for c in cases if c.case_id == "c2-benign-baseline")
     assert benign.ground_truth["verdict_level"] == "benign"
+
+
+def test_validation_importer_resolves_placeholders(tmp_path, monkeypatch):
+    """证据审计发现的脏数据 bug：占位符回放不得以字面量进入调查数据。"""
+    import json as _json
+
+    import threat_agent.bootstrap.eval_tasks as et
+
+    # 构造一个带占位符的最小 validation 套件
+    root = tmp_path / "suite"
+    case_dir = root / "p1"
+    (case_dir / "replay" / "events").mkdir(parents=True)
+    (case_dir / "replay" / "input.json").write_text(
+        _json.dumps({"File_id": "f1", "File_hash": "0" * 64, "File_path": "/x", "File_type": "elf"}),
+        encoding="utf-8",
+    )
+    _json.dump(
+        {"event_id": "e1", "event_type": "network_connection", "domain": "network",
+         "source_system": "t", "observed_at": "2026-01-01T00:00:00Z", "host_id": "h",
+         "subject_refs": ["endpoint:{{c2_endpoint}}:443"],
+         "data": {"remote_ip": "{{c2_endpoint}}", "remote_port": 443, "protocol": "tcp"}},
+        (case_dir / "replay" / "events" / "network.jsonl").open("w"),
+    )
+    from threat_agent.capability_validation import TestCase as VCase
+
+    vcase = VCase.model_validate({
+        "schema_version": "1.0", "case_id": "p1", "attack_tags": ["T1"],
+        "scenario": "s", "judgment_target": {"file_path": "/x", "file_hash": "0" * 64, "file_type": "elf"},
+        "ground_truth": {"behavior": {"technique_achieved": True, "basis": "b"},
+                         "file": {"judgment": "malicious", "basis": "b"}, "source": "test"},
+        "expected_rule": {"expected_hit": True}, "expected_ai": {"verdict": "malicious"},
+        "key_evidence": ["e"], "risk_level": "high", "recommended_action": "a",
+        "telemetry": {"event_files": ["network.jsonl"]}, "provenance": {"origin": "hand-written", "created": "2026-09-30"},
+        "parameters": {"defaults": {"c2_endpoint": "203.0.113.50"}},
+    })
+    (case_dir / "case.json").write_text(vcase.model_dump_json(), encoding="utf-8")
+    (root / "manifest.json").write_text(
+        _json.dumps({"suite_id": "s", "suite_version": "v1", "created": "2026-09-30",
+                     "cases": [{"case_id": "p1", "directory": "p1"}]}), encoding="utf-8")
+
+    from threat_agent.data_foundation.adapters.reference_store import SQLiteReferenceDataStore
+
+    store = SQLiteReferenceDataStore(tmp_path / "ref.sqlite")
+    et.import_validation_datasets(store, [root])
+    row = store.connection.execute(
+        "SELECT COUNT(*) AS n FROM datasets WHERE dataset_id='p1'").fetchone()
+    assert row["n"] == 1
+
+    import sqlite3
+    act = sqlite3.connect(tmp_path / "ref-p1-activities.sqlite")
+    rows = act.execute("SELECT payload_json FROM normalized_activities").fetchall()
+    joined = "".join(str(r[0]) for r in rows)
+    assert joined, "活动库为空：事件未被摄取"
+    assert "{{c2_endpoint}}" not in joined, "占位符以字面量进入了调查数据"
+    assert "203.0.113.50" in joined, "默认参数未被物化"
+    act.close()

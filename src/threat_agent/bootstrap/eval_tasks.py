@@ -173,7 +173,11 @@ def build_validation_cases(roots: list[Path]) -> list[Case]:
 def import_validation_datasets(store: SQLiteReferenceDataStore, roots: list[Path]) -> None:
     """把 validation 套件的 replay 注册进参考存储并摄取事件（幂等）。"""
 
-    from ..capability_validation import ValidationSuiteRepository
+    from ..capability_validation import (
+        ReplayBundle,
+        ValidationSuiteRepository,
+        materialize_default,
+    )
     from ..contracts import DatasetManifest
     from ..data_foundation.adapters.activity_store import SQLiteActivityStore
     from ..data_foundation.adapters.parsers import ReferenceEventParser
@@ -224,13 +228,11 @@ def import_validation_datasets(store: SQLiteReferenceDataStore, roots: list[Path
             )
             parser = ReferenceEventParser()
             try:
-                payloads = []
-                for path in sorted((case_dir / "replay" / "events").glob("*.jsonl")):
-                    payloads.extend(
-                        json.loads(line)
-                        for line in path.read_text(encoding="utf-8").splitlines()
-                        if line.strip()
-                    )
+                # 先物化默认参数再摄取：回放事件可能带 {{param}} 占位符，
+                # 直接摄取会把字面量喂进调查数据（证据审计 2026-09-30 抓获）。
+                payloads = materialize_default(
+                    ReplayBundle.load(case_dir)
+                ).events
                 BatchIngestionService(activity_store, parser).ingest_payloads(
                     DatasetManifest(
                         tenant_id="default",
