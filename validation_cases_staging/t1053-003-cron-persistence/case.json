@@ -4,7 +4,7 @@
   "attack_tags": [
     "T1053.003"
   ],
-  "scenario": "写入 cron 定时任务执行落盘载荷。",
+  "scenario": "写入 /etc/cron.d 定时任务文件并手动执行载荷一次（crond 周期执行未实际发生）。",
   "judgment_target": {
     "file_path": "/opt/secval-lab/cases/t1053-003-cron-persistence/payload.elf",
     "file_hash": "2aa7d4403a28340f2ac3b3c13b760a13a198af2d2e8a8feece7645795eea883f",
@@ -13,7 +13,7 @@
   "ground_truth": {
     "behavior": {
       "technique_achieved": true,
-      "basis": "cron 任务写入 + 载荷执行外连（T1053.003 达成）"
+      "basis": "cron 任务文件写入 + 载荷手动执行外连（周期执行未验证）"
     },
     "file": {
       "judgment": "malicious",
@@ -28,8 +28,9 @@
   },
   "expected_ai": {
     "verdict": "malicious",
+    "verdict_level": "suspicious",
     "risk_level": "high",
-    "note": null
+    "note": "2026-09-30 裁决：现证据支撑可疑；补采后按三步程序重判"
   },
   "key_evidence": [
     "cron 文件写入（persistence）",
@@ -54,7 +55,7 @@
     "environment": "lab-vm-aliyun-01",
     "collector": "auditd-collector/1 + collect.sh/1",
     "created": "2026-09-29",
-    "notes": "剧本 t1053-003-cron-persistence | settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"
+    "notes": "剧本 t1053-003-cron-persistence | 事实修正(2026-09-30复核)：周期执行未发生，为手动触发 | settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"
   },
   "parameters": {
     "defaults": {},

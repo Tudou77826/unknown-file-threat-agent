@@ -1,26 +1,26 @@
 {
   "suite_id": "seccap-lab-staging",
-  "suite_version": "2026.09.29-lab",
-  "created": "2026-09-29",
+  "suite_version": "2026.09.30-r2",
+  "created": "2026-09-30",
   "storage": {
     "backend": "git",
     "artifact_max_bytes": 10485760
   },
   "cases": [
     {
-      "case_id": "t1037-004-rc-local",
-      "directory": "t1037-004-rc-local",
-      "content_digest": "57b27ba062b27a42016c85635079e43eb724275319ca3fe13cd30e571ec9968b"
+      "case_id": "t1105-ingress-tool-transfer",
+      "directory": "t1105-ingress-tool-transfer",
+      "content_digest": "b3ed201ff2ea2ea1b76baa8283d95069924dd666f3908bb43b3ee2b11cd84648"
     },
     {
       "case_id": "t1053-003-cron-persistence",
       "directory": "t1053-003-cron-persistence",
-      "content_digest": "5f6201fc1ada466e4feb62adf7f1f61fcf0d7e1e30e619efb95ec7e746abe518"
+      "content_digest": "7f091d038d68071106b3ea1fe99dd13b5fe6ad05a613466d1dc0226bf1ba698f"
     },
     {
-      "case_id": "t1105-ingress-tool-transfer",
-      "directory": "t1105-ingress-tool-transfer",
-      "content_digest": "7ce35d3d7dd4aabeddfbf04d3a708a5e61803aefd6c1a844d2e9e73bc4a36c25"
+      "case_id": "t1037-004-rc-local",
+      "directory": "t1037-004-rc-local",
+      "content_digest": "3bf6cacde8e24f309abae99387aeab94eea51e14a548a02b5e12d984f3978db0"
     }
   ]
 }

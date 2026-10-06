@@ -28,7 +28,8 @@
   },
   "expected_ai": {
     "verdict": "benign",
-    "risk_level": "none"
+    "risk_level": "none",
+    "verdict_level": "benign"
   },
   "key_evidence": [
     "包归属正证据（rpm-inventory：owns_file/signature_valid/repository_trusted）",

@@ -89,3 +89,59 @@ def test_report_version_note_preserved():
     report = summarize([_record("c1#h#1")], {"c1": _case()}, {})
     markdown = render_markdown(report)
     assert "n/a" in markdown
+
+
+# -- 2026-09-30 复核裁决第二批：预期等级落盘 + 转换器真话化 --------------------
+
+def test_expected_verdict_level_schema_rules():
+    import json as _json
+    from pathlib import Path as _P
+    from threat_agent.capability_validation import TestCase as VCase
+
+    base = _json.loads((_P(__file__).parents[1] / "attack_lab/playbooks/malicious/t1105-ingress-tool-transfer/case.json").read_text(encoding="utf-8"))
+    VCase.model_validate(base)  # verdict=malicious + level=suspicious 同侧合法
+    bad_level = _json.loads(_json.dumps(base))
+    bad_level["expected_ai"]["verdict_level"] = "definitely_bad"
+    import pytest as _pytest
+    with _pytest.raises(Exception, match="六级判定"):
+        VCase.model_validate(bad_level)
+    cross_side = _json.loads(_json.dumps(base))
+    cross_side["expected_ai"]["verdict_level"] = "benign"
+    with _pytest.raises(Exception, match="不同侧"):
+        VCase.model_validate(cross_side)
+
+
+def test_factory_prefers_calibrated_level():
+    from threat_agent.bootstrap.eval_tasks import build_validation_cases
+
+    cases = build_validation_cases([PROJECT_ROOT / "validation_cases",
+                                    PROJECT_ROOT / "validation_cases_staging"])
+    by_id = {c.case_id: c.ground_truth["verdict_level"] for c in cases}
+    assert by_id.get("c2-malicious-elf") == "confirmed_malicious"
+    assert by_id.get("c2-benign-baseline") == "benign"
+    assert by_id.get("t1105-ingress-tool-transfer") == "suspicious"
+    assert by_id.get("t1053-003-cron-persistence") == "suspicious"
+
+
+def test_counter_evidence_truthfulness(tmp_path):
+    """未检查的字段=未知；空批准基线=批准未知（不得生成未批准）。"""
+    import importlib.util as _il
+    spec = _il.spec_from_file_location("sc", PROJECT_ROOT / "attack_lab" / "settle_case.py")
+    sc = _il.module_from_spec(spec); spec.loader.exec_module(sc)
+
+    bundle = tmp_path / "b"; bundle.mkdir()
+    (bundle / "workspace_hashes.txt").write_text("ab" * 32 + "  ./payload.elf\n", encoding="utf-8")
+    (bundle / "workspace_owners.txt").write_text("payload.elf\tNOT-OWNED\n", encoding="utf-8")
+    (bundle / "approved_endpoints.txt").write_text("", encoding="utf-8")  # 空清单
+    events = [{"event_type": "network_connection", "data": {"remote_ip": "127.0.0.1"}}]
+    evidence = sc._counter_evidence(events, bundle, "h", "2026-09-30T00:00:00Z")
+    pkg = next(e for e in evidence if e["event_type"] == "package_provenance")
+    assert pkg["data"] == {"package": None, "owns_file": False,
+                           "signature_valid": None, "repository_trusted": None}
+    ep = next(e for e in evidence if e["event_type"] == "approved_endpoint")
+    assert ep["data"]["approved"] is None  # 空基线 → 未知
+
+    (bundle / "approved_endpoints.txt").write_text("127.0.0.1\n", encoding="utf-8")
+    evidence2 = sc._counter_evidence(events, bundle, "h", "2026-09-30T00:00:00Z")
+    ep2 = next(e for e in evidence2 if e["event_type"] == "approved_endpoint")
+    assert ep2["data"]["approved"] is True  # 命中基线 → 批准

@@ -10,12 +10,12 @@
     {
       "case_id": "c2-malicious-elf",
       "directory": "c2-malicious-elf",
-      "content_digest": "fce9cedef17804971ea3f38975e684f2ec9287452fca7ee6f93d89d4aa335572"
+      "content_digest": "b064ef35639f23a8451f635c4d53691949f28b53b554a1f3f47b40868e0ada79"
     },
     {
       "case_id": "c2-benign-baseline",
       "directory": "c2-benign-baseline",
-      "content_digest": "8a6e02ec2003b02678f89c78bb06da63b6d74d4e7f45a181622d46dc3706764d"
+      "content_digest": "aefb54434d8211946c5884e2bb97605d12743821869c1d9be738c91e62fa9f0b"
     }
   ]
 }

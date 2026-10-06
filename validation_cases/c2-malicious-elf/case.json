@@ -29,7 +29,8 @@
   },
   "expected_ai": {
     "verdict": "malicious",
-    "risk_level": "critical"
+    "risk_level": "critical",
+    "verdict_level": "confirmed_malicious"
   },
   "key_evidence": [
     "systemd unit 写入并 enable（persistence 域）",

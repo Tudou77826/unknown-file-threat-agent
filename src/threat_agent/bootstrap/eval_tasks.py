@@ -147,6 +147,10 @@ def build_validation_cases(roots: list[Path]) -> list[Case]:
             expected_verdict = validation_case.expected_ai.verdict or (
                 "benign" if judgment == "benign" else "malicious"
             )
+            # 优先用逐案校准的等级（复核裁决落盘）；未校准案例走临时映射
+            expected_level = validation_case.expected_ai.verdict_level or (
+                "confirmed_malicious" if expected_verdict != "benign" else "benign"
+            )
             cases.append(
                 Case(
                     case_id=validation_case.case_id,
@@ -159,7 +163,7 @@ def build_validation_cases(roots: list[Path]) -> list[Case]:
                     },
                     ground_truth={
                         "label": "malicious" if expected_verdict != "benign" else "benign",
-                        "verdict_level": "confirmed_malicious" if expected_verdict != "benign" else "benign",
+                        "verdict_level": expected_level,
                         "host": "",
                     },
                     tags=frozenset(

@@ -229,7 +229,7 @@ def test_expected_ai_contradicting_truth_is_rejected():
 
     TestCaseModel.model_validate(payload)  # draft is consistent
     payload["expected_ai"]["verdict"] = "benign"  # GT says malicious
-    with pytest.raises(Exception, match="contradicts"):
+    with pytest.raises(Exception, match="不同侧|contradicts"):
         TestCaseModel.model_validate(payload)
 
 

@@ -149,6 +149,8 @@ def _counter_evidence(
             and "not owned" not in owner
             and not owner.startswith("file ")
         )
+        # 真话原则（2026-09-30 复核裁决）：只报告实际做过的检查——包归属查询；
+        # 签名与仓库信任从未检查，一律 unknown（None），不得作为恶意证据。
         evidence.append(
             {
                 "event_id": f"baseline-package-{digest[:12]}",
@@ -161,16 +163,18 @@ def _counter_evidence(
                 "data": {
                     "package": owner if owned else None,
                     "owns_file": owned,
-                    "signature_valid": owned,
-                    "repository_trusted": owned,
+                    "signature_valid": None,
+                    "repository_trusted": None,
                 },
             }
         )
-    approved = {
+    baseline_lines = [
         line.strip()
         for line in (bundle / "approved_endpoints.txt").read_text(encoding="utf-8").splitlines()
         if line.strip() and not line.startswith("#")
-    }
+    ]
+    has_baseline = bool(baseline_lines)  # 空清单 = 批准情况未知，不得判"未批准"
+    approved = set(baseline_lines)
     for ip in sorted(
         {
             event["data"]["remote_ip"]
@@ -187,7 +191,10 @@ def _counter_evidence(
                 "observed_at": observed_at,
                 "host_id": host_id,
                 "subject_refs": [f"endpoint:{ip}"],
-                "data": {"remote_ip": ip, "approved": ip in approved},
+                "data": {
+                    "remote_ip": ip,
+                    "approved": (ip in approved) if has_baseline else None,
+                },
             }
         )
     return evidence

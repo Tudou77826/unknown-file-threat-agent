@@ -80,8 +80,20 @@ class ExpectedRuleResult(StrictModel):
 
 class ExpectedAiResult(StrictModel):
     verdict: Literal["malicious", "benign"] | None = None
+    # 期望的判定等级（六档）。复核裁决后逐案落盘；与 verdict 必须同侧。
+    verdict_level: str | None = Field(default=None)
     risk_level: RiskLevel | None = None
     note: str | None = None
+
+    @field_validator("verdict_level")
+    @classmethod
+    def _level_in_scale(cls, value):
+        # 独立包：六级判定本地定义（与 contracts.VerdictLevel 语义对齐，抽包纪律）
+        allowed = {"benign", "likely_benign", "insufficient_evidence",
+                   "suspicious", "likely_malicious", "confirmed_malicious"}
+        if value is not None and value not in allowed:
+            raise ValueError(f"verdict_level 必须是六级判定之一: {sorted(allowed)}")
+        return value
 
 
 class TelemetryInventory(StrictModel):
@@ -159,6 +171,18 @@ class TestCase(StrictModel):
 
     def variant_ids(self) -> list[str]:
         return [spec.variant_id for spec in self.parameters.variants]
+
+    @model_validator(mode="after")
+    def _expected_level_same_side_as_verdict(self) -> "TestCase":
+        level = self.expected_ai.verdict_level
+        verdict = self.expected_ai.verdict
+        if level is not None and verdict is not None:
+            malicious_side = {"suspicious", "likely_malicious", "confirmed_malicious"}
+            if (verdict == "malicious") != (level in malicious_side):
+                raise ValueError(
+                    f"expected_ai.verdict={verdict} 与 verdict_level={level} 不同侧"
+                )
+        return self
 
     @model_validator(mode="after")
     def _expected_ai_consistent_with_truth(self) -> "TestCase":

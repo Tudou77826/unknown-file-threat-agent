@@ -4,7 +4,7 @@
   "attack_tags": [
     "T1037.004"
   ],
-  "scenario": "写入 rc.local 启动项执行落盘载荷。",
+  "scenario": "追加 rc.local 启动项（未重启验证自启）并手动执行载荷一次。",
   "judgment_target": {
     "file_path": "/opt/secval-lab/cases/t1037-004-rc-local/payload.elf",
     "file_hash": "2aa7d4403a28340f2ac3b3c13b760a13a198af2d2e8a8feece7645795eea883f",
@@ -13,7 +13,7 @@
   "ground_truth": {
     "behavior": {
       "technique_achieved": true,
-      "basis": "rc.local 追加启动命令 + 载荷执行（T1037.004 达成）"
+      "basis": "rc.local 追加写入 + 载荷手动执行外连（重启自启未验证）"
     },
     "file": {
       "judgment": "malicious",
@@ -28,8 +28,9 @@
   },
   "expected_ai": {
     "verdict": "malicious",
+    "verdict_level": "suspicious",
     "risk_level": "high",
-    "note": null
+    "note": "2026-09-30 裁决：现证据支撑可疑；补采后按三步程序重判"
   },
   "key_evidence": [
     "rc.local 写入（persistence）",
@@ -54,7 +55,7 @@
     "environment": "lab-vm-aliyun-01",
     "collector": "auditd-collector/1 + collect.sh/1",
     "created": "2026-09-29",
-    "notes": "剧本 t1037-004-rc-local | settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"
+    "notes": "剧本 t1037-004-rc-local | 事实修正(2026-09-30复核)：自启未验证，为手动触发 | settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"
   },
   "parameters": {
     "defaults": {},

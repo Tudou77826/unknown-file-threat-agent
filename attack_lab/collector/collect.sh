@@ -16,7 +16,8 @@ START_MS=$(date +%s%3N)
 ss -ltnp > "$BUNDLE/listening_ports.txt" 2>/dev/null || true
 ss -tnp   > "$BUNDLE/connections.txt" 2>/dev/null || true
 rpm -qa   > "$BUNDLE/rpm_inventory.txt" 2>/dev/null || dpkg-query -W -f '${Package}\n' > "$BUNDLE/rpm_inventory.txt" 2>/dev/null || true
-cp "${SECLAB_APPROVED_ENDPOINTS:-$LAB_ROOT/approved_endpoints.txt}" "$BUNDLE/approved_endpoints.txt" 2>/dev/null || : > "$BUNDLE/approved_endpoints.txt"
+# 批准基线按真实用途预置（复核裁决：空清单=批准未知）；自定义时用 SECLAB_APPROVED_ENDPOINTS
+cp "${SECLAB_APPROVED_ENDPOINTS:-$LAB_ROOT/approved_endpoints.lab.txt}" "$BUNDLE/approved_endpoints.txt" 2>/dev/null || : > "$BUNDLE/approved_endpoints.txt"
 # §1 进程谱系：pid/ppid/启动时间，供父进程关联与 process_ref 稳定化
 ps -eo pid,ppid,lstart,args --sort=pid > "$BUNDLE/ps_before.txt" 2>/dev/null || true
 
