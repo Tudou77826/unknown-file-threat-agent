@@ -5,7 +5,7 @@
     "T1105",
     "T1222.002"
   ],
-  "scenario": "curl 从外部拉取 ELF 后门，chmod 赋权并执行，回连 C2。",
+  "scenario": "本地文件获取（file:// 本地协议复制，未发生外部网络传输）、chmod 加执行权限、执行并回连本机模拟端口 127.0.0.1:8443 一次。",
   "judgment_target": {
     "file_path": "/opt/secval-lab/cases/t1105-ingress-tool-transfer/payload.elf",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -14,7 +14,7 @@
   "ground_truth": {
     "behavior": {
       "technique_achieved": true,
-      "basis": "curl 拉取 + chmod 700 + 执行 + 外连（T1105/T1222.002 达成）"
+      "basis": "本地复制落地 + chmod 700 + root 执行 + 单次回连本机端口（外部传输与持久化未发生）"
     },
     "file": {
       "judgment": "malicious",
@@ -50,7 +50,7 @@
     "environment": "lab",
     "collector": null,
     "created": "2026-09-29",
-    "notes": "剧本 t1105-ingress-tool-transfer"
+    "notes": "剧本 t1105-ingress-tool-transfer | 事实修正(2026-09-30复核)：外部下载未发生(file://本地协议)；预期判定待三步程序校准"
   },
   "parameters": {
     "defaults": {},

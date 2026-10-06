@@ -138,6 +138,14 @@ def main(argv: list[str] | None = None) -> int:
         workdir_of=lambda run_id: output_dir / "runs" / run_id.replace("#", "_") / "artifacts",
     )
     report = summarize(records, case_by_id, scores)
+    # 报告版本化：预期判定的任何调整必须更换 --name 出新报告并在 meta 注明原因；
+    # 旧报告原样保留，不追溯重算（工程师复核裁决）。
+    report["meta"] = {
+        "generated_at": __import__("datetime").datetime.now().isoformat(timespec="seconds"),
+        "suite": args.suite,
+        "model": settings.judgment_model.model_name,
+        "expectations_note": "预期判定版本随套件文件；如调整见 .sdd 对应记录",
+    }
     (output_dir / "report.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2, default=str), encoding="utf-8"
     )

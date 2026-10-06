@@ -4,7 +4,7 @@
   "attack_tags": [
     "T1037.004"
   ],
-  "scenario": "写入 rc.local 启动项执行落盘载荷。",
+  "scenario": "追加 rc.local 启动项（未重启验证自启）并手动执行载荷一次。",
   "judgment_target": {
     "file_path": "/opt/secval-lab/cases/t1037-004-rc-local/payload.elf",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -13,7 +13,7 @@
   "ground_truth": {
     "behavior": {
       "technique_achieved": true,
-      "basis": "rc.local 追加启动命令 + 载荷执行（T1037.004 达成）"
+      "basis": "rc.local 追加写入 + 载荷手动执行外连（重启自启未验证）"
     },
     "file": {
       "judgment": "malicious",
@@ -48,7 +48,7 @@
     "environment": "lab",
     "collector": null,
     "created": "2026-09-29",
-    "notes": "剧本 t1037-004-rc-local"
+    "notes": "剧本 t1037-004-rc-local | 事实修正(2026-09-30复核)：自启未验证，为手动触发"
   },
   "parameters": {
     "defaults": {},

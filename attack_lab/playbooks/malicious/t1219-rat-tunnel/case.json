@@ -4,7 +4,7 @@
   "attack_tags": [
     "T1219"
   ],
-  "scenario": "部署远控隧道 ELF 并建立出站连接。",
+  "scenario": "执行通用连接载荷：建立出站连接、发送标记字节、短时保持后退出（载荷未实现隧道或远控功能）。",
   "judgment_target": {
     "file_path": "/opt/secval-lab/cases/t1219-rat-tunnel/tunnel.elf",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -13,7 +13,7 @@
   "ground_truth": {
     "behavior": {
       "technique_achieved": true,
-      "basis": "隧道部署 + 出站长连接（T1219 达成）"
+      "basis": "载荷执行 + 出站连接（短时，未实现隧道功能）"
     },
     "file": {
       "judgment": "malicious",
@@ -48,7 +48,7 @@
     "environment": "lab",
     "collector": null,
     "created": "2026-09-29",
-    "notes": "剧本 t1219-rat-tunnel"
+    "notes": "剧本 t1219-rat-tunnel | 事实修正(2026-09-30复核)：非隧道工具，为通用连接载荷；预期判定待三步程序校准"
   },
   "parameters": {
     "defaults": {},

@@ -141,6 +141,12 @@ def build_validation_cases(roots: list[Path]) -> list[Case]:
         for item in loaded:
             validation_case = item.case
             judgment = validation_case.ground_truth.file.judgment.value
+            # 预期读案例文件自身的 expected_ai（复核裁决：不得在代码里硬编码等级）。
+            # verdict→level 仍是临时映射；等级校准待"事实→AI可见→合理判断"三步
+            # 程序完成后逐案落回 case.json，此映射随之退役。
+            expected_verdict = validation_case.expected_ai.verdict or (
+                "benign" if judgment == "benign" else "malicious"
+            )
             cases.append(
                 Case(
                     case_id=validation_case.case_id,
@@ -152,8 +158,8 @@ def build_validation_cases(roots: list[Path]) -> list[Case]:
                         "data_level": "l3",  # replay 即全量遥测
                     },
                     ground_truth={
-                        "label": "malicious" if judgment != "benign" else "benign",
-                        "verdict_level": "confirmed_malicious" if judgment != "benign" else "benign",
+                        "label": "malicious" if expected_verdict != "benign" else "benign",
+                        "verdict_level": "confirmed_malicious" if expected_verdict != "benign" else "benign",
                         "host": "",
                     },
                     tags=frozenset(

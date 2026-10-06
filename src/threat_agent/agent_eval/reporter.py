@@ -44,7 +44,9 @@ def summarize(
     for case_id in sorted(by_case):
         case_runs = by_case[case_id]
         run_entries = []
-        case_scores: dict[str, list[float]] = defaultdict(list)
+        # 维度值按案例累积：案例均值 = 该案例全部 epoch 得分的等权平均
+        # （修复：原实现在 epoch 循环内对累积列表求均值，两轮 0/1 会算出 0.25）
+        case_dim_values: dict[str, list[float]] = defaultdict(list)
         for record in sorted(case_runs, key=lambda item: item.run_id):
             entry: dict = {
                 "run_id": record.run_id,
@@ -60,19 +62,30 @@ def summarize(
                     "dimensions": dict(sorted(score.dimensions.items())),
                 }
                 for name, value in score.dimensions.items():
-                    case_scores[name].append(value)
-            for name, value in case_scores.items():
-                dimension_sums[name].append(sum(value) / len(value))
+                    case_dim_values[name].append(value)
             run_entries.append(entry)
+        for name, values in case_dim_values.items():
+            dimension_sums[name].append(sum(values) / len(values))
 
-        # pass^k：每个 epoch（每个 run 视作一次独立采样）都通过才算通过
-        passed_flags = [
-            all(
-                (score.passed is True) or (score.passed is None)
-                for score in scores.get(record.run_id, [])
-            )
-            for record in case_runs
-        ]
+        # pass^k：每个 epoch 都通过才算通过。无评分记录、或所有评分器都
+        # 返回 None（不适用）→ 该 run 无法评价：整案标 None，不算通过。
+        def _run_outcome(record) -> bool | None:
+            if record.status != "ok":
+                return False  # error/timeout 的 epoch：没有结果 = 不通过
+            run_scores = scores.get(record.run_id, [])
+            if not run_scores:
+                return None
+            judged = [s for s in run_scores if s.passed is not None]
+            if not judged:
+                return None
+            return all(s.passed is True for s in judged)
+
+        passed_flags = [_run_outcome(record) for record in case_runs]
+        all_passed: bool | None
+        if any(flag is None for flag in passed_flags):
+            all_passed = None
+        else:
+            all_passed = all(flag is True for flag in passed_flags)
         per_case.append(
             {
                 "case_id": case_id,
@@ -81,7 +94,7 @@ def summarize(
                 "runs": run_entries,
                 "pass_at_k": {
                     "k": len(case_runs),
-                    "all_epochs_passed": all(passed_flags),
+                    "all_epochs_passed": all_passed,
                 },
             }
         )
@@ -92,19 +105,26 @@ def summarize(
     }
     completed = [record for record in records if record.status == "ok"]
     total_tokens = sum(record.metrics_raw.get("total_tokens", 0.0) for record in records)
+    unevaluated = sum(1 for case in per_case if case["pass_at_k"]["all_epochs_passed"] is None)
+    rate_denominator = [
+        c for c in per_case
+        if c["pass_at_k"]["all_epochs_passed"] is not None
+        and any(r["status"] == "ok" for r in c["runs"])
+    ]
     return {
         "totals": {
             "cases": len(by_case),
             "runs": len(records),
             "status": dict(sorted(status_counts.items())),
-            # 失败/超时不计入通过率分母（设计 §02 口径）
+            # 失败/超时/无法评价不计入通过率分母（无法评价单列）
             "pass_rate_over_ok": (
                 round(
-                    sum(1 for case in per_case if case["pass_at_k"]["all_epochs_passed"])
-                    / max(1, len([c for c in per_case if any(r["status"] == "ok" for r in c["runs"])])),
+                    sum(1 for case in rate_denominator if case["pass_at_k"]["all_epochs_passed"])
+                    / max(1, len(rate_denominator)),
                     4,
                 )
             ),
+            "unevaluated_cases": unevaluated,
             "total_tokens": int(total_tokens),
             "mean_duration_seconds": (
                 round(sum(record.duration_seconds for record in completed) / len(completed), 3)
@@ -159,8 +179,9 @@ def render_markdown(report: dict, *, title: str = "Eval Report") -> str:
     lines.append("|---|---|---|---|")
     for case in report["cases"]:
         tags = ",".join(case["tags"]) or "—"
+        flag = case["pass_at_k"]["all_epochs_passed"]
+        mark = "n/a" if flag is None else ("yes" if flag else "NO")
         lines.append(
-            f"| {case['case_id']} | {tags} | {case['pass_at_k']['k']} | "
-            f"{'yes' if case['pass_at_k']['all_epochs_passed'] else 'NO'} |"
+            f"| {case['case_id']} | {tags} | {case['pass_at_k']['k']} | {mark} |"
         )
     return "\n".join(lines) + "\n"

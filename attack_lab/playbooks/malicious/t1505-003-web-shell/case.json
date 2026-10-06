@@ -4,7 +4,7 @@
   "attack_tags": [
     "T1505.003"
   ],
-  "scenario": "向 web 根写入 PHP web shell 并经 HTTP 触发。",
+  "scenario": "向工作区 web 根投放含命令执行代码的 PHP 文件，并通过本机 HTTP 静态服务取回文件内容（未发生命令执行；本案例仅验证可疑文件投放与访问，不验证 Web Shell 执行）。",
   "judgment_target": {
     "file_path": "/opt/secval-lab/cases/t1505-003-web-shell/webroot/shell.php",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -13,7 +13,7 @@
   "ground_truth": {
     "behavior": {
       "technique_achieved": true,
-      "basis": "web shell 写入 + HTTP 触发访问（T1505.003 达成）"
+      "basis": "Web Shell 文件写入 web 根 + HTTP 静态访问（命令执行未发生）"
     },
     "file": {
       "judgment": "malicious",
@@ -48,7 +48,7 @@
     "environment": "lab",
     "collector": null,
     "created": "2026-09-29",
-    "notes": "剧本 t1505-003-web-shell"
+    "notes": "剧本 t1505-003-web-shell | 事实修正(2026-09-30复核)：静态服务无PHP执行；选A口径=只验证投放与访问；如需计入WebShell执行覆盖需选B补真实执行"
   },
   "parameters": {
     "defaults": {},

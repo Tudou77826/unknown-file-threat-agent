@@ -280,7 +280,9 @@ def test_summarize_pass_at_k_partial_never_counts():
     assert by_case["b"]["pass_at_k"]["all_epochs_passed"] is True
 
 
-def test_summarize_excludes_failures_from_pass_rate_denominator():
+def test_error_epoch_fails_the_case_no_vacuous_pass():
+    """工程师复核裁决：没有结果不能算通过——error 的 epoch 不得因空评分被
+    空真判过；整个案例因此不通过，且计入通过率分母（有 ok 轮）。"""
     cases = {"a": _case("a")}
     ok_run = _run_with_artifact(Path("."), "a", "v")
     ok_run.run_id = build_run_id("a", {}, 1)
@@ -290,7 +292,21 @@ def test_summarize_excludes_failures_from_pass_rate_denominator():
 
     report = summarize([ok_run, bad_run], cases, {**scores, bad_run.run_id: []})
     assert report["totals"]["status"] == {"error": 1, "ok": 1}
-    assert report["totals"]["pass_rate_over_ok"] == 1.0
+    assert report["cases"][0]["pass_at_k"]["all_epochs_passed"] is False
+    assert report["totals"]["pass_rate_over_ok"] == 0.0
+
+
+def test_all_error_case_stays_out_of_pass_rate_denominator():
+    """纯失败案例（无任何 ok 轮）仍排除在通过率分母之外。"""
+    cases = {"a": _case("a"), "b": _case("b")}
+    ok_run = _run_with_artifact(Path("."), "a", "v")
+    ok_run.run_id = build_run_id("a", {}, 1)
+    bad_only = _run_with_artifact(Path("."), "b", "v", status="error")
+    bad_only.run_id = build_run_id("b", {}, 1)
+    scores = _scored([ok_run], [(1.0, True)])
+
+    report = summarize([ok_run, bad_only], cases, {**scores, bad_only.run_id: []})
+    assert report["totals"]["pass_rate_over_ok"] == 1.0  # 分母只含案例 a
 
 
 def test_diff_baselines_flags_regression_and_improvement():
