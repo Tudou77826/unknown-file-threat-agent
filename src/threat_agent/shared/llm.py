@@ -129,10 +129,7 @@ def forced_structured(model, schema):
 
     if not hasattr(model, "bind_tools"):  # 测试替身等非工具模型走原路径
         return model.with_structured_output(schema, method=structured_output_method(model))
-    # "tool" 模式让模型直接产出工具调用（无前导文本），全部输出预算给
-    # 结构化 JSON——修 max_tokens 收紧时前导文本吃满预算导致工具调用
-    # 永远不出现的问题（_NoToolCallError）
-    bound = model.bind_tools([schema], tool_choice={"type": "tool", "name": schema.__name__})
+    bound = model.bind_tools([schema], tool_choice={"type": "any"})
 
     def _invoke(messages, config=None, **kwargs):
         message = bound.invoke(messages, config)
