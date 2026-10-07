@@ -1,0 +1,15 @@
+Makefile
+modules.order
+.modules.order.cmd
+Module.symvers
+.Module.symvers.cmd
+rootkit.c
+rootkit.ko
+.rootkit.ko.cmd
+rootkit.mod
+rootkit.mod.c
+.rootkit.mod.cmd
+rootkit.mod.o
+.rootkit.mod.o.cmd
+rootkit.o
+.rootkit.o.cmd

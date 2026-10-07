@@ -1,0 +1,115 @@
+    PID    PPID                  STARTED COMMAND
+      1       0 Mon Apr  6 03:05:31 2026 /usr/lib/systemd/systemd --switched-root --system --deserialize 17
+      2       0 Mon Apr  6 03:05:31 2026 [kthreadd]
+      3       2 Mon Apr  6 03:05:31 2026 [rcu_gp]
+      4       2 Mon Apr  6 03:05:31 2026 [rcu_par_gp]
+      6       2 Mon Apr  6 03:05:31 2026 [kworker/0:0H-events_highpri]
+      8       2 Mon Apr  6 03:05:31 2026 [mm_percpu_wq]
+      9       2 Mon Apr  6 03:05:31 2026 [rcu_tasks_rude_]
+     10       2 Mon Apr  6 03:05:31 2026 [rcu_tasks_trace]
+     11       2 Mon Apr  6 03:05:31 2026 [ksoftirqd/0]
+     12       2 Mon Apr  6 03:05:31 2026 [rcu_sched]
+     13       2 Mon Apr  6 03:05:31 2026 [migration/0]
+     14       2 Mon Apr  6 03:05:31 2026 [cpuhp/0]
+     15       2 Mon Apr  6 03:05:31 2026 [cpuhp/1]
+     16       2 Mon Apr  6 03:05:31 2026 [migration/1]
+     17       2 Mon Apr  6 03:05:31 2026 [ksoftirqd/1]
+     19       2 Mon Apr  6 03:05:31 2026 [kworker/1:0H-kblockd]
+     21       2 Mon Apr  6 03:05:31 2026 [kdevtmpfs]
+     22       2 Mon Apr  6 03:05:31 2026 [netns]
+     23       2 Mon Apr  6 03:05:31 2026 [kauditd]
+     26       2 Mon Apr  6 03:05:31 2026 [khungtaskd]
+     27       2 Mon Apr  6 03:05:31 2026 [oom_reaper]
+     28       2 Mon Apr  6 03:05:31 2026 [writeback]
+     29       2 Mon Apr  6 03:05:31 2026 [kcompactd0]
+     30       2 Mon Apr  6 03:05:31 2026 [ksmd]
+     31       2 Mon Apr  6 03:05:31 2026 [khugepaged]
+     32       2 Mon Apr  6 03:05:31 2026 [memcg_wmark]
+     33       2 Mon Apr  6 03:05:31 2026 [memcg_pgcache_l]
+     47       2 Mon Apr  6 03:05:31 2026 [cryptd]
+     82       2 Mon Apr  6 03:05:31 2026 [kintegrityd]
+     83       2 Mon Apr  6 03:05:31 2026 [kblockd]
+     84       2 Mon Apr  6 03:05:31 2026 [blkcg_punt_bio]
+     85       2 Mon Apr  6 03:05:31 2026 [tpm_dev_wq]
+     86       2 Mon Apr  6 03:05:31 2026 [md]
+     87       2 Mon Apr  6 03:05:31 2026 [edac-poller]
+     88       2 Mon Apr  6 03:05:31 2026 [devfreq_wq]
+     89       2 Mon Apr  6 03:05:31 2026 [watchdogd]
+     90       2 Mon Apr  6 03:05:31 2026 [kworker/0:1H-kblockd]
+    123       2 Mon Apr  6 03:05:31 2026 [kswapd0]
+    124       2 Mon Apr  6 03:05:31 2026 [zombie_memcg_re]
+    125       2 Mon Apr  6 03:05:31 2026 [kidled]
+    127       2 Mon Apr  6 03:05:31 2026 [kthrotld]
+    128       2 Mon Apr  6 03:05:31 2026 [acpi_thermal_pm]
+    130       2 Mon Apr  6 03:05:31 2026 [kworker/1:1H-kblockd]
+    131       2 Mon Apr  6 03:05:31 2026 [kmpath_rdacd]
+    132       2 Mon Apr  6 03:05:31 2026 [kaluad]
+    134       2 Mon Apr  6 03:05:31 2026 [ipv6_addrconf]
+    135       2 Mon Apr  6 03:05:31 2026 [kstrp]
+    151       2 Mon Apr  6 03:05:31 2026 [zswap-shrink]
+    156       2 Mon Apr  6 03:05:31 2026 [load_calc]
+    157       2 Mon Apr  6 03:05:31 2026 [kworker/u5:0]
+    319       2 Mon Apr  6 03:05:32 2026 [ata_sff]
+    321       2 Mon Apr  6 03:05:32 2026 [scsi_eh_0]
+    322       2 Mon Apr  6 03:05:32 2026 [scsi_tmf_0]
+    326       2 Mon Apr  6 03:05:32 2026 [scsi_eh_1]
+    327       2 Mon Apr  6 03:05:32 2026 [scsi_tmf_1]
+    352       2 Mon Apr  6 03:05:32 2026 [jbd2/vda3-8]
+    353       2 Mon Apr  6 03:05:32 2026 [jbd2-ckpt/vda3-]
+    354       2 Mon Apr  6 03:05:32 2026 [ext4-rsv-conver]
+    463       1 Mon Apr  6 03:05:33 2026 /usr/lib/systemd/systemd-journald
+    507       1 Mon Apr  6 03:05:33 2026 /usr/lib/systemd/systemd-udevd
+    539       1 Mon Apr  6 03:05:33 2026 /usr/bin/dbus-daemon --system --address=systemd: --nofork --nopidfile --systemd-activation --syslog-only
+    544       1 Mon Apr  6 03:05:33 2026 /usr/sbin/rngd -f --fill-watermark=0 -x pkcs11 -x nist -x qrypt -D daemon:daemon
+    545       1 Mon Apr  6 03:05:33 2026 /usr/lib/systemd/systemd-logind
+    556       2 Mon Apr  6 03:05:33 2026 [rpciod]
+    557       2 Mon Apr  6 03:05:33 2026 [xprtiod]
+    558       1 Mon Apr  6 03:05:33 2026 /usr/sbin/chronyd
+    578       2 Mon Apr  6 03:05:33 2026 [nfit]
+    590       2 Wed Oct  7 14:14:44 2026 [kworker/u4:2-ext4-rsv-conversion]
+    707       1 Mon Apr  6 03:05:36 2026 /usr/sbin/NetworkManager --no-daemon
+    711       1 Mon Apr  6 03:05:36 2026 /www/server/site_total/site_total
+    717       1 Mon Apr  6 03:05:36 2026 /usr/libexec/platform-python -Es /usr/sbin/tuned -l -P
+    739       1 Mon Apr  6 03:05:36 2026 /usr/sbin/gssproxy -D
+    902       1 Mon Apr  6 03:05:37 2026 /usr/lib/polkit-1/polkitd --no-debug
+    998       1 Mon Apr  6 03:05:38 2026 /usr/sbin/rsyslogd -n
+   1004       1 Mon Apr  6 03:05:38 2026 /usr/sbin/atd -f
+   1007       1 Mon Apr  6 03:05:38 2026 /usr/sbin/crond -n
+   1017       1 Mon Apr  6 03:05:38 2026 /sbin/agetty -o -p -- \u --noclear tty1 linux
+   1018       1 Mon Apr  6 03:05:38 2026 /sbin/agetty -o -p -- \u --keep-baud 115200,38400,9600 ttyS0 vt220
+   1060       1 Mon Apr  6 03:05:39 2026 /www/server/panel/pyenv/bin/python3 /www/server/panel/BT-Panel
+   1080       1 Mon Apr  6 03:05:40 2026 /www/server/panel/pyenv/bin/python3 /www/server/panel/BT-Task
+   1609       1 Mon Apr  6 03:06:29 2026 /usr/local/cloudmonitor/bin/argusagent -d
+   1610    1609 Mon Apr  6 03:06:29 2026 /usr/local/cloudmonitor/bin/argusagent
+   2619 4192287 Wed Oct  7 14:16:29 2026 sudo bash /opt/secval-lab/collector/collect.sh bb6-mirror-download bash /opt/secval-lab/playbooks/benign/bb6-mirror-download/run.sh
+   2620 4192287 Wed Oct  7 14:16:29 2026 tail -1
+   2622    2619 Wed Oct  7 14:16:29 2026 bash /opt/secval-lab/collector/collect.sh bb6-mirror-download bash /opt/secval-lab/playbooks/benign/bb6-mirror-download/run.sh
+   2688    2622 Wed Oct  7 14:16:31 2026 ps -eo pid,ppid,lstart,args --sort=pid
+   3879       1 Mon Apr  6 04:18:27 2026 /usr/sbin/sshd -D -oCiphers=aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr,aes256-cbc,aes128-gcm@openssh.com,aes128-ctr,aes128-cbc -oMACs=hmac-sha2-256-etm@openssh.com,hmac-sha1-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512-etm@openssh.com,hmac-sha2-256,hmac-sha1,umac-128@openssh.com,hmac-sha2-512 -oGSSAPIKexAlgorithms=gss-curve25519-sha256-,gss-nistp256-sha256-,gss-group14-sha256-,gss-group16-sha512-,gss-gex-sha1-,gss-group14-sha1- -oKexAlgorithms=curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256,diffie-hellman-group14-sha256,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 -oHostKeyAlgorithms=ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521,ecdsa-sha2-nistp521-cert-v01@openssh.com,ssh-ed25519,ssh-ed25519-cert-v01@openssh.com,rsa-sha2-256,rsa-sha2-256-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-512-cert-v01@openssh.com,ssh-rsa,ssh-rsa-cert-v01@openssh.com -oPubkeyAcceptedKeyTypes=ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521,ecdsa-sha2-nistp521-cert-v01@openssh.com,ssh-ed25519,ssh-ed25519-cert-v01@openssh.com,rsa-sha2-256,rsa-sha2-256-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-512-cert-v01@openssh.com,ssh-rsa,ssh-rsa-cert-v01@openssh.com -oCASignatureAlgorithms=ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,ssh-ed25519,rsa-sha2-256,rsa-sha2-512,ssh-rsa
+1374460       1 Fri Jun  5 02:36:13 2026 /usr/local/share/aliyun-assist/aliyun-service.symlink
+3556976       1 Mon Sep 14 12:38:14 2026 /usr/local/aegis/aegis_update/AliYunDunUpdate
+3557021       1 Mon Sep 14 12:38:55 2026 /usr/local/aegis/aegis_client/aegis_13_03/AliYunDun
+3557047       1 Mon Sep 14 12:39:05 2026 /usr/local/aegis/aegis_client/aegis_13_03/AliYunDunMonitor
+3875393       1 Tue Sep 29 14:55:07 2026 /sbin/auditd
+3875417       2 Tue Sep 29 14:55:07 2026 [audit_prune_tre]
+4168642       2 Wed Oct  7 11:59:04 2026 [kworker/u4:0-ext4-rsv-conversion]
+4174954       1 Wed Oct  7 13:36:50 2026 /usr/lib/systemd/systemd --user
+4174957 4174954 Wed Oct  7 13:36:50 2026 (sd-pam)
+4175529       1 Wed Oct  7 13:37:05 2026 python3 -m http.server 18080
+4175766       1 Wed Oct  7 13:37:19 2026 python3 -m http.server 18082
+4181373       2 Wed Oct  7 13:55:13 2026 [kworker/0:0-cgroup_pidlist_destroy]
+4181813       2 Wed Oct  7 13:55:57 2026 [kworker/u4:1-ext4-rsv-conversion]
+4183827       2 Wed Oct  7 13:58:55 2026 [kworker/1:3-events]
+4183884       2 Wed Oct  7 13:58:56 2026 [kworker/0:2-events]
+4188449       2 Wed Oct  7 14:04:32 2026 [kworker/1:2-cgroup_pidlist_destroy]
+4189324       2 Wed Oct  7 14:04:58 2026 [kworker/0:3-cgroup_pidlist_destroy]
+4192064       2 Wed Oct  7 14:11:42 2026 [kworker/1:0-cgroup_pidlist_destroy]
+4192114       2 Wed Oct  7 14:11:44 2026 [kworker/0:1-events]
+4192236    3879 Wed Oct  7 14:12:06 2026 sshd: sopuser [priv]
+4192240 4192236 Wed Oct  7 14:12:06 2026 sshd: sopuser@notty
+4192241 4192240 Wed Oct  7 14:12:07 2026 bash -c echo 'zhangyibo123.' | su -c 'sudo bash /opt/secval-lab/collector/run_batch.sh t1105-ingress-tool-transfer t1053-003-cron-persistence t1037-004-rc-local t1219-rat-tunnel t1543-002-systemd-service t1005-t1560-001-archive t1486-ransomware t1567-002-exfil-upload t1574-006-ldpreload t1505-003-web-shell t1547-006-kernel-module bb2-admin-backup bb3-ops-tool-deploy bb4-ops-cron bb5-compiler-artifact bb6-mirror-download 2>&1 | grep -E '\''^==|工件|FAILED'\''; uptime; sudo auditctl -l | wc -l' -
+4192261 4192241 Wed Oct  7 14:12:07 2026 su -c sudo bash /opt/secval-lab/collector/run_batch.sh t1105-ingress-tool-transfer t1053-003-cron-persistence t1037-004-rc-local t1219-rat-tunnel t1543-002-systemd-service t1005-t1560-001-archive t1486-ransomware t1567-002-exfil-upload t1574-006-ldpreload t1505-003-web-shell t1547-006-kernel-module bb2-admin-backup bb3-ops-tool-deploy bb4-ops-cron bb5-compiler-artifact bb6-mirror-download 2>&1 | grep -E '^==|工件|FAILED'; uptime; sudo auditctl -l | wc -l -
+4192265 4192261 Wed Oct  7 14:12:07 2026 -bash -c sudo bash /opt/secval-lab/collector/run_batch.sh t1105-ingress-tool-transfer t1053-003-cron-persistence t1037-004-rc-local t1219-rat-tunnel t1543-002-systemd-service t1005-t1560-001-archive t1486-ransomware t1567-002-exfil-upload t1574-006-ldpreload t1505-003-web-shell t1547-006-kernel-module bb2-admin-backup bb3-ops-tool-deploy bb4-ops-cron bb5-compiler-artifact bb6-mirror-download 2>&1 | grep -E '^==|工件|FAILED'; uptime; sudo auditctl -l | wc -l
+4192284 4192265 Wed Oct  7 14:12:07 2026 sudo bash /opt/secval-lab/collector/run_batch.sh t1105-ingress-tool-transfer t1053-003-cron-persistence t1037-004-rc-local t1219-rat-tunnel t1543-002-systemd-service t1005-t1560-001-archive t1486-ransomware t1567-002-exfil-upload t1574-006-ldpreload t1505-003-web-shell t1547-006-kernel-module bb2-admin-backup bb3-ops-tool-deploy bb4-ops-cron bb5-compiler-artifact bb6-mirror-download
+4192285 4192265 Wed Oct  7 14:12:07 2026 grep -E ^==|工件|FAILED
+4192287 4192284 Wed Oct  7 14:12:07 2026 bash /opt/secval-lab/collector/run_batch.sh t1105-ingress-tool-transfer t1053-003-cron-persistence t1037-004-rc-local t1219-rat-tunnel t1543-002-systemd-service t1005-t1560-001-archive t1486-ransomware t1567-002-exfil-upload t1574-006-ldpreload t1505-003-web-shell t1547-006-kernel-module bb2-admin-backup bb3-ops-tool-deploy bb4-ops-cron bb5-compiler-artifact bb6-mirror-download

@@ -31,13 +31,41 @@ kill "$POLLER" 2>/dev/null; sleep 0.1; pkill -P "$POLLER" 2>/dev/null || true
 [ "$rc" -ne 0 ] && echo "PLAYBOOK FAILED (exit $rc) — bundle retained for triage" | tee -a "$LOG"
 END_MS=$(date +%s%3N)
 
-# 工件快照与哈希清单（判定对象锚点来源：保留执行时真实字节）
+# 先切片再重快照：find/sha256/rpm 自身在全量审计规则下会产生洪流，
+# 把剧本期记录挤出轮转卷（t1543/t1574 丢失根因）——趁记录还在当前卷立即切
+sleep 3  # 等 auditd 落盘（高负载时写入滞后，立即切片会丢窗口尾部记录）
+printf '%s\n%s\n' "$START_MS" "$END_MS" > "$BUNDLE/window.txt"
+
+# 审计日志按窗口切片（毫秒级比较：整数秒会丢窗口首秒——剧本文件写入集中在一秒内）
+awk -v s="$START_MS" -v e="$END_MS" '{
+  if (match($0, /msg=audit\(([0-9]+)\.([0-9]+)/, k)) {
+    ms = k[1] * 1000 + int(k[2])  # 小数部分本身就是毫秒（auditd 固定三位）
+    if (ms >= s && ms <= e) print
+  }
+}' /var/log/audit/audit.log /var/log/audit/audit.log.[1-4] 2>/dev/null > "$BUNDLE/audit.log" || true
+[ -s "$BUNDLE/audit.log" ] || echo "WARN: audit window slice is empty" >&2
+
+# 噪音压缩：宿主常有高频背景活动（安骑士/面板），仅保留 Case 相关审计组：
+# 命中 Case 路径 / 持久化路径 / USER_* / connect 的记录，按 serial 带上伴随记录
+if [ -s "$BUNDLE/audit.log" ]; then
+  # 两遍扫描：SYSCALL 是每个事件的第一行，而序号命中靠后面的 PATH/CWD——
+  # 单遍流式会在序号入集合前放走 SYSCALL 行（此前系统性丢失文件/执行 SYSCALL 的根因）
+  gawk '
+    NR == FNR {
+      if ($0 ~ /secval-lab|\/etc\/(systemd|cron|rc\.d)|type=USER_|syscall=42|type=USER_ACCT/)
+        if (match($0, /audit\([0-9.]+:([0-9]+)\)/, k)) keep[k[1]] = 1
+      next
+    }
+    { if (match($0, /audit\([0-9.]+:([0-9]+)\)/, k) && (k[1] in keep)) print }
+  ' "$BUNDLE/audit.log" "$BUNDLE/audit.log" > "$BUNDLE/audit.tmp" && mv "$BUNDLE/audit.tmp" "$BUNDLE/audit.log"
+fi
+
+# 工件快照与哈希清单（判定对象锚点来源：保留执行时真实字节；放在切片之后）
 find "$WORK" -type f ! -name '*.log' -printf '%P\n' 2>/dev/null | sort > "$BUNDLE/workspace_files.txt" || \
   find "$WORK" -type f ! -name '*.log' | sed "s|^$WORK/||" | sort > "$BUNDLE/workspace_files.txt"
 ( cd "$WORK" && tar czf "$BUNDLE/workspace.tar.gz" --exclude='*.log' . 2>/dev/null || true )
 ( cd "$WORK" && find . -type f ! -name '*.log' -exec sha256sum {} \; | sort -k2 > "$BUNDLE/workspace_hashes.txt" )
 
-printf '%s\n%s\n' "$START_MS" "$END_MS" > "$BUNDLE/window.txt"
 ps -eo pid,ppid,lstart,args --sort=pid > "$BUNDLE/ps_after.txt" 2>/dev/null || true
 # §2 包归属反证：逐工件查询所属包（非包文件 → owns_file=false 负证据）
 : > "$BUNDLE/workspace_owners.txt"
@@ -47,27 +75,5 @@ while IFS= read -r f; do
   case "$owner" in "" | "file "* | *"not owned"*) owner=NOT-OWNED ;; esac
   printf '%s\t%s\n' "$f" "$owner" >> "$BUNDLE/workspace_owners.txt"
 done < "$BUNDLE/workspace_files.txt"
-# 等待 auditd 落盘（高负载时写入滞后，立即切片会丢窗口尾部记录）
-sleep 3
-
-# 审计日志按窗口切片（秒×1000 对齐毫秒窗口；传输与沉淀都只需要窗口内记录）
-awk -v s="$START_MS" -v e="$END_MS" '{
-  if (match($0, /msg=audit\([0-9]+/)) {
-    sec = substr($0, RSTART + 10, RLENGTH - 10) + 0
-    if (sec * 1000 >= s && sec * 1000 <= e) print
-  }
-}' /var/log/audit/audit.log /var/log/audit/audit.log.[1-4] 2>/dev/null > "$BUNDLE/audit.log" || true
-[ -s "$BUNDLE/audit.log" ] || echo "WARN: audit window slice is empty" >&2
-
-# 噪音压缩：宿主常有高频后台活动（安骑士/面板），仅保留 Case 相关审计组：
-# 命中 Case 路径 / 持久化路径 / USER_* / connect 的记录，按 serial 带上伴随记录
-if [ -s "$BUNDLE/audit.log" ]; then
-  gawk '
-    /secval-lab|\/etc\/(systemd|cron|rc\.d)|type=USER_|syscall=42|type=USER_ACCT/ {
-      if (match($0, /audit\([0-9.]+:([0-9]+)\)/, k)) keep[k[1]] = 1
-    }
-    { if (match($0, /audit\([0-9.]+:([0-9]+)\)/, k) && (k[1] in keep)) print }
-  ' "$BUNDLE/audit.log" > "$BUNDLE/audit.tmp" && mv "$BUNDLE/audit.tmp" "$BUNDLE/audit.log"
-fi
 
 echo "bundle ready: $BUNDLE (rc=$rc)"

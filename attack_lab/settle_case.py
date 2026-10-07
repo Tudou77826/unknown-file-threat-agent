@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -259,9 +260,13 @@ def settle(*, source: Path, bundle: Path, host_id: str, suite_root: Path, worksp
 
     payload = draft.model_dump()
     payload["judgment_target"]["file_hash"] = digest
+    # 基线来源按实际证据条件化：无网络事件的案例没有端点可核验，
+    # 不得声明 cmdb-baseline（声明了会被套件校验拒绝）。
+    has_network = any(e.get("event_type") == "network_connection" for e in events)
+    baseline_sources = ["rpm-inventory"] + (["cmdb-baseline"] if has_network else [])
     payload["telemetry"] = {
         "event_files": sorted(name for name in grouped),
-        "environment_baseline_sources": ["rpm-inventory", "cmdb-baseline"],
+        "environment_baseline_sources": baseline_sources,
     }
     payload["provenance"] = {
         **payload["provenance"],
@@ -295,10 +300,23 @@ def settle(*, source: Path, bundle: Path, host_id: str, suite_root: Path, worksp
             data["cases"].append({"case_id": draft.case_id, "directory": draft.case_id})
         manifest.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    repo = ValidationSuiteRepository(suite_root)
-    repo.refresh_digests()
-    _, loaded = repo.load()
-    settled = next(item for item in loaded if item.case.case_id == draft.case_id)
+    def _rollback() -> None:
+        # 失败不留半成品：清掉本案例目录与清单条目，避免毒倒后续整套装载
+        if manifest.exists():
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            data["cases"] = [e for e in data["cases"] if e["case_id"] != draft.case_id]
+            manifest.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        if case_dir.exists():
+            shutil.rmtree(case_dir, ignore_errors=True)
+
+    try:
+        repo = ValidationSuiteRepository(suite_root)
+        repo.refresh_digests()
+        _, loaded = repo.load()
+        settled = next(item for item in loaded if item.case.case_id == draft.case_id)
+    except Exception:
+        _rollback()
+        raise
     print(
         f"settled {settled.case_ref}: {len(events)} events, "
         f"{len(grouped)} files, judgment {digest[:12]} — review GT then refresh digests"

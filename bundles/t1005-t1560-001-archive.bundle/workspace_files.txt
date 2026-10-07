@@ -1,0 +1,3 @@
+sensitive/cloud.creds
+sensitive/shadow.extract
+staging.tar.gz

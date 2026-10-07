@@ -1,0 +1,287 @@
+type=SYSCALL msg=audit(1791353665.105:16355458): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=55ac3b87d690 a2=241 a3=1b6 items=2 ppid=4194275 pid=4194278 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.105:16355458): cwd="/root"
+type=PATH msg=audit(1791353665.105:16355458): item=0 name="/opt/secval-lab/bundles/t1005-t1560-001-archive.bundle/" inode=392573 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.105:16355458): item=1 name="/opt/secval-lab/bundles/t1005-t1560-001-archive.bundle/listening_ports.txt" inode=392574 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.105:16355458): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E73680074313030352D74313536302D3030312D617263686976650062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D6172636869
+type=SYSCALL msg=audit(1791353665.112:16355736): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=55ac3b87fc00 a2=241 a3=1b6 items=2 ppid=4194275 pid=4194279 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.112:16355736): cwd="/root"
+type=PATH msg=audit(1791353665.112:16355736): item=0 name="/opt/secval-lab/bundles/t1005-t1560-001-archive.bundle/" inode=392573 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.112:16355736): item=1 name="/opt/secval-lab/bundles/t1005-t1560-001-archive.bundle/connections.txt" inode=392575 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.112:16355736): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E73680074313030352D74313536302D3030312D617263686976650062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D6172636869
+type=SYSCALL msg=audit(1791353665.120:16356014): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=55ac3b87d700 a2=241 a3=1b6 items=2 ppid=4194275 pid=4194280 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.120:16356014): cwd="/root"
+type=PATH msg=audit(1791353665.120:16356014): item=0 name="/opt/secval-lab/bundles/t1005-t1560-001-archive.bundle/" inode=392573 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.120:16356014): item=1 name="/opt/secval-lab/bundles/t1005-t1560-001-archive.bundle/rpm_inventory.txt" inode=392576 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.120:16356014): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E73680074313030352D74313536302D3030312D617263686976650062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D6172636869
+type=SYSCALL msg=audit(1791353665.636:16356103): arch=c000003e syscall=59 success=yes exit=0 a0=55ac3b880a40 a1=55ac3b880ec0 a2=55ac3b87bf80 a3=1b6 items=3 ppid=4194275 pid=4194281 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="cp" exe="/usr/bin/cp" key="secval"
+type=EXECVE msg=audit(1791353665.636:16356103): argc=3 a0="cp" a1="/opt/secval-lab/approved_endpoints.lab.txt" a2="/opt/secval-lab/bundles/t1005-t1560-001-archive.bundle/approved_endpoints.txt"
+type=CWD msg=audit(1791353665.636:16356103): cwd="/root"
+type=PATH msg=audit(1791353665.636:16356103): item=0 name="/bin/cp" inode=1061255 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.636:16356103): item=1 name="/bin/cp" inode=1061255 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.636:16356103): item=2 name="/lib64/ld-linux-x86-64.so.2" inode=1046644 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.636:16356103): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E73680074313030352D74313536302D3030312D617263686976650062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D6172636869
+type=SYSCALL msg=audit(1791353665.637:16356114): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7fffa3c03dde a2=0 a3=0 items=1 ppid=4194275 pid=4194281 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="cp" exe="/usr/bin/cp" key="secval"
+type=CWD msg=audit(1791353665.637:16356114): cwd="/root"
+type=PATH msg=audit(1791353665.637:16356114): item=0 name="/opt/secval-lab/approved_endpoints.lab.txt" inode=392809 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.637:16356114): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E73680074313030352D74313536302D3030312D617263686976650062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D6172636869
+type=SYSCALL msg=audit(1791353665.637:16356115): arch=c000003e syscall=257 success=yes exit=4 a0=ffffff9c a1=7fffa3c03e09 a2=c1 a3=1a4 items=2 ppid=4194275 pid=4194281 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="cp" exe="/usr/bin/cp" key="secval"
+type=CWD msg=audit(1791353665.637:16356115): cwd="/root"
+type=PATH msg=audit(1791353665.637:16356115): item=0 name="/opt/secval-lab/bundles/t1005-t1560-001-archive.bundle/" inode=392573 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.637:16356115): item=1 name="/opt/secval-lab/bundles/t1005-t1560-001-archive.bundle/approved_endpoints.txt" inode=392577 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.637:16356115): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E73680074313030352D74313536302D3030312D617263686976650062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D6172636869
+type=SYSCALL msg=audit(1791353665.638:16356116): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=55ac3b880e20 a2=241 a3=1b6 items=2 ppid=4194275 pid=4194282 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.638:16356116): cwd="/root"
+type=PATH msg=audit(1791353665.638:16356116): item=0 name="/opt/secval-lab/bundles/t1005-t1560-001-archive.bundle/" inode=392573 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.638:16356116): item=1 name="/opt/secval-lab/bundles/t1005-t1560-001-archive.bundle/ps_before.txt" inode=392578 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.638:16356116): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E73680074313030352D74313536302D3030312D617263686976650062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D6172636869
+type=SYSCALL msg=audit(1791353665.656:16356497): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=55ac3b8813c0 a2=241 a3=1b6 items=2 ppid=4194275 pid=4194283 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.656:16356497): cwd="/root"
+type=PATH msg=audit(1791353665.656:16356497): item=0 name="/opt/secval-lab/bundles/t1005-t1560-001-archive.bundle/" inode=392573 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.656:16356497): item=1 name="/opt/secval-lab/bundles/t1005-t1560-001-archive.bundle/conn_poll.log" inode=392579 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.656:16356497): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E73680074313030352D74313536302D3030312D617263686976650062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D6172636869
+type=SYSCALL msg=audit(1791353665.662:16356512): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=55ac3b87efe0 a2=241 a3=1b6 items=2 ppid=4194284 pid=4194285 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.662:16356512): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.662:16356512): item=0 name="/opt/secval-lab/bundles/t1005-t1560-001-archive.bundle/" inode=392573 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.662:16356512): item=1 name="/opt/secval-lab/bundles/t1005-t1560-001-archive.bundle/playbook.log" inode=392580 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.662:16356512): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E73680074313030352D74313536302D3030312D617263686976650062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D6172636869
+type=SYSCALL msg=audit(1791353665.662:16356516): arch=c000003e syscall=59 success=yes exit=0 a0=55ac3b8820c0 a1=55ac3b87d510 a2=55ac3b87bf80 a3=1b6 items=3 ppid=4194284 pid=4194285 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=EXECVE msg=audit(1791353665.662:16356516): argc=2 a0="bash" a1="/opt/secval-lab/playbooks/malicious/t1005-t1560-001-archive/run.sh"
+type=CWD msg=audit(1791353665.662:16356516): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.662:16356516): item=0 name="/bin/bash" inode=1050517 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.662:16356516): item=1 name="/bin/bash" inode=1050517 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.662:16356516): item=2 name="/lib64/ld-linux-x86-64.so.2" inode=1046644 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.662:16356516): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E73680074313030352D74313536302D3030312D617263686976650062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D6172636869
+type=SYSCALL msg=audit(1791353665.663:16356517): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f5b9ffefca4 a2=80000 a3=0 items=1 ppid=4194284 pid=4194285 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.663:16356517): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.663:16356517): item=0 name="/etc/ld.so.cache" inode=785587 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.663:16356517): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E73680074313030352D74313536302D3030312D617263686976650062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D6172636869
+type=SYSCALL msg=audit(1791353665.663:16356518): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f5b9fff9e70 a2=80000 a3=0 items=1 ppid=4194284 pid=4194285 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.663:16356518): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.663:16356518): item=0 name="/lib64/libtinfo.so.6" inode=1049773 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.663:16356518): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E73680074313030352D74313536302D3030312D617263686976650062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D6172636869
+type=SYSCALL msg=audit(1791353665.663:16356519): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f5b9ffbf4d0 a2=80000 a3=0 items=1 ppid=4194284 pid=4194285 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.663:16356519): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.663:16356519): item=0 name="/lib64/libdl.so.2" inode=1046654 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.663:16356519): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E73680074313030352D74313536302D3030312D617263686976650062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D6172636869
+type=SYSCALL msg=audit(1791353665.663:16356520): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f5b9ffbf9c0 a2=80000 a3=0 items=1 ppid=4194284 pid=4194285 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.663:16356520): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.663:16356520): item=0 name="/lib64/libc.so.6" inode=1046652 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.663:16356520): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E73680074313030352D74313536302D3030312D617263686976650062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D6172636869
+type=SYSCALL msg=audit(1791353665.664:16356521): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f5b9ff55c70 a2=80000 a3=0 items=1 ppid=4194284 pid=4194285 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.664:16356521): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.664:16356521): item=0 name="/usr/lib/locale/locale-archive" inode=1046602 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.664:16356521): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E73680074313030352D74313536302D3030312D617263686976650062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D6172636869
+type=SYSCALL msg=audit(1791353665.664:16356522): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f5b9ff51d10 a2=0 a3=0 items=1 ppid=4194284 pid=4194285 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.664:16356522): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.664:16356522): item=0 name="/usr/lib64/gconv/gconv-modules.cache" inode=1047271 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.664:16356522): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E73680074313030352D74313536302D3030312D617263686976650062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D6172636869
+type=SYSCALL msg=audit(1791353665.664:16356523): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=55eaa75423f0 a2=0 a3=0 items=1 ppid=4194284 pid=4194285 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.664:16356523): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.664:16356523): item=0 name="/opt/secval-lab/playbooks/malicious/t1005-t1560-001-archive/run.sh" inode=392485 dev=fd:03 mode=0100755 ouid=197610 ogid=197610 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.664:16356523): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E73680074313030352D74313536302D3030312D617263686976650062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D6172636869
+type=SYSCALL msg=audit(1791353665.670:16356527): arch=c000003e syscall=59 success=yes exit=0 a0=55eaa7545c60 a1=55eaa75465e0 a2=55eaa7544880 a3=8 items=3 ppid=4194290 pid=4194291 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="dirname" exe="/usr/bin/dirname" key="secval"
+type=EXECVE msg=audit(1791353665.670:16356527): argc=2 a0="dirname" a1="/opt/secval-lab/playbooks/malicious/t1005-t1560-001-archive/run.sh"
+type=CWD msg=audit(1791353665.670:16356527): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.670:16356527): item=0 name="/bin/dirname" inode=1061263 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.670:16356527): item=1 name="/bin/dirname" inode=1061263 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.670:16356527): item=2 name="/lib64/ld-linux-x86-64.so.2" inode=1046644 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.670:16356527): proctitle=6469726E616D65002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D617263686976652F72756E2E7368
+type=SYSCALL msg=audit(1791353665.670:16356528): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7effa8dbdca4 a2=80000 a3=0 items=1 ppid=4194290 pid=4194291 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="dirname" exe="/usr/bin/dirname" key="secval"
+type=CWD msg=audit(1791353665.670:16356528): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.670:16356528): item=0 name="/etc/ld.so.cache" inode=785587 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.670:16356528): proctitle=6469726E616D65002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D617263686976652F72756E2E7368
+type=SYSCALL msg=audit(1791353665.670:16356529): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7effa8dc7e70 a2=80000 a3=0 items=1 ppid=4194290 pid=4194291 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="dirname" exe="/usr/bin/dirname" key="secval"
+type=CWD msg=audit(1791353665.670:16356529): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.670:16356529): item=0 name="/lib64/libc.so.6" inode=1046652 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.670:16356529): proctitle=6469726E616D65002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D617263686976652F72756E2E7368
+type=SYSCALL msg=audit(1791353665.670:16356530): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7effa8d58c70 a2=80000 a3=0 items=1 ppid=4194290 pid=4194291 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="dirname" exe="/usr/bin/dirname" key="secval"
+type=CWD msg=audit(1791353665.670:16356530): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.670:16356530): item=0 name="/usr/lib/locale/locale-archive" inode=1046602 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.670:16356530): proctitle=6469726E616D65002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D617263686976652F72756E2E7368
+type=SYSCALL msg=audit(1791353665.683:16356817): arch=c000003e syscall=59 success=yes exit=0 a0=55eaa7544e70 a1=55eaa7544820 a2=55eaa7544880 a3=8 items=3 ppid=4194285 pid=4194292 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="mkdir" exe="/usr/bin/mkdir" key="secval"
+type=EXECVE msg=audit(1791353665.683:16356817): argc=3 a0="mkdir" a1="-p" a2="sensitive"
+type=CWD msg=audit(1791353665.683:16356817): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.683:16356817): item=0 name="/bin/mkdir" inode=1061284 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.683:16356817): item=1 name="/bin/mkdir" inode=1061284 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.683:16356817): item=2 name="/lib64/ld-linux-x86-64.so.2" inode=1046644 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.683:16356817): proctitle=6D6B646972002D700073656E736974697665
+type=SYSCALL msg=audit(1791353665.683:16356818): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f127ddedca4 a2=80000 a3=0 items=1 ppid=4194285 pid=4194292 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="mkdir" exe="/usr/bin/mkdir" key="secval"
+type=CWD msg=audit(1791353665.683:16356818): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.683:16356818): item=0 name="/etc/ld.so.cache" inode=785587 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.683:16356818): proctitle=6D6B646972002D700073656E736974697665
+type=SYSCALL msg=audit(1791353665.683:16356819): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f127ddf7e70 a2=80000 a3=0 items=1 ppid=4194285 pid=4194292 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="mkdir" exe="/usr/bin/mkdir" key="secval"
+type=CWD msg=audit(1791353665.683:16356819): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.683:16356819): item=0 name="/lib64/libselinux.so.1" inode=1047274 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.683:16356819): proctitle=6D6B646972002D700073656E736974697665
+type=SYSCALL msg=audit(1791353665.683:16356820): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f127ddbd4d0 a2=80000 a3=0 items=1 ppid=4194285 pid=4194292 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="mkdir" exe="/usr/bin/mkdir" key="secval"
+type=CWD msg=audit(1791353665.683:16356820): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.683:16356820): item=0 name="/lib64/libc.so.6" inode=1046652 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.683:16356820): proctitle=6D6B646972002D700073656E736974697665
+type=SYSCALL msg=audit(1791353665.683:16356821): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f127ddbd9c0 a2=80000 a3=0 items=1 ppid=4194285 pid=4194292 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="mkdir" exe="/usr/bin/mkdir" key="secval"
+type=CWD msg=audit(1791353665.683:16356821): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.683:16356821): item=0 name="/lib64/libpcre2-8.so.0" inode=1051183 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.683:16356821): proctitle=6D6B646972002D700073656E736974697665
+type=SYSCALL msg=audit(1791353665.683:16356822): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f127ddbdeb0 a2=80000 a3=0 items=1 ppid=4194285 pid=4194292 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="mkdir" exe="/usr/bin/mkdir" key="secval"
+type=CWD msg=audit(1791353665.683:16356822): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.683:16356822): item=0 name="/lib64/libdl.so.2" inode=1046654 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.683:16356822): proctitle=6D6B646972002D700073656E736974697665
+type=SYSCALL msg=audit(1791353665.683:16356823): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f127ddbe430 a2=80000 a3=0 items=1 ppid=4194285 pid=4194292 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="mkdir" exe="/usr/bin/mkdir" key="secval"
+type=CWD msg=audit(1791353665.683:16356823): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.683:16356823): item=0 name="/lib64/libpthread.so.0" inode=1046666 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.683:16356823): proctitle=6D6B646972002D700073656E736974697665
+type=SYSCALL msg=audit(1791353665.684:16356824): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f127ddb1857 a2=80000 a3=0 items=1 ppid=4194285 pid=4194292 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="mkdir" exe="/usr/bin/mkdir" key="secval"
+type=CWD msg=audit(1791353665.684:16356824): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.684:16356824): item=0 name="/proc/filesystems" inode=4026532082 dev=00:16 mode=0100444 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.684:16356824): proctitle=6D6B646972002D700073656E736974697665
+type=SYSCALL msg=audit(1791353665.684:16356825): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f127dd5bc70 a2=80000 a3=0 items=1 ppid=4194285 pid=4194292 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="mkdir" exe="/usr/bin/mkdir" key="secval"
+type=CWD msg=audit(1791353665.684:16356825): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.684:16356825): item=0 name="/usr/lib/locale/locale-archive" inode=1046602 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.684:16356825): proctitle=6D6B646972002D700073656E736974697665
+type=SYSCALL msg=audit(1791353665.685:16356826): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=55eaa75453e0 a2=241 a3=1b6 items=2 ppid=4194284 pid=4194285 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.685:16356826): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.685:16356826): item=0 name="sensitive/" inode=392581 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.685:16356826): item=1 name="sensitive/shadow.extract" inode=392582 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.685:16356826): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E73680074313030352D74313536302D3030312D617263686976650062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D6172636869
+type=SYSCALL msg=audit(1791353665.685:16356827): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=55eaa7544f50 a2=241 a3=1b6 items=2 ppid=4194284 pid=4194285 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.685:16356827): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.685:16356827): item=0 name="sensitive/" inode=392581 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.685:16356827): item=1 name="sensitive/cloud.creds" inode=392583 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.685:16356827): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E73680074313030352D74313536302D3030312D617263686976650062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F6D616C6963696F75732F74313030352D74313536302D3030312D6172636869
+type=SYSCALL msg=audit(1791353665.686:16356831): arch=c000003e syscall=59 success=yes exit=0 a0=55eaa7543a30 a1=55eaa7545410 a2=55eaa7544880 a3=8 items=3 ppid=4194285 pid=4194294 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=EXECVE msg=audit(1791353665.686:16356831): argc=4 a0="tar" a1="czf" a2="staging.tar.gz" a3="sensitive"
+type=CWD msg=audit(1791353665.686:16356831): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.686:16356831): item=0 name="/bin/tar" inode=1052825 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.686:16356831): item=1 name="/bin/tar" inode=1052825 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.686:16356831): item=2 name="/lib64/ld-linux-x86-64.so.2" inode=1046644 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.686:16356831): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.686:16356832): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f08f4d53ca4 a2=80000 a3=0 items=1 ppid=4194285 pid=4194294 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.686:16356832): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.686:16356832): item=0 name="/etc/ld.so.cache" inode=785587 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.686:16356832): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.686:16356833): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f08f4d5de70 a2=80000 a3=0 items=1 ppid=4194285 pid=4194294 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.686:16356833): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.686:16356833): item=0 name="/lib64/libacl.so.1" inode=1051475 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.686:16356833): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.686:16356834): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f08f4d234d0 a2=80000 a3=0 items=1 ppid=4194285 pid=4194294 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.686:16356834): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.686:16356834): item=0 name="/lib64/libselinux.so.1" inode=1047274 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.686:16356834): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.686:16356835): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f08f4d239c0 a2=80000 a3=0 items=1 ppid=4194285 pid=4194294 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.686:16356835): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.686:16356835): item=0 name="/lib64/libc.so.6" inode=1046652 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.686:16356835): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.686:16356836): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f08f4d23eb0 a2=80000 a3=0 items=1 ppid=4194285 pid=4194294 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.686:16356836): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.686:16356836): item=0 name="/lib64/libattr.so.1" inode=1051472 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.686:16356836): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.686:16356838): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f08f4d243e0 a2=80000 a3=0 items=1 ppid=4194285 pid=4194294 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.686:16356838): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.686:16356838): item=0 name="/lib64/libpcre2-8.so.0" inode=1051183 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.686:16356838): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.686:16356839): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f08f4d248d0 a2=80000 a3=0 items=1 ppid=4194285 pid=4194294 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.686:16356839): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.686:16356839): item=0 name="/lib64/libdl.so.2" inode=1046654 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.686:16356839): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.686:16356840): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f08f4d24e80 a2=80000 a3=0 items=1 ppid=4194285 pid=4194294 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.686:16356840): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.686:16356840): item=0 name="/lib64/libpthread.so.0" inode=1046666 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.686:16356840): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.687:16356841): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f08f4d0c857 a2=80000 a3=0 items=1 ppid=4194285 pid=4194294 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.687:16356841): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.687:16356841): item=0 name="/proc/filesystems" inode=4026532082 dev=00:16 mode=0100444 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.687:16356841): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.687:16356842): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f08f4cb6c70 a2=80000 a3=0 items=1 ppid=4194285 pid=4194294 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.687:16356842): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.687:16356842): item=0 name="/usr/lib/locale/locale-archive" inode=1046602 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.687:16356842): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.687:16356843): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7ffe196040d0 a2=80000 a3=0 items=1 ppid=4194285 pid=4194294 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.687:16356843): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.687:16356843): item=0 name="/usr/share/locale/locale.alias" inode=1046643 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.687:16356843): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.687:16356844): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=55c584820b50 a2=a0900 a3=0 items=1 ppid=4194285 pid=4194294 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.687:16356844): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.687:16356844): item=0 name="sensitive" inode=392581 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.687:16356844): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.687:16356845): arch=c000003e syscall=257 success=yes exit=5 a0=ffffff9c a1=7f08f4cb1f8d a2=80000 a3=0 items=1 ppid=4194285 pid=4194294 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.687:16356845): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.687:16356845): item=0 name="/etc/nsswitch.conf" inode=785602 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.687:16356845): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.687:16356846): arch=c000003e syscall=257 success=yes exit=5 a0=ffffff9c a1=7f08f4d53ca4 a2=80000 a3=0 items=1 ppid=4194285 pid=4194294 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.687:16356846): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.687:16356846): item=0 name="/etc/ld.so.cache" inode=785587 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.687:16356846): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.687:16356847): arch=c000003e syscall=257 success=yes exit=5 a0=ffffff9c a1=55c584826ce0 a2=80000 a3=0 items=1 ppid=4194285 pid=4194294 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.687:16356847): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.687:16356847): item=0 name="/lib64/libnss_files.so.2" inode=1046664 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.687:16356847): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.687:16356848): arch=c000003e syscall=257 success=yes exit=5 a0=ffffff9c a1=7f08f4a4315e a2=80000 a3=0 items=1 ppid=4194285 pid=4194294 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.687:16356848): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.687:16356848): item=0 name="/etc/passwd" inode=786171 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.687:16356848): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.687:16356849): arch=c000003e syscall=257 success=yes exit=5 a0=ffffff9c a1=7f08f4a43153 a2=80000 a3=0 items=1 ppid=4194285 pid=4194294 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.687:16356849): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.687:16356849): item=0 name="/etc/group" inode=785664 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.687:16356849): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.687:16356850): arch=c000003e syscall=257 success=yes exit=5 a0=3 a1=55c584826400 a2=a0900 a3=0 items=1 ppid=4194285 pid=4194294 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.687:16356850): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.687:16356850): item=0 name="cloud.creds" inode=392583 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.687:16356850): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.687:16356851): arch=c000003e syscall=257 success=yes exit=5 a0=3 a1=55c58482640c a2=a0900 a3=0 items=1 ppid=4194285 pid=4194294 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.687:16356851): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.687:16356851): item=0 name="shadow.extract" inode=392582 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.687:16356851): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.688:16356852): arch=c000003e syscall=257 success=yes exit=5 a0=ffffff9c a1=7ffe196041f0 a2=80000 a3=0 items=1 ppid=4194294 pid=4194295 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.688:16356852): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.688:16356852): item=0 name="/usr/share/locale/locale.alias" inode=1046643 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.688:16356852): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.688:16356853): arch=c000003e syscall=85 success=yes exit=3 a0=7ffe19606e07 a1=1b6 a2=fffffffffffffea0 a3=8 items=2 ppid=4194294 pid=4194295 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="tar" exe="/usr/bin/tar" key="secval"
+type=CWD msg=audit(1791353665.688:16356853): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.688:16356853): item=0 name="/opt/secval-lab/cases/t1005-t1560-001-archive" inode=392572 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.688:16356853): item=1 name="staging.tar.gz" inode=392584 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.688:16356853): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.689:16356854): arch=c000003e syscall=59 success=yes exit=0 a0=55c582b81b2a a1=7ffe19604630 a2=7ffe19604d50 a3=8 items=3 ppid=4194294 pid=4194295 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="sh" exe="/usr/bin/bash" key="secval"
+type=EXECVE msg=audit(1791353665.689:16356854): argc=3 a0="/bin/sh" a1="-c" a2="gzip"
+type=CWD msg=audit(1791353665.689:16356854): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.689:16356854): item=0 name="/bin/sh" inode=1050517 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.689:16356854): item=1 name="/bin/sh" inode=1050517 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.689:16356854): item=2 name="/lib64/ld-linux-x86-64.so.2" inode=1046644 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.689:16356854): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.689:16356855): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7fbcacf01ca4 a2=80000 a3=0 items=1 ppid=4194294 pid=4194295 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="sh" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.689:16356855): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.689:16356855): item=0 name="/etc/ld.so.cache" inode=785587 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.689:16356855): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.689:16356856): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7fbcacf0be70 a2=80000 a3=0 items=1 ppid=4194294 pid=4194295 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="sh" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.689:16356856): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.689:16356856): item=0 name="/lib64/libtinfo.so.6" inode=1049773 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.689:16356856): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.689:16356857): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7fbcaced14d0 a2=80000 a3=0 items=1 ppid=4194294 pid=4194295 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="sh" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.689:16356857): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.689:16356857): item=0 name="/lib64/libdl.so.2" inode=1046654 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.689:16356857): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.689:16356858): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7fbcaced19c0 a2=80000 a3=0 items=1 ppid=4194294 pid=4194295 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="sh" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.689:16356858): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.689:16356858): item=0 name="/lib64/libc.so.6" inode=1046652 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.689:16356858): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.689:16356859): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7fbcace67c70 a2=80000 a3=0 items=1 ppid=4194294 pid=4194295 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="sh" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.689:16356859): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.689:16356859): item=0 name="/usr/lib/locale/locale-archive" inode=1046602 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.689:16356859): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.690:16356860): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7fbcace63d10 a2=0 a3=0 items=1 ppid=4194294 pid=4194295 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="sh" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353665.690:16356860): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.690:16356860): item=0 name="/usr/lib64/gconv/gconv-modules.cache" inode=1047271 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.690:16356860): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.690:16356861): arch=c000003e syscall=59 success=yes exit=0 a0=56443d4a7040 a1=56443d4a52e0 a2=56443d4a5130 a3=8 items=3 ppid=4194294 pid=4194295 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="gzip" exe="/usr/bin/gzip" key="secval"
+type=EXECVE msg=audit(1791353665.690:16356861): argc=1 a0="gzip"
+type=CWD msg=audit(1791353665.690:16356861): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.690:16356861): item=0 name="/bin/gzip" inode=1060644 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.690:16356861): item=1 name="/bin/gzip" inode=1060644 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353665.690:16356861): item=2 name="/lib64/ld-linux-x86-64.so.2" inode=1046644 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.690:16356861): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.690:16356862): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f82f17b6ca4 a2=80000 a3=0 items=1 ppid=4194294 pid=4194295 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="gzip" exe="/usr/bin/gzip" key="secval"
+type=CWD msg=audit(1791353665.690:16356862): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.690:16356862): item=0 name="/etc/ld.so.cache" inode=785587 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.690:16356862): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665
+type=SYSCALL msg=audit(1791353665.690:16356863): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f82f17c0e70 a2=80000 a3=0 items=1 ppid=4194294 pid=4194295 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="gzip" exe="/usr/bin/gzip" key="secval"
+type=CWD msg=audit(1791353665.690:16356863): cwd="/opt/secval-lab/cases/t1005-t1560-001-archive"
+type=PATH msg=audit(1791353665.690:16356863): item=0 name="/lib64/libc.so.6" inode=1046652 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353665.690:16356863): proctitle=74617200637A660073746167696E672E7461722E677A0073656E736974697665

@@ -1,0 +1,2 @@
+exfil.tar.gz
+sensitive/records.csv

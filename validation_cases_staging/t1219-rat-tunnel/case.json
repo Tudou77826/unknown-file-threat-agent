@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0",
+  "case_id": "t1219-rat-tunnel",
+  "attack_tags": [
+    "T1219"
+  ],
+  "scenario": "执行通用连接载荷：建立出站连接、发送标记字节、短时保持后退出（载荷未实现隧道或远控功能）。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/t1219-rat-tunnel/tunnel.elf",
+    "file_hash": "2aa7d4403a28340f2ac3b3c13b760a13a198af2d2e8a8feece7645795eea883f",
+    "file_type": "elf"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "载荷执行 + 出站连接（短时，未实现隧道功能）"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "非包归属隧道工具，长连接外网端点"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "verdict_level": null,
+    "risk_level": "critical",
+    "note": null
+  },
+  "key_evidence": [
+    "tunnel ELF 创建",
+    "出站连接（未批准端点）",
+    "长驻进程"
+  ],
+  "risk_level": "critical",
+  "recommended_action": "阻断并清除隧道，排查安装来源",
+  "telemetry": {
+    "event_files": [
+      "counter_evidence.jsonl",
+      "file.jsonl",
+      "network.jsonl",
+      "process.jsonl"
+    ],
+    "environment_baseline_sources": [
+      "rpm-inventory",
+      "cmdb-baseline"
+    ]
+  },
+  "provenance": {
+    "origin": "attack-run",
+    "environment": "lab-vm-aliyun-01",
+    "collector": "auditd-collector/1 + collect.sh/1",
+    "created": "2026-09-29",
+    "notes": "剧本 t1219-rat-tunnel | 事实修正(2026-09-30复核)：非隧道工具，为通用连接载荷；预期判定待三步程序校准 | settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

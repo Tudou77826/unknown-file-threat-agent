@@ -1,0 +1,8 @@
+{
+  "File_id": "file-record-t1486-ransomware",
+  "File_hash": "4a063d235783be9406a2309bd4fa3dfbdda310e7f260742e2e4ecbe54c211abb",
+  "File_path": "/opt/secval-lab/cases/t1486-ransomware/cryptor.elf",
+  "File_type": "elf",
+  "source": "lab-vm-aliyun-01",
+  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"4a063d235783be9406a2309bd4fa3dfbdda310e7f260742e2e4ecbe54c211abb\"}}"
+}

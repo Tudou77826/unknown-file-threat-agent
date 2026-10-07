@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0",
+  "case_id": "bb3-ops-tool-deploy",
+  "attack_tags": [
+    "baseline"
+  ],
+  "scenario": "运维在变更窗口部署并执行内部工具脚本。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/bb3-ops-tool-deploy/ops-tool.sh",
+    "file_hash": "670d17960925cefe472dc1ace2ef7a9745d7646eb756df552987a8755b68bae8",
+    "file_type": "script"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": false,
+      "basis": "无攻击剧本"
+    },
+    "file": {
+      "judgment": "benign",
+      "basis": "变更单部署的运维脚本，无外连、无持久化"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": false,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "benign",
+    "verdict_level": null,
+    "risk_level": "none",
+    "note": null
+  },
+  "key_evidence": [
+    "脚本创建",
+    "运维会话执行",
+    "无外连"
+  ],
+  "risk_level": "none",
+  "recommended_action": "无需处置",
+  "telemetry": {
+    "event_files": [
+      "counter_evidence.jsonl",
+      "file.jsonl"
+    ],
+    "environment_baseline_sources": [
+      "rpm-inventory"
+    ]
+  },
+  "provenance": {
+    "origin": "attack-run",
+    "environment": "lab-vm-aliyun-01",
+    "collector": "auditd-collector/1 + collect.sh/1",
+    "created": "2026-09-29",
+    "notes": "剧本 bb3-ops-tool-deploy | settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

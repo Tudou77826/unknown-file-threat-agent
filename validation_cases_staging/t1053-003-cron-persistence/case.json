@@ -42,7 +42,9 @@
   "telemetry": {
     "event_files": [
       "counter_evidence.jsonl",
+      "file.jsonl",
       "network.jsonl",
+      "persistence.jsonl",
       "process.jsonl"
     ],
     "environment_baseline_sources": [

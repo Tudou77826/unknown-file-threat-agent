@@ -1,0 +1,289 @@
+type=SYSCALL msg=audit(1791353758.162:16433259): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=55df80d79bc0 a2=241 a3=1b6 items=2 ppid=2168 pid=2173 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.162:16433259): cwd="/root"
+type=PATH msg=audit(1791353758.162:16433259): item=0 name="/opt/secval-lab/bundles/bb4-ops-cron.bundle/" inode=392743 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.162:16433259): item=1 name="/opt/secval-lab/bundles/bb4-ops-cron.bundle/connections.txt" inode=392745 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.162:16433259): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E7368006262342D6F70732D63726F6E0062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.174:16433537): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=55df80d7ad70 a2=241 a3=1b6 items=2 ppid=2168 pid=2174 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.174:16433537): cwd="/root"
+type=PATH msg=audit(1791353758.174:16433537): item=0 name="/opt/secval-lab/bundles/bb4-ops-cron.bundle/" inode=392743 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.174:16433537): item=1 name="/opt/secval-lab/bundles/bb4-ops-cron.bundle/rpm_inventory.txt" inode=392746 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.174:16433537): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E7368006262342D6F70732D63726F6E0062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.670:16433626): arch=c000003e syscall=59 success=yes exit=0 a0=55df80d7a990 a1=55df80d7ae10 a2=55df80d75f40 a3=1b6 items=3 ppid=2168 pid=2175 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="cp" exe="/usr/bin/cp" key="secval"
+type=EXECVE msg=audit(1791353758.670:16433626): argc=3 a0="cp" a1="/opt/secval-lab/approved_endpoints.lab.txt" a2="/opt/secval-lab/bundles/bb4-ops-cron.bundle/approved_endpoints.txt"
+type=CWD msg=audit(1791353758.670:16433626): cwd="/root"
+type=PATH msg=audit(1791353758.670:16433626): item=0 name="/bin/cp" inode=1061255 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.670:16433626): item=1 name="/bin/cp" inode=1061255 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.670:16433626): item=2 name="/lib64/ld-linux-x86-64.so.2" inode=1046644 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.670:16433626): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E7368006262342D6F70732D63726F6E0062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.671:16433637): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7ffd1fb26e02 a2=0 a3=0 items=1 ppid=2168 pid=2175 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="cp" exe="/usr/bin/cp" key="secval"
+type=CWD msg=audit(1791353758.671:16433637): cwd="/root"
+type=PATH msg=audit(1791353758.671:16433637): item=0 name="/opt/secval-lab/approved_endpoints.lab.txt" inode=392809 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.671:16433637): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E7368006262342D6F70732D63726F6E0062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.671:16433638): arch=c000003e syscall=257 success=yes exit=4 a0=ffffff9c a1=7ffd1fb26e2d a2=c1 a3=1a4 items=2 ppid=2168 pid=2175 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="cp" exe="/usr/bin/cp" key="secval"
+type=CWD msg=audit(1791353758.671:16433638): cwd="/root"
+type=PATH msg=audit(1791353758.671:16433638): item=0 name="/opt/secval-lab/bundles/bb4-ops-cron.bundle/" inode=392743 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.671:16433638): item=1 name="/opt/secval-lab/bundles/bb4-ops-cron.bundle/approved_endpoints.txt" inode=392747 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.671:16433638): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E7368006262342D6F70732D63726F6E0062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.672:16433639): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=55df80d7ad70 a2=241 a3=1b6 items=2 ppid=2168 pid=2176 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.672:16433639): cwd="/root"
+type=PATH msg=audit(1791353758.672:16433639): item=0 name="/opt/secval-lab/bundles/bb4-ops-cron.bundle/" inode=392743 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.672:16433639): item=1 name="/opt/secval-lab/bundles/bb4-ops-cron.bundle/ps_before.txt" inode=392748 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.672:16433639): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E7368006262342D6F70732D63726F6E0062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.682:16434020): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=55df80d7b310 a2=241 a3=1b6 items=2 ppid=2168 pid=2177 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.682:16434020): cwd="/root"
+type=PATH msg=audit(1791353758.682:16434020): item=0 name="/opt/secval-lab/bundles/bb4-ops-cron.bundle/" inode=392743 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.682:16434020): item=1 name="/opt/secval-lab/bundles/bb4-ops-cron.bundle/conn_poll.log" inode=392749 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.682:16434020): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E7368006262342D6F70732D63726F6E0062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.684:16434035): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=55df80d799f0 a2=241 a3=1b6 items=2 ppid=2178 pid=2180 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.684:16434035): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.684:16434035): item=0 name="/opt/secval-lab/bundles/bb4-ops-cron.bundle/" inode=392743 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.684:16434035): item=1 name="/opt/secval-lab/bundles/bb4-ops-cron.bundle/playbook.log" inode=392750 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.684:16434035): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E7368006262342D6F70732D63726F6E0062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.684:16434036): arch=c000003e syscall=59 success=yes exit=0 a0=55df80d7bc90 a1=55df80d77530 a2=55df80d75f40 a3=1b6 items=3 ppid=2178 pid=2180 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=EXECVE msg=audit(1791353758.684:16434036): argc=2 a0="bash" a1="/opt/secval-lab/playbooks/benign/bb4-ops-cron/run.sh"
+type=CWD msg=audit(1791353758.684:16434036): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.684:16434036): item=0 name="/bin/bash" inode=1050517 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.684:16434036): item=1 name="/bin/bash" inode=1050517 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.684:16434036): item=2 name="/lib64/ld-linux-x86-64.so.2" inode=1046644 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.684:16434036): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E7368006262342D6F70732D63726F6E0062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.684:16434037): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7fdb2315cca4 a2=80000 a3=0 items=1 ppid=2178 pid=2180 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.684:16434037): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.684:16434037): item=0 name="/etc/ld.so.cache" inode=785587 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.684:16434037): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E7368006262342D6F70732D63726F6E0062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.684:16434038): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7fdb23166e70 a2=80000 a3=0 items=1 ppid=2178 pid=2180 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.684:16434038): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.684:16434038): item=0 name="/lib64/libtinfo.so.6" inode=1049773 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.684:16434038): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E7368006262342D6F70732D63726F6E0062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.684:16434039): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7fdb2312c4d0 a2=80000 a3=0 items=1 ppid=2178 pid=2180 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.684:16434039): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.684:16434039): item=0 name="/lib64/libdl.so.2" inode=1046654 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.684:16434039): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E7368006262342D6F70732D63726F6E0062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.684:16434040): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7fdb2312c9c0 a2=80000 a3=0 items=1 ppid=2178 pid=2180 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.684:16434040): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.684:16434040): item=0 name="/lib64/libc.so.6" inode=1046652 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.684:16434040): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E7368006262342D6F70732D63726F6E0062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.685:16434041): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7fdb230c2c70 a2=80000 a3=0 items=1 ppid=2178 pid=2180 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.685:16434041): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.685:16434041): item=0 name="/usr/lib/locale/locale-archive" inode=1046602 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.685:16434041): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E7368006262342D6F70732D63726F6E0062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.685:16434042): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7fdb230bed10 a2=0 a3=0 items=1 ppid=2178 pid=2180 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.685:16434042): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.685:16434042): item=0 name="/usr/lib64/gconv/gconv-modules.cache" inode=1047271 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.685:16434042): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E7368006262342D6F70732D63726F6E0062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.685:16434043): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=556edc7c9350 a2=0 a3=0 items=1 ppid=2178 pid=2180 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.685:16434043): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.685:16434043): item=0 name="/opt/secval-lab/playbooks/benign/bb4-ops-cron/run.sh" inode=392471 dev=fd:03 mode=0100755 ouid=197610 ogid=197610 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.685:16434043): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E7368006262342D6F70732D63726F6E0062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.696:16434049): arch=c000003e syscall=59 success=yes exit=0 a0=556edc7ccbe0 a1=556edc7cd2a0 a2=556edc7cb800 a3=8 items=3 ppid=2183 pid=2184 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="dirname" exe="/usr/bin/dirname" key="secval"
+type=EXECVE msg=audit(1791353758.696:16434049): argc=2 a0="dirname" a1="/opt/secval-lab/playbooks/benign/bb4-ops-cron/run.sh"
+type=CWD msg=audit(1791353758.696:16434049): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.696:16434049): item=0 name="/bin/dirname" inode=1061263 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.696:16434049): item=1 name="/bin/dirname" inode=1061263 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.696:16434049): item=2 name="/lib64/ld-linux-x86-64.so.2" inode=1046644 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.696:16434049): proctitle=6469726E616D65002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.696:16434050): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f2ec458aca4 a2=80000 a3=0 items=1 ppid=2183 pid=2184 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="dirname" exe="/usr/bin/dirname" key="secval"
+type=CWD msg=audit(1791353758.696:16434050): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.696:16434050): item=0 name="/etc/ld.so.cache" inode=785587 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.696:16434050): proctitle=6469726E616D65002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.696:16434051): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f2ec4594e70 a2=80000 a3=0 items=1 ppid=2183 pid=2184 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="dirname" exe="/usr/bin/dirname" key="secval"
+type=CWD msg=audit(1791353758.696:16434051): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.696:16434051): item=0 name="/lib64/libc.so.6" inode=1046652 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.696:16434051): proctitle=6469726E616D65002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.697:16434052): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f2ec4525c70 a2=80000 a3=0 items=1 ppid=2183 pid=2184 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="dirname" exe="/usr/bin/dirname" key="secval"
+type=CWD msg=audit(1791353758.697:16434052): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.697:16434052): item=0 name="/usr/lib/locale/locale-archive" inode=1046602 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.697:16434052): proctitle=6469726E616D65002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.698:16434069): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=556edc7cc260 a2=241 a3=1b6 items=2 ppid=2180 pid=2186 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.698:16434069): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.698:16434069): item=0 name="/opt/secval-lab/cases/bb4-ops-cron" inode=392742 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.698:16434069): item=1 name="logclean.sh" inode=392751 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.698:16434069): proctitle=62617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.698:16434070): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=556edc7cc2c0 a2=c2 a3=180 items=2 ppid=2180 pid=2186 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.698:16434070): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.698:16434070): item=0 name="/tmp/" inode=130819 dev=fd:03 mode=041777 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.698:16434070): item=1 name="/tmp/sh-thd.2BfhQu" inode=131282 dev=fd:03 mode=0100600 ouid=0 ogid=0 rdev=00:00 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.698:16434070): proctitle=62617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.698:16434071): arch=c000003e syscall=257 success=yes exit=4 a0=ffffff9c a1=556edc7cc2c0 a2=0 a3=0 items=1 ppid=2180 pid=2186 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.698:16434071): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.698:16434071): item=0 name="/tmp/sh-thd.2BfhQu" inode=131282 dev=fd:03 mode=0100600 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.698:16434071): proctitle=62617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.698:16434072): arch=c000003e syscall=87 success=yes exit=0 a0=556edc7cc2c0 a1=556edc7cc2c0 a2=0 a3=0 items=2 ppid=2180 pid=2186 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.698:16434072): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.698:16434072): item=0 name="/tmp/" inode=130819 dev=fd:03 mode=041777 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.698:16434072): item=1 name="/tmp/sh-thd.2BfhQu" inode=131282 dev=fd:03 mode=0100600 ouid=0 ogid=0 rdev=00:00 nametype=DELETE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.698:16434072): proctitle=62617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.698:16434073): arch=c000003e syscall=59 success=yes exit=0 a0=556edc7c8190 a1=556edc7cc260 a2=556edc7cb800 a3=0 items=3 ppid=2180 pid=2186 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="cat" exe="/usr/bin/cat" key="secval"
+type=EXECVE msg=audit(1791353758.698:16434073): argc=1 a0="cat"
+type=CWD msg=audit(1791353758.698:16434073): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.698:16434073): item=0 name="/bin/cat" inode=1061248 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.698:16434073): item=1 name="/bin/cat" inode=1061248 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.698:16434073): item=2 name="/lib64/ld-linux-x86-64.so.2" inode=1046644 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.698:16434073): proctitle=62617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.698:16434074): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f5edb0a0ca4 a2=80000 a3=0 items=1 ppid=2180 pid=2186 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="cat" exe="/usr/bin/cat" key="secval"
+type=CWD msg=audit(1791353758.698:16434074): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.698:16434074): item=0 name="/etc/ld.so.cache" inode=785587 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.698:16434074): proctitle=62617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.698:16434075): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f5edb0aae70 a2=80000 a3=0 items=1 ppid=2180 pid=2186 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="cat" exe="/usr/bin/cat" key="secval"
+type=CWD msg=audit(1791353758.698:16434075): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.698:16434075): item=0 name="/lib64/libc.so.6" inode=1046652 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.698:16434075): proctitle=62617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.699:16434076): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f5edb03bc70 a2=80000 a3=0 items=1 ppid=2180 pid=2186 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="cat" exe="/usr/bin/cat" key="secval"
+type=CWD msg=audit(1791353758.699:16434076): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.699:16434076): item=0 name="/usr/lib/locale/locale-archive" inode=1046602 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.699:16434076): proctitle=62617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.699:16434077): arch=c000003e syscall=59 success=yes exit=0 a0=556edc7cc260 a1=556edc7cac30 a2=556edc7cb800 a3=8 items=3 ppid=2180 pid=2187 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="chmod" exe="/usr/bin/chmod" key="secval"
+type=EXECVE msg=audit(1791353758.699:16434077): argc=3 a0="chmod" a1="700" a2="logclean.sh"
+type=CWD msg=audit(1791353758.699:16434077): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.699:16434077): item=0 name="/bin/chmod" inode=1061251 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.699:16434077): item=1 name="/bin/chmod" inode=1061251 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.699:16434077): item=2 name="/lib64/ld-linux-x86-64.so.2" inode=1046644 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.699:16434077): proctitle=63686D6F6400373030006C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.699:16434078): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f9cda8b2ca4 a2=80000 a3=0 items=1 ppid=2180 pid=2187 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="chmod" exe="/usr/bin/chmod" key="secval"
+type=CWD msg=audit(1791353758.699:16434078): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.699:16434078): item=0 name="/etc/ld.so.cache" inode=785587 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.699:16434078): proctitle=63686D6F6400373030006C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.699:16434079): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f9cda8bce70 a2=80000 a3=0 items=1 ppid=2180 pid=2187 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="chmod" exe="/usr/bin/chmod" key="secval"
+type=CWD msg=audit(1791353758.699:16434079): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.699:16434079): item=0 name="/lib64/libc.so.6" inode=1046652 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.699:16434079): proctitle=63686D6F6400373030006C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.700:16434082): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f9cda84dc70 a2=80000 a3=0 items=1 ppid=2180 pid=2187 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="chmod" exe="/usr/bin/chmod" key="secval"
+type=CWD msg=audit(1791353758.700:16434082): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.700:16434082): item=0 name="/usr/lib/locale/locale-archive" inode=1046602 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.700:16434082): proctitle=63686D6F6400373030006C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.700:16434086): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=556edc7c85c0 a2=241 a3=1b6 items=2 ppid=2178 pid=2180 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.700:16434086): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.700:16434086): item=0 name="/etc/cron.d/" inode=785297 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.700:16434086): item=1 name="/etc/cron.d/secval-ops-clean" inode=786172 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.700:16434086): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E7368006262342D6F70732D63726F6E0062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.701:16434087): arch=c000003e syscall=59 success=yes exit=0 a0=556edc7c8190 a1=556edc7ca9b0 a2=556edc7cb800 a3=8 items=4 ppid=2180 pid=2188 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="logclean.sh" exe="/usr/bin/env" key="secval"
+type=EXECVE msg=audit(1791353758.701:16434087): argc=3 a0="/usr/bin/env" a1="bash" a2="./logclean.sh"
+type=CWD msg=audit(1791353758.701:16434087): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.701:16434087): item=0 name="./logclean.sh" inode=392751 dev=fd:03 mode=0100700 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.701:16434087): item=1 name="./logclean.sh" inode=392751 dev=fd:03 mode=0100700 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.701:16434087): item=2 name="/usr/bin/env" inode=1061266 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.701:16434087): item=3 name="/lib64/ld-linux-x86-64.so.2" inode=1046644 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.701:16434087): proctitle=2F7573722F62696E2F656E760062617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.701:16434092): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7ff4bd87eca4 a2=80000 a3=0 items=1 ppid=2180 pid=2188 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="logclean.sh" exe="/usr/bin/env" key="secval"
+type=CWD msg=audit(1791353758.701:16434092): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.701:16434092): item=0 name="/etc/ld.so.cache" inode=785587 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.701:16434092): proctitle=2F7573722F62696E2F656E760062617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.701:16434095): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7ff4bd888e70 a2=80000 a3=0 items=1 ppid=2180 pid=2188 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="logclean.sh" exe="/usr/bin/env" key="secval"
+type=CWD msg=audit(1791353758.701:16434095): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.701:16434095): item=0 name="/lib64/libc.so.6" inode=1046652 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.701:16434095): proctitle=2F7573722F62696E2F656E760062617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.701:16434115): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7ff4bd819c70 a2=80000 a3=0 items=1 ppid=2180 pid=2188 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="logclean.sh" exe="/usr/bin/env" key="secval"
+type=CWD msg=audit(1791353758.701:16434115): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.701:16434115): item=0 name="/usr/lib/locale/locale-archive" inode=1046602 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.701:16434115): proctitle=2F7573722F62696E2F656E760062617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.701:16434123): arch=c000003e syscall=59 success=no exit=-2 a0=7ffc49164cf0 a1=7ffc49164f10 a2=7ffc49164f28 a3=564578796340 items=2 ppid=2180 pid=2188 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="logclean.sh" exe="/usr/bin/env" key="secval"
+type=CWD msg=audit(1791353758.701:16434123): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.701:16434123): item=0 name="/sbin/bash" nametype=UNKNOWN cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.701:16434123): item=1 name="/sbin/bash" nametype=UNKNOWN cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.701:16434123): proctitle=2F7573722F62696E2F656E760062617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.701:16434138): arch=c000003e syscall=59 success=yes exit=0 a0=7ffc49164cf0 a1=7ffc49164f10 a2=7ffc49164f28 a3=564578796340 items=3 ppid=2180 pid=2188 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=EXECVE msg=audit(1791353758.701:16434138): argc=2 a0="bash" a1="./logclean.sh"
+type=CWD msg=audit(1791353758.701:16434138): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.701:16434138): item=0 name="/bin/bash" inode=1050517 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.701:16434138): item=1 name="/bin/bash" inode=1050517 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.701:16434138): item=2 name="/lib64/ld-linux-x86-64.so.2" inode=1046644 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.701:16434138): proctitle=2F7573722F62696E2F656E760062617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.701:16434147): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f6ac6dadca4 a2=80000 a3=0 items=1 ppid=2180 pid=2188 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.701:16434147): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.701:16434147): item=0 name="/etc/ld.so.cache" inode=785587 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.701:16434147): proctitle=2F7573722F62696E2F656E760062617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.701:16434150): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f6ac6db7e70 a2=80000 a3=0 items=1 ppid=2180 pid=2188 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.701:16434150): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.701:16434150): item=0 name="/lib64/libtinfo.so.6" inode=1049773 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.701:16434150): proctitle=2F7573722F62696E2F656E760062617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.701:16434156): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f6ac6d7d4d0 a2=80000 a3=0 items=1 ppid=2180 pid=2188 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.701:16434156): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.701:16434156): item=0 name="/lib64/libdl.so.2" inode=1046654 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.701:16434156): proctitle=2F7573722F62696E2F656E760062617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.702:16434162): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f6ac6d7d9c0 a2=80000 a3=0 items=1 ppid=2180 pid=2188 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.702:16434162): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.702:16434162): item=0 name="/lib64/libc.so.6" inode=1046652 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.702:16434162): proctitle=2F7573722F62696E2F656E760062617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.702:16434200): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f6ac6d13c70 a2=80000 a3=0 items=1 ppid=2180 pid=2188 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.702:16434200): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.702:16434200): item=0 name="/usr/lib/locale/locale-archive" inode=1046602 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.702:16434200): proctitle=2F7573722F62696E2F656E760062617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.702:16434214): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f6ac6d0fd10 a2=0 a3=0 items=1 ppid=2180 pid=2188 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.702:16434214): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.702:16434214): item=0 name="/usr/lib64/gconv/gconv-modules.cache" inode=1047271 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.702:16434214): proctitle=2F7573722F62696E2F656E760062617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.702:16434217): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=5563e0e8f370 a2=0 a3=0 items=1 ppid=2180 pid=2188 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.702:16434217): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.702:16434217): item=0 name="./logclean.sh" inode=392751 dev=fd:03 mode=0100700 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.702:16434217): proctitle=2F7573722F62696E2F656E760062617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.703:16434223): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=5563e0e97190 a2=241 a3=1b6 items=2 ppid=2188 pid=2189 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.703:16434223): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.703:16434223): item=0 name="/dev/" inode=1 dev=00:05 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.703:16434223): item=1 name="/dev/null" inode=4 dev=00:05 mode=020666 ouid=0 ogid=0 rdev=01:03 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.703:16434223): proctitle=62617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.703:16434224): arch=c000003e syscall=59 success=yes exit=0 a0=5563e0e999e0 a1=5563e0e9a080 a2=5563e0e96ff0 a3=1b6 items=3 ppid=2188 pid=2189 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="find" exe="/usr/bin/find" key="secval"
+type=EXECVE msg=audit(1791353758.703:16434224): argc=7 a0="find" a1="/var/log/secval-demo" a2="-name" a3="*.log" a4="-mtime" a5="+7" a6="-delete"
+type=CWD msg=audit(1791353758.703:16434224): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.703:16434224): item=0 name="/bin/find" inode=1051280 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.703:16434224): item=1 name="/bin/find" inode=1051280 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.703:16434224): item=2 name="/lib64/ld-linux-x86-64.so.2" inode=1046644 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.703:16434224): proctitle=62617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.703:16434225): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f1cc7261ca4 a2=80000 a3=0 items=1 ppid=2188 pid=2189 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="find" exe="/usr/bin/find" key="secval"
+type=CWD msg=audit(1791353758.703:16434225): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.703:16434225): item=0 name="/etc/ld.so.cache" inode=785587 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.703:16434225): proctitle=62617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.703:16434226): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f1cc726be70 a2=80000 a3=0 items=1 ppid=2188 pid=2189 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="find" exe="/usr/bin/find" key="secval"
+type=CWD msg=audit(1791353758.703:16434226): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.703:16434226): item=0 name="/lib64/libselinux.so.1" inode=1047274 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.703:16434226): proctitle=62617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.703:16434227): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f1cc72314d0 a2=80000 a3=0 items=1 ppid=2188 pid=2189 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="find" exe="/usr/bin/find" key="secval"
+type=CWD msg=audit(1791353758.703:16434227): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.703:16434227): item=0 name="/lib64/libm.so.6" inode=1046656 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.703:16434227): proctitle=62617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.704:16434228): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f1cc72319c0 a2=80000 a3=0 items=1 ppid=2188 pid=2189 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="find" exe="/usr/bin/find" key="secval"
+type=CWD msg=audit(1791353758.704:16434228): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.704:16434228): item=0 name="/lib64/libc.so.6" inode=1046652 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.704:16434228): proctitle=62617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.704:16434229): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f1cc7231eb0 a2=80000 a3=0 items=1 ppid=2188 pid=2189 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="find" exe="/usr/bin/find" key="secval"
+type=CWD msg=audit(1791353758.704:16434229): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.704:16434229): item=0 name="/lib64/libpcre2-8.so.0" inode=1051183 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.704:16434229): proctitle=62617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.704:16434230): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f1cc72323a0 a2=80000 a3=0 items=1 ppid=2188 pid=2189 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="find" exe="/usr/bin/find" key="secval"
+type=CWD msg=audit(1791353758.704:16434230): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.704:16434230): item=0 name="/lib64/libdl.so.2" inode=1046654 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.704:16434230): proctitle=62617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.704:16434231): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f1cc7232960 a2=80000 a3=0 items=1 ppid=2188 pid=2189 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="find" exe="/usr/bin/find" key="secval"
+type=CWD msg=audit(1791353758.704:16434231): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.704:16434231): item=0 name="/lib64/libpthread.so.0" inode=1046666 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.704:16434231): proctitle=62617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.704:16434232): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7f1cc7225857 a2=80000 a3=0 items=1 ppid=2188 pid=2189 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="find" exe="/usr/bin/find" key="secval"
+type=CWD msg=audit(1791353758.704:16434232): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.704:16434232): item=0 name="/proc/filesystems" inode=4026532082 dev=00:16 mode=0100444 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.704:16434232): proctitle=62617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.705:16434236): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=559461b6e80c a2=0 a3=0 items=1 ppid=2188 pid=2189 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="find" exe="/usr/bin/find" key="secval"
+type=CWD msg=audit(1791353758.705:16434236): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.705:16434236): item=0 name="." inode=392742 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.705:16434236): proctitle=62617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.705:16434239): arch=c000003e syscall=257 success=yes exit=4 a0=ffffff9c a1=7f1cc7089c70 a2=80000 a3=0 items=1 ppid=2188 pid=2189 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="find" exe="/usr/bin/find" key="secval"
+type=CWD msg=audit(1791353758.705:16434239): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.705:16434239): item=0 name="/usr/lib/locale/locale-archive" inode=1046602 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.705:16434239): proctitle=62617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.705:16434241): arch=c000003e syscall=257 success=yes exit=4 a0=ffffff9c a1=7f1cc7085d10 a2=0 a3=0 items=1 ppid=2188 pid=2189 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="find" exe="/usr/bin/find" key="secval"
+type=CWD msg=audit(1791353758.705:16434241): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.705:16434241): item=0 name="/usr/lib64/gconv/gconv-modules.cache" inode=1047271 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.705:16434241): proctitle=62617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.705:16434242): arch=c000003e syscall=257 success=yes exit=4 a0=ffffff9c a1=7ffd58b33b30 a2=80000 a3=0 items=1 ppid=2188 pid=2189 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="find" exe="/usr/bin/find" key="secval"
+type=CWD msg=audit(1791353758.705:16434242): cwd="/opt/secval-lab/cases/bb4-ops-cron"
+type=PATH msg=audit(1791353758.705:16434242): item=0 name="/usr/share/locale/locale.alias" inode=1046643 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.705:16434242): proctitle=62617368002E2F6C6F67636C65616E2E7368
+type=SYSCALL msg=audit(1791353758.817:16434411): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=55df80d7c910 a2=241 a3=1b6 items=2 ppid=2168 pid=2194 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="bash" exe="/usr/bin/bash" key="secval"
+type=CWD msg=audit(1791353758.817:16434411): cwd="/root"
+type=PATH msg=audit(1791353758.817:16434411): item=0 name="/opt/secval-lab/bundles/bb4-ops-cron.bundle/" inode=392743 dev=fd:03 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.817:16434411): item=1 name="/opt/secval-lab/bundles/bb4-ops-cron.bundle/workspace_files.txt" inode=392752 dev=fd:03 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=CREATE cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.817:16434411): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E7368006262342D6F70732D63726F6E0062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368
+type=SYSCALL msg=audit(1791353758.817:16434412): arch=c000003e syscall=59 success=yes exit=0 a0=55df80d77560 a1=55df80d7bd90 a2=55df80d75f40 a3=1b6 items=3 ppid=2168 pid=2193 auid=1002 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1218 comm="find" exe="/usr/bin/find" key="secval"
+type=EXECVE msg=audit(1791353758.817:16434412): argc=9 a0="find" a1="/opt/secval-lab/cases/bb4-ops-cron" a2="-type" a3="f" a4="!" a5="-name" a6="*.log" a7="-printf" a8="%P\n"
+type=CWD msg=audit(1791353758.817:16434412): cwd="/root"
+type=PATH msg=audit(1791353758.817:16434412): item=0 name="/bin/find" inode=1051280 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.817:16434412): item=1 name="/bin/find" inode=1051280 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PATH msg=audit(1791353758.817:16434412): item=2 name="/lib64/ld-linux-x86-64.so.2" inode=1046644 dev=fd:03 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+type=PROCTITLE msg=audit(1791353758.817:16434412): proctitle=62617368002F6F70742F73656376616C2D6C61622F636F6C6C6563746F722F636F6C6C6563742E7368006262342D6F70732D63726F6E0062617368002F6F70742F73656376616C2D6C61622F706C6179626F6F6B732F62656E69676E2F6262342D6F70732D63726F6E2F72756E2E7368

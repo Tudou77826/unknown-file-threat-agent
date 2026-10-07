@@ -1,0 +1,8 @@
+{
+  "File_id": "file-record-t1505-003-web-shell",
+  "File_hash": "ec6c76aaf49c88a3013254382a395f0fc8d1564f087a89260eed2a72935642b5",
+  "File_path": "/opt/secval-lab/cases/t1505-003-web-shell/webroot/shell.php",
+  "File_type": "php",
+  "source": "lab-vm-aliyun-01",
+  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"ec6c76aaf49c88a3013254382a395f0fc8d1564f087a89260eed2a72935642b5\"}}"
+}

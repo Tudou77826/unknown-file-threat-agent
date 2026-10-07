@@ -1,0 +1,15 @@
+Makefile	NOT-OWNED
+modules.order	NOT-OWNED
+.modules.order.cmd	NOT-OWNED
+Module.symvers	NOT-OWNED
+.Module.symvers.cmd	NOT-OWNED
+rootkit.c	NOT-OWNED
+rootkit.ko	NOT-OWNED
+.rootkit.ko.cmd	NOT-OWNED
+rootkit.mod	NOT-OWNED
+rootkit.mod.c	NOT-OWNED
+.rootkit.mod.cmd	NOT-OWNED
+rootkit.mod.o	NOT-OWNED
+.rootkit.mod.o.cmd	NOT-OWNED
+rootkit.o	NOT-OWNED
+.rootkit.o.cmd	NOT-OWNED

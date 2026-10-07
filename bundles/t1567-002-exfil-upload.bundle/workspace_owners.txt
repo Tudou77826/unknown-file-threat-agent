@@ -1,0 +1,2 @@
+exfil.tar.gz	NOT-OWNED
+sensitive/records.csv	NOT-OWNED

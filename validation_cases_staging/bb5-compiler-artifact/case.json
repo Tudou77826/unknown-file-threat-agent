@@ -1,0 +1,64 @@
+{
+  "schema_version": "1.0",
+  "case_id": "bb5-compiler-artifact",
+  "attack_tags": [
+    "baseline"
+  ],
+  "scenario": "开发者编译演示程序并运行，回连本机批准端点。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/bb5-compiler-artifact/demo.elf",
+    "file_hash": "2aa7d4403a28340f2ac3b3c13b760a13a198af2d2e8a8feece7645795eea883f",
+    "file_type": "elf"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": false,
+      "basis": "无攻击剧本"
+    },
+    "file": {
+      "judgment": "benign",
+      "basis": "本地编译产物，回连端点在批准清单"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": false,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "benign",
+    "verdict_level": null,
+    "risk_level": "none",
+    "note": null
+  },
+  "key_evidence": [
+    "cc 编译产生 ELF",
+    "执行后连接批准端点"
+  ],
+  "risk_level": "none",
+  "recommended_action": "无需处置",
+  "telemetry": {
+    "event_files": [
+      "counter_evidence.jsonl",
+      "file.jsonl",
+      "network.jsonl",
+      "process.jsonl"
+    ],
+    "environment_baseline_sources": [
+      "rpm-inventory",
+      "cmdb-baseline"
+    ]
+  },
+  "provenance": {
+    "origin": "attack-run",
+    "environment": "lab-vm-aliyun-01",
+    "collector": "auditd-collector/1 + collect.sh/1",
+    "created": "2026-09-29",
+    "notes": "剧本 bb5-compiler-artifact | settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

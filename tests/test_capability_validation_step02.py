@@ -289,3 +289,17 @@ def test_settle_pipeline_end_to_end(tmp_path: Path):
     _, loaded = ValidationSuiteRepository(suite).load()  # digests were refreshed by settle
     settled_case = next(item for item in loaded if item.case.case_id == "t1105-ingress-tool-transfer")
     assert settled_case.bundle.events  # fully loadable end to end
+
+
+def test_subdir_relative_path_resolves_against_cwd():
+    """相对名含子目录时按 CWD 解析（曾按 PARENT 拼出 webroot/webroot/ 双层）。"""
+    log = [
+        'type=SYSCALL msg=audit(1791353725.500:9101): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7ffd a2=241 items=2 ppid=100 pid=200 comm="bash" exe="/usr/bin/bash" key="secval"',
+        'type=CWD msg=audit(1791353725.500:9101): cwd="/opt/secval-lab/cases/t1505"',
+        'type=PATH msg=audit(1791353725.500:9101): item=0 name="webroot" nametype=PARENT',
+        'type=PATH msg=audit(1791353725.500:9101): item=1 name="webroot/shell.php" nametype=CREATE',
+    ]
+    envelopes = parse_auditd_lines(log, host_id="h")
+    files = [e for e in envelopes if e.kind == "file"]
+    assert files and files[0].payload["op"] == "create"
+    assert files[0].payload["path"] == "/opt/secval-lab/cases/t1505/webroot/shell.php"

@@ -1,0 +1,6 @@
+cryptor.c
+cryptor.elf
+decoy/db.conf
+decoy.encrypted/db.conf.locked
+decoy.encrypted/invoice.txt.locked
+decoy/invoice.txt

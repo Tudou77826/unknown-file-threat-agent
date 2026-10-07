@@ -1,0 +1,3 @@
+sensitive/cloud.creds	NOT-OWNED
+sensitive/shadow.extract	NOT-OWNED
+staging.tar.gz	NOT-OWNED

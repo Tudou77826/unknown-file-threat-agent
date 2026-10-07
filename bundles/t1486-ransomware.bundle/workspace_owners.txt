@@ -1,0 +1,6 @@
+cryptor.c	NOT-OWNED
+cryptor.elf	NOT-OWNED
+decoy/db.conf	NOT-OWNED
+decoy.encrypted/db.conf.locked	NOT-OWNED
+decoy.encrypted/invoice.txt.locked	NOT-OWNED
+decoy/invoice.txt	NOT-OWNED

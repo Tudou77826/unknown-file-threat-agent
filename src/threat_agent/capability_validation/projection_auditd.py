@@ -167,10 +167,11 @@ def _classify(
         paths = records.get("PATH", [])
         cwd_records = records.get("CWD", [])
         cwd = cwd_records[0].get("cwd", "").strip('"') if cwd_records else ""
-        # Relative PATH names resolve against the PARENT dir item (dirfd),
-        # falling back to the event CWD.
+        # Relative PATH names resolve against the event CWD（AT_FDCWD 场景，
+        # bash/cp/curl 全属此类）；CWD 缺失时退回 PARENT 项。注意不能用 PARENT
+        # 优先——含子目录的相对名（webroot/shell.php）会被拼成 webroot/webroot/…。
         parent = next((p for p in paths if p.get("nametype") == "PARENT"), None)
-        prefix = parent.get("name", "").strip('"') if parent else cwd
+        prefix = cwd or (parent.get("name", "").strip('"') if parent else "")
 
         def _resolve(item: dict[str, str]) -> str:
             name = item.get("name", "").strip('"')
