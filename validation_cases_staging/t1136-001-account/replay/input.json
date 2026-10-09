@@ -1,0 +1,8 @@
+{
+  "File_id": "file-record-t1136-001-account",
+  "File_hash": "f21d36332732b7a6a35f360be24d0a1661b86d48e9fea87481b67a625e42ffb1",
+  "File_path": "/etc/passwd",
+  "File_type": "conf",
+  "source": "lab-vm-aliyun-01",
+  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"f21d36332732b7a6a35f360be24d0a1661b86d48e9fea87481b67a625e42ffb1\"}}"
+}

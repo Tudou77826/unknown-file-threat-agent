@@ -86,6 +86,71 @@
       "case_id": "bb6-mirror-download",
       "directory": "bb6-mirror-download",
       "content_digest": "6985a81cea7b99abfd256fb65710a1b04d818ee513067230e08bf40e58a0809a"
+    },
+    {
+      "case_id": "t1036-005-masquerade",
+      "directory": "t1036-005-masquerade",
+      "content_digest": "673ff80fc70ba4f448412594f599300a82e2573379be820b9525ca292650b8ad"
+    },
+    {
+      "case_id": "t1070-006-timestomp",
+      "directory": "t1070-006-timestomp",
+      "content_digest": "aee91158cf522a2e49c0c577fdf3af3515f0f0085ad01ac659e0a5ce527d52a3"
+    },
+    {
+      "case_id": "t1027-obfuscated-script",
+      "directory": "t1027-obfuscated-script",
+      "content_digest": "57cb040a207558a83f6d021e55988e2f4941f212eb56af93afbdc31f9533aad6"
+    },
+    {
+      "case_id": "t1098-004-authorized-keys",
+      "directory": "t1098-004-authorized-keys",
+      "content_digest": "ce7bfc276771ebb198354e931794a1f2089cebdddbc68928deb6f4aaf2bc18cc"
+    },
+    {
+      "case_id": "t1552-004-private-key",
+      "directory": "t1552-004-private-key",
+      "content_digest": "015c2fd9dae6901134fe9490b3818e953e7d8ccd6e6e1d27be0aa9dc47ec33d1"
+    },
+    {
+      "case_id": "t1548-001-setuid",
+      "directory": "t1548-001-setuid",
+      "content_digest": "7c0a0ee357676cedad5e4e7601d521229e3609d4714daeeafb86cbc595766b90"
+    },
+    {
+      "case_id": "t1059-006-python-beacon",
+      "directory": "t1059-006-python-beacon",
+      "content_digest": "e5448f0182febd37271133d63adb14d17c42ac0c86f6eabc2b73cb90dc1116ab"
+    },
+    {
+      "case_id": "chain-001-full-intrusion",
+      "directory": "chain-001-full-intrusion",
+      "content_digest": "4d529b94ae95b7833b56d7d91370081145fd44396c24ccf74106ed6ab090e6ee"
+    },
+    {
+      "case_id": "t1136-001-account",
+      "directory": "t1136-001-account",
+      "content_digest": "5bbaccff6540fec47ffc28ebcd51b35dcc147491adcf0463c218bd6d1c81ed3c"
+    },
+    {
+      "case_id": "bb7-vendor-agent",
+      "directory": "bb7-vendor-agent",
+      "content_digest": "85154a82cdb718752052e0652af779f1b0e1fbe6444384c1e9c778ad81737c06"
+    },
+    {
+      "case_id": "bb8-ops-suite-install",
+      "directory": "bb8-ops-suite-install",
+      "content_digest": "beadee9582e99e3604c262c037b2e0fb265106fe03e2e0e35dfb8eeb7057478e"
+    },
+    {
+      "case_id": "bb9-log-rotation",
+      "directory": "bb9-log-rotation",
+      "content_digest": "21b0491833cb0a06174374828eef848fbfcbca384a417a9bca359656f3510f66"
+    },
+    {
+      "case_id": "bb11-cfgmgmt-ssh-key",
+      "directory": "bb11-cfgmgmt-ssh-key",
+      "content_digest": "623f75ef6aca5598df85e1fd1d8f6bcbe96b967232417b4a9e54caff32804c01"
     }
   ]
 }

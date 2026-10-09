@@ -198,7 +198,10 @@ def test_rk_02_baseline_degrades_explicitly_without_blocking(execution):
 
 
 def test_rk_03_disposal_presents_all_sources_and_keeps_constraints(execution):
-    from tests.test_knowledge_response import CapturingPlanner, _conservative_proposal
+    # Bare module import: pytest's prepend mode puts the tests directory on
+    # sys.path (same as the middleware_harness imports); a "tests."-qualified
+    # import breaks when the suite is invoked from the repository root.
+    from test_knowledge_response import CapturingPlanner, _conservative_proposal
     from threat_agent.response_advisory.application.graph import ResponseGraph
     from threat_agent.response_advisory.domain.policy import validate_response_proposal
 

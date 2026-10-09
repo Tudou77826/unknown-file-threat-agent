@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "case_id": "t1098-004-authorized-keys",
+  "attack_tags": [
+    "T1098.004"
+  ],
+  "scenario": "生成攻击者密钥对并将公钥追加到 root 的 authorized_keys，随后以该密钥尝试 SSH 登入本机。",
+  "judgment_target": {
+    "file_path": "/root/.ssh/authorized_keys",
+    "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "file_type": "key"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "SSH 公钥持久化写入 + 密钥登入尝试"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "authorized_keys 被追加未知来源公钥（非配置管理部署，无部署凭证）"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "risk_level": "critical"
+  },
+  "key_evidence": [
+    "authorized_keys 追加写入",
+    "未知来源公钥",
+    "密钥登入尝试（USER_AUTH）"
+  ],
+  "risk_level": "critical",
+  "recommended_action": "移除未知公钥，轮换主机密钥，排查登入来源",
+  "telemetry": {
+    "event_files": [
+      "generated-by-settle"
+    ],
+    "environment_baseline_sources": []
+  },
+  "provenance": {
+    "origin": "hand-written",
+    "environment": "lab",
+    "collector": null,
+    "created": "2026-10-09"
+  }
+}

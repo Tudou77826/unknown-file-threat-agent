@@ -9,3 +9,6 @@ outputs/
 log/
 downloads/
 outputs-serve.log
+
+# raw collection bundles (lab artifacts, not source)
+attack_lab/bundles_*/

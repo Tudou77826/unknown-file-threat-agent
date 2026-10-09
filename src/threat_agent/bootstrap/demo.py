@@ -32,6 +32,7 @@ from ..judgment import (
     ReportRepairCoordinator,
     StructuredReportComposer,
 )
+from ..judgment.application.memory_store import MemoryStore
 from ..presentation import InMemoryCaseReadStore
 from ..presentation.api.routes import create_app
 from ..knowledge import (
@@ -315,8 +316,13 @@ def assemble_investigation_run(
     response_model.callbacks = [LlmEventBridge(emit, phase="response_advisory", node="advise")]
     for model in (judgment_model, summarizer_model):
         _attach_trace(model, trace_handler)
+    # One archive memory per run, shared by the archive middleware, the
+    # recall entries and the report composer's card-based input (design §4.1).
+    memory_store = MemoryStore()
     report_composer = ObservableReportComposer(
-        StructuredReportComposer(report_model, emit, tenant_id=tenant_id),
+        StructuredReportComposer(
+            report_model, emit, tenant_id=tenant_id, memory_store=memory_store
+        ),
         emit,
     )
     response_planner = ObservableResponsePlanner(
@@ -349,6 +355,8 @@ def assemble_investigation_run(
         ),
         report_publisher=report_publisher,
         knowledge_service=build_knowledge_service(settings),
+        settings=settings,
+        memory_store=memory_store,
         emit=emit,
         context_window_tokens=settings.judgment_model.context_window_tokens,
         recursion_limit=settings.graph.recursion_limit,

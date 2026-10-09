@@ -44,19 +44,46 @@ awk -v s="$START_MS" -v e="$END_MS" '{
   }
 }' /var/log/audit/audit.log /var/log/audit/audit.log.[1-4] 2>/dev/null > "$BUNDLE/audit.log" || true
 [ -s "$BUNDLE/audit.log" ] || echo "WARN: audit window slice is empty" >&2
+# 窗口切片的类型统计（诊断用：类型缺失即可发现规则未装载/过滤过紧）
+awk -F'type=' '/type=/{split($2,a," "); c[a[1]]++} END{for(k in c) print k, c[k]}' "$BUNDLE/audit.log" 2>/dev/null | sort > "$BUNDLE/audit_stats.txt" || true
 
 # 噪音压缩：宿主常有高频背景活动（安骑士/面板），仅保留 Case 相关审计组：
 # 命中 Case 路径 / 持久化路径 / USER_* / connect 的记录，按 serial 带上伴随记录
 if [ -s "$BUNDLE/audit.log" ]; then
+  # 原始窗口切片留存（诊断用：过滤误伤可离线复核）
+  gzip -c "$BUNDLE/audit.log" > "$BUNDLE/audit.raw.log.gz"
   # 两遍扫描：SYSCALL 是每个事件的第一行，而序号命中靠后面的 PATH/CWD——
   # 单遍流式会在序号入集合前放走 SYSCALL 行（此前系统性丢失文件/执行 SYSCALL 的根因）
+  # 保留判定（按序号）：
+  #   a. PATH 绝对名命中监视路径（secval-lab 树 / etc 关键文件 / authorized_keys / usr/local/sbin）
+  #   b. 相对 PATH 名 + 组 CWD 在案例目录下（相对路径执行 ./payload 的 exec 组只有相对名——
+  #      按绝对名匹配会整个丢失载荷执行记录，bb7/t1059 实证）
+  #   c. connect / USER_* 兜底（低频全捕）
+  # 丢弃：comm="ss"（轮询器自身 netlink connect 命中兜底；ss 作为被调查对象不现实）
   gawk '
     NR == FNR {
-      if ($0 ~ /secval-lab|\/etc\/(systemd|cron|rc\.d)|type=USER_|syscall=42|type=USER_ACCT/)
-        if (match($0, /audit\([0-9.]+:([0-9]+)\)/, k)) keep[k[1]] = 1
+      if (match($0, /audit\([0-9.]+:([0-9]+)\)/, k)) {
+        s = k[1]
+        if ($0 ~ /comm="ss"/) drop[s] = 1
+        if ($0 ~ /^type=CWD/ && match($0, /cwd="([^"]*)"/, c)) cwd[s] = c[1]
+        if ($0 ~ /name="[^"]*(secval-lab|\/etc\/(systemd|cron|rc\.d|passwd|shadow)|authorized_keys|\/usr\/local\/sbin|\/usr\/local\/bin|\.ssh\/authorized_keys|\/var\/log\/secval-demo)/) keep[s] = 1
+        else if ($0 ~ /^type=PATH/ && $0 !~ /name="\//) pend[s] = 1
+        # EXECVE 带相对参数且组 CWD 在案例目录：解释器执行案例脚本/载荷的形态
+        # （python3 beacon.py）；采集器自身工具不适用（黑名单防自噪音回潮）
+        if ($0 ~ /^type=EXECVE/ && $0 ~ /a[0-9]+="[^\/"][^"]*"/) pendexe[s] = 1
+        if ($0 ~ /^type=SYSCALL/ && match($0, /comm="([^"]*)"/, cm)) ecomm[s] = cm[1]
+        if ($0 ~ /type=USER_|syscall=42|type=USER_ACCT/) keep[s] = 1
+      }
       next
     }
-    { if (match($0, /audit\([0-9.]+:([0-9]+)\)/, k) && (k[1] in keep)) print }
+    {
+      if (match($0, /audit\([0-9.]+:([0-9]+)\)/, k)) {
+        s = k[1]
+        if ((s in pend) && (s in cwd) && cwd[s] ~ /^\/opt\/secval-lab\/cases\//) keep[s] = 1
+        if ((s in pendexe) && (s in cwd) && cwd[s] ~ /^\/opt\/secval-lab\/cases\// && !((s in ecomm) && ecomm[s] ~ /^(ss|date|sleep|pkill|gawk|awk|find|sha256sum|tar|ps|rpm|dpkg-query|gzip|dd|cut|wc|grep|sort|head|tail|cat|mkdir|rm|ls|env)$/)) keep[s] = 1
+        if ((s in keep) && !(s in drop)) print
+      }
+    }
   ' "$BUNDLE/audit.log" "$BUNDLE/audit.log" > "$BUNDLE/audit.tmp" && mv "$BUNDLE/audit.tmp" "$BUNDLE/audit.log"
 fi
 
@@ -65,6 +92,15 @@ find "$WORK" -type f ! -name '*.log' -printf '%P\n' 2>/dev/null | sort > "$BUNDL
   find "$WORK" -type f ! -name '*.log' | sed "s|^$WORK/||" | sort > "$BUNDLE/workspace_files.txt"
 ( cd "$WORK" && tar czf "$BUNDLE/workspace.tar.gz" --exclude='*.log' . 2>/dev/null || true )
 ( cd "$WORK" && find . -type f ! -name '*.log' -exec sha256sum {} \; | sort -k2 > "$BUNDLE/workspace_hashes.txt" )
+
+# 判定对象在系统路径的剧本（伪装/密钥/账号案）：剧本在窗口内写 system_paths.txt
+# 声明触碰过的系统文件，采集器记录其哈希供 settle 回退锚定（与工作区清单同构）
+if [ -f "$WORK/system_paths.txt" ]; then
+  : > "$BUNDLE/system_hashes.txt"
+  while IFS= read -r p; do
+    [ -n "$p" ] && [ -f "$p" ] && sha256sum "$p" >> "$BUNDLE/system_hashes.txt" || echo "WARN: system path missing $p" >&2
+  done < "$WORK/system_paths.txt"
+fi
 
 ps -eo pid,ppid,lstart,args --sort=pid > "$BUNDLE/ps_after.txt" 2>/dev/null || true
 # §2 包归属反证：逐工件查询所属包（非包文件 → owns_file=false 负证据）

@@ -2,30 +2,215 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections import Counter
 from typing import Any, Callable
 
 from ...contracts import InvestigationReport
 from ...contracts.investigation import CandidateVerdict, VerdictLevel
 from ...shared.llm import forced_structured, invoke_llm, structured_output_method
 from ..domain.models import InvestigationState
+from .memory_store import MemoryStore
 from .report_draft import ReportDraft
 from .report_validation import (
     ReportValidationIssue,
     executed_query_ids,
 )
 
-PROMPT_VERSION = "investigation-report/1.1"
+PROMPT_VERSION = "investigation-report/1.2"
 
 
-def report_context(state: InvestigationState) -> dict[str, Any]:
+def _archive_cards(memory_store: MemoryStore | None) -> list[dict[str, Any]]:
+    """All archive cards: the model-written summary plus the deterministic
+    per-round query appendix (tool, arguments digest, returned count,
+    negatives, produced IDs)."""
+    if memory_store is None:
+        return []
+    cards: list[dict[str, Any]] = []
+    for handle in memory_store.handles():
+        block = memory_store.get_archive(handle)
+        if block is None:
+            continue
+        queries: list[dict[str, Any]] = []
+        for round_record in block.get("rounds", []):
+            for call in round_record.get("tool_calls", []):
+                queries.append({
+                    "round": round_record.get("round"),
+                    "tool": call.get("tool"),
+                    "args_digest": call.get("args_digest"),
+                    "returned": call.get("returned"),
+                    "negative": bool(call.get("negative")),
+                    "produced_ids": call.get("ids") or {},
+                })
+        cards.append({
+            "archive_id": block["archive_id"],
+            "summary": block["summary"],
+            "round_span": block["round_span"],
+            "queries": queries,
+        })
+    return cards
+
+
+class _ArchiveCoverage:
+    """What the archived intervals provably cover, derived from the blocks.
+
+    - ``query_ids`` are exact (a query_id is minted once per activity query);
+    - traces are matched against archived tool calls in execution order:
+      traces whose ``tool_call_id`` is recorded match exactly, id-less
+      traces (middleware runtime) match by chronological per-tool count
+      consumption — archived spans are completed rounds, so within one
+      tool name the archived instances come first. The gateway normalizes
+      arguments before recording (e.g. datetime formats), so argument
+      equality must never be the join key;
+    - only calls that provably reached the gateway successfully (a returned
+      count and no error) join the match — denials and knowledge calls
+      produce no gateway trace, and an unmatched trace conservatively
+      stays in the tail;
+    - entity / metric / raw-record results are only treated as covered when
+      every citable object they produced is in the archived ID sets.
+    """
+
+    def __init__(self, memory_store: MemoryStore | None):
+        self.query_ids: set[str] = set()
+        self.activity_ids: set[str] = set()
+        self.relation_ids: set[str] = set()
+        self._call_ids: set[str] = set()
+        self._name_queue: Counter[str] = Counter()
+        if memory_store is None:
+            return
+        for handle in memory_store.handles():
+            block = memory_store.get_archive(handle)
+            if block is None:
+                continue
+            for round_record in block.get("rounds", []):
+                for call in round_record.get("tool_calls", []):
+                    if call.get("error") is None and call.get("returned") is not None:
+                        self._name_queue[str(call.get("tool") or "")] += 1
+                        call_id = call.get("tool_call_id")
+                        if call_id:
+                            self._call_ids.add(str(call_id))
+                    for kind, values in (call.get("ids") or {}).items():
+                        target = {
+                            "queries": self.query_ids,
+                            "activities": self.activity_ids,
+                            "relations": self.relation_ids,
+                        }.get(kind)
+                        if target is not None:
+                            target.update(values)
+
+    def trace_is_archived(self, trace) -> bool:
+        call_id = getattr(trace, "tool_call_id", None)
+        if call_id:
+            if call_id in self._call_ids:
+                self._call_ids.discard(call_id)
+                return True
+            return False
+        name = str(trace.tool_name)
+        if self._name_queue.get(name, 0) > 0:
+            self._name_queue[name] -= 1
+            return True
+        return False
+
+    def entity_result_is_covered(self, result) -> bool:
+        relations = [
+            item.relation_id
+            for item in (*result.resolved_relations, *result.candidate_relations)
+        ]
+        activities = [item.activity_id for item in result.timeline]
+        if not relations and not activities:
+            return False
+        return set(relations) <= self.relation_ids and set(activities) <= self.activity_ids
+
+    def activity_refs_are_covered(self, refs: list[str]) -> bool:
+        return bool(refs) and set(refs) <= self.activity_ids
+
+
+def _project_trace(trace) -> dict[str, Any]:
+    """Tail trace envelope: keep identity, arguments and status shape.
+
+    Successful gateway results are already carried verbatim by the typed
+    sections (``query_results`` / ``entity_results`` / ``metric_results`` /
+    ``raw_record_results``); embedding the full result payload again inside
+    every trace doubled the report input for no information gain. Failed
+    traces stay verbatim — the instructions rely on them for limitations.
+
+    Fields are read from ``model_dump(mode="json")``: the gateway normalizes
+    time filters in ``arguments`` into datetime objects, and a bare
+    ``dict(trace.arguments)`` leaks them into the composer's ``json.dumps``
+    (TypeError: Object of type datetime is not JSON serializable).
+    """
+    safe = trace.model_dump(mode="json")
+    payload = dict(safe.get("result") or {})
+    if str(trace.result_type) != "ToolError":
+        projected: dict[str, Any] = {}
+        if isinstance(payload.get("query_id"), str):
+            projected["query_id"] = payload["query_id"]
+        for key in ("returned_count",):
+            if isinstance(payload.get(key), int):
+                projected[key] = payload[key]
+        payload = projected
+    return {
+        "sequence": safe["sequence"],
+        "tool_name": str(trace.tool_name),
+        "arguments": dict(safe.get("arguments") or {}),
+        "result_type": str(trace.result_type),
+        "result": payload,
+        "tool_call_id": safe.get("tool_call_id"),
+    }
+
+
+def report_context(
+    state: InvestigationState, memory_store: MemoryStore | None = None
+) -> dict[str, Any]:
+    """Report input v2: case background + all archive cards + the projection
+    of the not-yet-archived tail + the citable-ID catalog + grounding rules.
+
+    Replaces the full ledger dump of v1: archived intervals are represented
+    by their cards (investigator conclusions and negatives) while their ID
+    -level facts stay available through ``evidence_catalog``; the citation
+    whitelist and every downstream stage (forced structured output,
+    grounding validation, constrained rejudgment, deterministic fallback)
+    keep reading the ledger and are unaffected by this projection.
+    """
+    coverage = _ArchiveCoverage(memory_store)
+    tail_traces = [
+        trace for trace in state.tool_ledger.traces
+        if not coverage.trace_is_archived(trace)
+    ]
     context: dict[str, Any] = {
         "case_id": state.case_id,
+        "case_background": {
+            "case_input": dict(state.raw_input),
+            "authorized_scope": state.scope.model_dump(mode="json"),
+            "initial_entities": [item.model_dump(mode="json") for item in state.entities],
+        },
         "authorized_scope": state.scope.model_dump(mode="json"),
         "entities": [item.model_dump(mode="json") for item in state.entities],
-        "query_results": [item.model_dump(mode="json") for item in state.tool_ledger.query_results],
-        "entity_results": [item.model_dump(mode="json") for item in state.tool_ledger.entity_results],
-        "metric_results": [item.model_dump(mode="json") for item in state.tool_ledger.metric_results],
-        "tool_traces": [item.model_dump(mode="json") for item in state.tool_ledger.traces],
+        "archive_cards": _archive_cards(memory_store),
+        # Not-yet-archived tail: full-fidelity ledger entries.
+        "query_results": [
+            item.model_dump(mode="json")
+            for item in state.tool_ledger.query_results
+            if item.query_id not in coverage.query_ids
+        ],
+        "entity_results": [
+            item.model_dump(mode="json")
+            for item in state.tool_ledger.entity_results
+            if not coverage.entity_result_is_covered(item)
+        ],
+        "metric_results": [
+            item.model_dump(mode="json")
+            for item in state.tool_ledger.metric_results
+            if not coverage.activity_refs_are_covered(list(item.activity_refs))
+        ],
+        "raw_record_results": [
+            item.model_dump(mode="json")
+            for item in state.tool_ledger.raw_record_results
+            if not coverage.activity_refs_are_covered(
+                [record.activity_ref for record in item.records]
+            )
+        ],
+        "tool_traces": [_project_trace(trace) for trace in tail_traces],
+        "evidence_catalog": evidence_catalog(state),
         "instructions": [
             "returned_count=0 only means this query returned zero rows under its execution boundary",
             "judge data sufficiency yourself; the data layer provides no Coverage grade",
@@ -36,6 +221,13 @@ def report_context(state: InvestigationState) -> dict[str, Any]:
             "cross-host leads are out of investigation scope: record them only as unresolved_questions or limitations, never as confirmed facts about target hosts",
             "key_evidence is a list of ReportStatement; put each key judgment basis as one statement citing its evidence",
             "write all natural-language content in Simplified Chinese",
+            "archive_cards carry the investigator's stage conclusions and negatives for already-archived intervals; "
+            "their IDs are citable exactly when present in evidence_catalog",
+            "archive_cards are the investigator's own notes written during the run, not verified facts: "
+            "treat every card conclusion as a claim to corroborate against evidence_catalog and the tail query_results "
+            "before restating it in the report",
+            "evidence_catalog lists every citable activity/evidence/relation ID of the run with per-activity summaries; "
+            "it is the authoritative index when a card references an ID whose details are no longer in query_results",
         ],
     }
     if state.knowledge_guidance:
@@ -91,7 +283,14 @@ def evidence_catalog(state: InvestigationState) -> dict[str, Any]:
 class StructuredReportComposer:
     """LLM draft generation and constrained rejudgment; never publishes."""
 
-    def __init__(self, model: Any, event_sink: Callable | None = None, *, tenant_id: str = "default"):
+    def __init__(
+        self,
+        model: Any,
+        event_sink: Callable | None = None,
+        *,
+        tenant_id: str = "default",
+        memory_store: MemoryStore | None = None,
+    ):
         self.model_name = str(getattr(model, "model_name", getattr(model, "model", "unknown")))
         if structured_output_method(model) == "json_mode":
             self.structured_model = model.with_structured_output(
@@ -101,6 +300,10 @@ class StructuredReportComposer:
             self.structured_model = forced_structured(model, ReportDraft)
         self.event_sink = event_sink or (lambda _kind, _message, _details=None: None)
         self.tenant_id = tenant_id
+        # Run-scoped archive memory: the compose input projects archived
+        # intervals as cards instead of full ledger dumps. Rejudgment keeps
+        # its whitelist-driven path and never reads the store.
+        self.memory_store = memory_store
         schema = json.dumps(ReportDraft.model_json_schema(), ensure_ascii=False)
         self.system_prompt = (
             "你是未知文件安全调查的主研判模型。基于给定查询接口、实际执行边界、活动与实体关系，"
@@ -121,7 +324,11 @@ class StructuredReportComposer:
 
     def compose_draft(self, state: InvestigationState) -> ReportDraft:
         return self._generate(
-            self.system_prompt, json.dumps(report_context(state), ensure_ascii=False)
+            self.system_prompt,
+            json.dumps(
+                report_context(state, memory_store=self.memory_store),
+                ensure_ascii=False,
+            ),
         )
 
     def rejudge(

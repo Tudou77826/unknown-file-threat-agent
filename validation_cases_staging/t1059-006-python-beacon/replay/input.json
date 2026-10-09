@@ -1,0 +1,8 @@
+{
+  "File_id": "file-record-t1059-006-python-beacon",
+  "File_hash": "2f19227404c4ffb6c038c82d3a0fb7b4eec9cd33f057828bf34440a1d7721deb",
+  "File_path": "/opt/secval-lab/cases/t1059-006-python-beacon/beacon.py",
+  "File_type": "py",
+  "source": "lab-vm-aliyun-01",
+  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"2f19227404c4ffb6c038c82d3a0fb7b4eec9cd33f057828bf34440a1d7721deb\"}}"
+}

@@ -1,0 +1,64 @@
+{
+  "schema_version": "1.0",
+  "case_id": "t1552-004-private-key",
+  "attack_tags": [
+    "T1552.004",
+    "T1567"
+  ],
+  "scenario": "窃取的 SSH 私钥以副本形式落盘暂存，随后打包上传至外部端点（实验室本机模拟）。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/t1552-004-private-key/staged_id_rsa",
+    "file_hash": "77d29cbd10caf48af0b49041878ee79176d2f85593e76555c1150d7ad62ded46",
+    "file_type": "key"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "凭据材料副本落盘 + 打包上传外部端点"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "私钥文件副本出现在暂存目录并被打包外传，非任何合法用途"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "verdict_level": null,
+    "risk_level": "critical",
+    "note": null
+  },
+  "key_evidence": [
+    "私钥副本落盘",
+    "打包归档",
+    "上传外部端点"
+  ],
+  "risk_level": "critical",
+  "recommended_action": "吊销相关凭据，清除副本，排查外传目的地",
+  "telemetry": {
+    "event_files": [
+      "counter_evidence.jsonl",
+      "file.jsonl",
+      "process.jsonl"
+    ],
+    "environment_baseline_sources": [
+      "rpm-inventory"
+    ]
+  },
+  "provenance": {
+    "origin": "attack-run",
+    "environment": "lab-vm-aliyun-01",
+    "collector": "auditd-collector/1 + collect.sh/1",
+    "created": "2026-10-09",
+    "notes": "settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

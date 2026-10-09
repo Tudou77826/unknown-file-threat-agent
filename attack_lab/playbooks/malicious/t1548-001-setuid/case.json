@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "case_id": "t1548-001-setuid",
+  "attack_tags": [
+    "T1548.001"
+  ],
+  "scenario": "以 root 属主并设置 setuid 位的 helper 程序，由非特权用户（nobody）执行并建立外连。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/t1548-001-setuid/suid.elf",
+    "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "file_type": "elf"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "setuid 位设置 + 非特权用户执行提权语义动作"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "root 属主 setuid 可执行文件（chmod 4755 属性变化可观测），非包归属，非管理员部署"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "risk_level": "critical"
+  },
+  "key_evidence": [
+    "setuid 属性变化",
+    "非特权用户执行",
+    "执行后外连"
+  ],
+  "risk_level": "critical",
+  "recommended_action": "去除 setuid 位并清除文件，排查提权利用路径",
+  "telemetry": {
+    "event_files": [
+      "generated-by-settle"
+    ],
+    "environment_baseline_sources": []
+  },
+  "provenance": {
+    "origin": "hand-written",
+    "environment": "lab",
+    "collector": null,
+    "created": "2026-10-09"
+  }
+}

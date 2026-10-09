@@ -151,6 +151,32 @@ PLANNER_SYSTEM_PROMPT = (
 )
 
 
+def planner_system_prompt(*, memory_contract: bool = True) -> str:
+    """PLANNER_SYSTEM_PROMPT + optional memory-contract section.
+
+    实验开关（r8）：glm-5.3-flash 四轮共 20+ 案次零次调用 archive_context，
+    记忆契约提示目前只带来 +40% 模型调用数而无归档收益——关闭以隔离其影响；
+    归档启用问题解决后恢复默认 True。
+    """
+    if not memory_contract:
+        return PLANNER_SYSTEM_PROMPT
+    return PLANNER_SYSTEM_PROMPT + (
+        "\n\n"
+        "记忆契约（引导，非强制）：上下文是你的工作内存，归档区是你的长期记忆。"
+        "一段内容的作用已经兑现——结论落定、方向排除、背景确认——它大概率不再被逐字使用，"
+        "此时调用 archive_context 归档它：区间会被收起，原位保留你写的摘要与一份事实附录，"
+        "原内容始终可用 recall 取回。摘要写给未来看不到细节的自己："
+        "这段做了什么、得到了什么（结论/排除/确认）、留下哪些关键线索；写得含糊，未来就得多花一次探查。"
+        "典型节奏（示例非规定）：一条推断的查证得出结论（含排除）时归档该段；"
+        "切换新方向前先用 archive_context(from_round=…) 只收走旧方向。"
+        "需要细节时用 recall：提一个问题（question）让独立上下文的探查助手去查，答案带引用；"
+        "要亲自重看某段推理用句柄展开（archives）；要证据原文用 ID 取回（ids）；"
+        "下结论的关键事实以按 ID 取回的原始记录为准。"
+        "归档之后不要为找回已归档的细节而重复相同查询——用 recall 取回；"
+        "只有需要新的时间窗或新的过滤条件时才再次查询。"
+    )
+
+
 class StructuredDataToolPlanner:
     """Native OpenAI-compatible tool-calling planner controlled by JudgmentGraph."""
 

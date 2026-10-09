@@ -1,0 +1,8 @@
+{
+  "File_id": "file-record-t1552-004-private-key",
+  "File_hash": "77d29cbd10caf48af0b49041878ee79176d2f85593e76555c1150d7ad62ded46",
+  "File_path": "/opt/secval-lab/cases/t1552-004-private-key/staged_id_rsa",
+  "File_type": "key",
+  "source": "lab-vm-aliyun-01",
+  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"77d29cbd10caf48af0b49041878ee79176d2f85593e76555c1150d7ad62ded46\"}}"
+}

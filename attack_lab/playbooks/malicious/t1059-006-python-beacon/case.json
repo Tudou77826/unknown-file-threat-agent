@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "case_id": "t1059-006-python-beacon",
+  "attack_tags": [
+    "T1059.006"
+  ],
+  "scenario": "python 脚本落盘并由解释器执行，周期性建立外连（脚本级 C2 回连行为）。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/t1059-006-python-beacon/beacon.py",
+    "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "file_type": "py"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "解释器执行回连脚本（多次外连）"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "非部署的周期回连脚本，由 python 解释器执行"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "risk_level": "high"
+  },
+  "key_evidence": [
+    "脚本落盘",
+    "解释器执行",
+    "多次外连"
+  ],
+  "risk_level": "high",
+  "recommended_action": "清除脚本，排查回连目的地与投放来源",
+  "telemetry": {
+    "event_files": [
+      "generated-by-settle"
+    ],
+    "environment_baseline_sources": []
+  },
+  "provenance": {
+    "origin": "hand-written",
+    "environment": "lab",
+    "collector": null,
+    "created": "2026-10-09"
+  }
+}

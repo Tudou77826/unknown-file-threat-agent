@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "case_id": "t1070-006-timestomp",
+  "attack_tags": [
+    "T1070.006"
+  ],
+  "scenario": "执行后门后用 touch -r 将其 mtime 回拨至 /bin/ls 的系统时间，掩盖落盘时间线。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/t1070-006-timestomp/payload.elf",
+    "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "file_type": "elf"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "落盘后显式回拨时间戳（utimensat 可观测）"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "mtime 早于审计观测到的创建/执行事件时间，时间线自证矛盾"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "risk_level": "high"
+  },
+  "key_evidence": [
+    "mtime 与审计事件顺序矛盾",
+    "执行后外连",
+    "非包归属"
+  ],
+  "risk_level": "high",
+  "recommended_action": "恢复真实时间线证据，清除载荷",
+  "telemetry": {
+    "event_files": [
+      "generated-by-settle"
+    ],
+    "environment_baseline_sources": []
+  },
+  "provenance": {
+    "origin": "hand-written",
+    "environment": "lab",
+    "collector": null,
+    "created": "2026-10-09"
+  }
+}

@@ -88,6 +88,25 @@ def _load_path_hashes(bundle: Path, workspace_root_hint: str) -> dict[str, str]:
     return hashes
 
 
+def _load_system_hashes(bundle: Path) -> dict[str, str]:
+    """system_hashes.txt: '<sha256>  /abs/path' → {abs_path: hash}.
+
+    Judgment targets on system paths (masqueraded copies, authorized_keys,
+    /etc/passwd) are hashed by the collector when the playbook declares them
+    in ``system_paths.txt``; settle anchors them from here as a fallback.
+    """
+
+    hashes: dict[str, str] = {}
+    manifest = bundle / "system_hashes.txt"
+    if not manifest.exists():
+        return hashes
+    for line in manifest.read_text(encoding="utf-8").splitlines():
+        parts = line.split(None, 1)
+        if len(parts) == 2:
+            hashes[parts[1].strip()] = parts[0]
+    return hashes
+
+
 def _load_ps_starts(bundle: Path) -> dict[int, int]:
     """ps snapshots → {pid: start_ms} for parent-relation stability.
 
@@ -251,11 +270,16 @@ def settle(*, source: Path, bundle: Path, host_id: str, suite_root: Path, worksp
         )
 
     artifact_rel = str(draft.judgment_target.file_path).replace(workspace_root + "/", "")
-    digest = path_hashes.get(draft.judgment_target.file_path) or path_hashes.get(artifact_rel)
+    digest = (
+        path_hashes.get(draft.judgment_target.file_path)
+        or path_hashes.get(artifact_rel)
+        or _load_system_hashes(bundle).get(draft.judgment_target.file_path)
+    )
     if not digest:
         raise SystemExit(
             f"judgment target {draft.judgment_target.file_path} not found in workspace "
-            f"digest manifest — the playbook must drop it under the case workspace"
+            f"or system digest manifests — the playbook must drop it under the case "
+            f"workspace or declare it in system_paths.txt"
         )
 
     payload = draft.model_dump()
@@ -387,18 +411,44 @@ def _scope_to_case(envelopes, case_id, root_hint):
         exe = str(envelope.payload.get("exe", ""))
         if exe.startswith(root + "/"):
             case_pids.add(int(envelope.payload.get("pid", 0)))
-    # parent closure: walk ppid links until no new pid joins
-    changed = True
-    while changed:
-        changed = False
-        for envelope in envelopes:
-            payload = envelope.payload
-            if "pid" not in payload:
-                continue
-            pid, ppid = int(payload["pid"]), int(payload.get("ppid", 0) or 0)
-            if pid in case_pids and ppid and ppid not in case_pids:
-                case_pids.add(ppid)
-                changed = True
+    # seed from file envelopes: processes that touched case-relevant files
+    # belong to the case even when their exe is a system interpreter
+    # (python3 beacon.py / bash pipe). Paths mirror audit-rules §2 watches.
+    kept_paths = (
+        root + "/", "/etc/", "/usr/local/sbin/", "/usr/local/bin/",
+        "/root/.ssh/", "/var/log/secval-demo/",
+    )
+    for envelope in envelopes:
+        if envelope.kind != "file":
+            continue
+        path = str(envelope.payload.get("path", ""))
+        if path.startswith(kept_paths):
+            case_pids.add(int(envelope.payload.get("pid", 0) or 0))
+    # closure both ways over the pid graph: ancestors AND descendants of case
+    # processes are case processes (payloads exec under the playbook's tree).
+    # The graph includes pids that appear only as a ppid (intermediate bash
+    # wrappers often have no surviving envelope of their own).
+    children: dict[int, set[int]] = {}
+    parent_of: dict[int, int] = {}
+    for envelope in envelopes:
+        payload = envelope.payload
+        if "pid" not in payload:
+            continue
+        pid, ppid = int(payload["pid"]), int(payload.get("ppid", 0) or 0)
+        if ppid:
+            children.setdefault(ppid, set()).add(pid)
+            parent_of[pid] = ppid
+    frontier = list(case_pids)
+    while frontier:
+        current = frontier.pop()
+        for child in children.get(current, ()):
+            if child not in case_pids:
+                case_pids.add(child)
+                frontier.append(child)
+        parent = parent_of.get(current)
+        if parent and parent not in case_pids:
+            case_pids.add(parent)
+            frontier.append(parent)
     kept = []
     for envelope in envelopes:
         payload = envelope.payload
@@ -408,7 +458,7 @@ def _scope_to_case(envelopes, case_id, root_hint):
             continue
         if envelope.kind == "file":
             path = str(payload.get("path", ""))
-            if path.startswith(root + "/") or path.startswith("/etc/"):
+            if path.startswith(kept_paths):
                 kept.append(envelope)
                 continue
         if envelope.kind == "network" and pid in case_pids:

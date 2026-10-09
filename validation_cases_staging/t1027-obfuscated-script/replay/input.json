@@ -1,0 +1,8 @@
+{
+  "File_id": "file-record-t1027-obfuscated-script",
+  "File_hash": "1420edfa2a4cb534c106686f595c9a69d34bd2d20847ea180ec976d77f355dc9",
+  "File_path": "/opt/secval-lab/cases/t1027-obfuscated-script/beacon.enc",
+  "File_type": "enc",
+  "source": "lab-vm-aliyun-01",
+  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"1420edfa2a4cb534c106686f595c9a69d34bd2d20847ea180ec976d77f355dc9\"}}"
+}

@@ -1,0 +1,66 @@
+{
+  "schema_version": "1.0",
+  "case_id": "bb8-ops-suite-install",
+  "attack_tags": [
+    "baseline"
+  ],
+  "scenario": "管理员安装监控套件：系统目录写二进制、systemd 单元、cron 报告任务同时出现（持久化行为密集但合法）。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/bb8-ops-suite-install/vendor-mon",
+    "file_hash": "2aa7d4403a28340f2ac3b3c13b760a13a198af2d2e8a8feece7645795eea883f",
+    "file_type": "elf"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": false,
+      "basis": "无攻击行为（合法运维/部署流程）"
+    },
+    "file": {
+      "judgment": "benign",
+      "basis": "套件部署清单在案，各组件路径与内容一致，回连批准端点"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": false,
+    "note": "受理回执不适用",
+    "requires_acceptance_receipt": false
+  },
+  "expected_ai": {
+    "verdict": "benign",
+    "verdict_level": null,
+    "risk_level": "none",
+    "note": null
+  },
+  "key_evidence": [
+    "套件清单",
+    "组件路径一致",
+    "批准端点"
+  ],
+  "risk_level": "none",
+  "recommended_action": "无需处置",
+  "telemetry": {
+    "event_files": [
+      "counter_evidence.jsonl",
+      "file.jsonl",
+      "network.jsonl",
+      "persistence.jsonl",
+      "process.jsonl"
+    ],
+    "environment_baseline_sources": [
+      "rpm-inventory",
+      "cmdb-baseline"
+    ]
+  },
+  "provenance": {
+    "origin": "attack-run",
+    "environment": "lab-vm-aliyun-01",
+    "collector": "auditd-collector/1 + collect.sh/1",
+    "created": "2026-10-09",
+    "notes": "settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

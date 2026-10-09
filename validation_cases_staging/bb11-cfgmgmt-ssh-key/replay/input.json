@@ -1,0 +1,8 @@
+{
+  "File_id": "file-record-bb11-cfgmgmt-ssh-key",
+  "File_hash": "f58e82e91aaa91eb1097ed2a697472efeee61c878424decd42073e516abeebd4",
+  "File_path": "/opt/secval-lab/cases/bb11-cfgmgmt-ssh-key/ops_ed25519.pub",
+  "File_type": "key",
+  "source": "lab-vm-aliyun-01",
+  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"f58e82e91aaa91eb1097ed2a697472efeee61c878424decd42073e516abeebd4\"}}"
+}

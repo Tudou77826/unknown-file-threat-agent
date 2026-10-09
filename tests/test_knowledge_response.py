@@ -186,3 +186,71 @@ def test_planner_prompt_carries_full_presentation_rules():
         "knowledge_id@version#chunk_id",
     ):
         assert phrase in source, phrase
+
+
+# -- 规划器结构化输出能力不可用：整案不失败，降级为 insufficient_context ----
+
+
+def test_planner_failure_degrades_to_insufficient_context_without_repair(execution):
+    from threat_agent.contracts import JudgmentResult
+    from threat_agent.contracts.investigation import CandidateVerdict, VerdictLevel
+
+    judgment = JudgmentResult(
+        tenant_id="tenant-a",
+        case_id="case-a",
+        source_identity="test",
+        verdict=CandidateVerdict(
+            level=VerdictLevel.CONFIRMED_MALICIOUS,
+            threat_type="backdoor_c2",
+            summary="结构化输出失败时的降级路径测试",
+            supporting_refs=["act-c2-1"],
+        ),
+    )
+
+    class BrokenPlanner:
+        """Simulates the graded-retry exhaustion of a structured-output call."""
+
+        def __init__(self):
+            self.calls = 0
+
+        def propose(self, judgment, knowledge, validation_errors, response_context=None):
+            self.calls += 1
+            raise RuntimeError(
+                "LLM call did not produce a valid structured output after 3 attempts"
+            )
+
+    planner = BrokenPlanner()
+    graph = ResponseGraph(planner, max_iterations=3)
+    plan = graph.run(judgment)
+
+    # The capability failure is not re-rolled: one planner call, then degrade.
+    assert planner.calls == 1
+    assert plan.status == "insufficient_context"
+    assert plan.actions == []
+    assert any("Response planner failed" in item for item in plan.limitations)
+    assert any(
+        "policy-valid response plan" in item for item in plan.missing_context
+    )
+
+
+def test_planner_validation_errors_still_use_the_repair_loop(execution):
+    class InvalidThenValidPlanner:
+        """First proposal violates policy, second one repairs — the ordinary
+        repair loop must keep working unchanged."""
+
+        def __init__(self):
+            self.calls = 0
+
+        def propose(self, judgment, knowledge, validation_errors, response_context=None):
+            self.calls += 1
+            if self.calls == 1:
+                return ResponseProposal()  # no actions: policy-invalid
+            return CapturingPlanner().propose(
+                judgment, knowledge, validation_errors, response_context
+            )
+
+    planner = InvalidThenValidPlanner()
+    graph = ResponseGraph(planner, max_iterations=3)
+    plan = graph.run(_judgment())
+    assert planner.calls == 2
+    assert plan.status == "recommended"

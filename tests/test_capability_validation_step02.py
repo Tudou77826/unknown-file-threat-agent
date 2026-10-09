@@ -303,3 +303,86 @@ def test_subdir_relative_path_resolves_against_cwd():
     files = [e for e in envelopes if e.kind == "file"]
     assert files and files[0].payload["op"] == "create"
     assert files[0].payload["path"] == "/opt/secval-lab/cases/t1505/webroot/shell.php"
+
+
+def test_settle_anchors_system_path_target_from_system_hashes(tmp_path: Path):
+    """判定对象在系统路径（伪装/密钥/账号案）：剧本声明 system_paths.txt，
+    采集器产出 system_hashes.txt，settle 以它为回退锚点。"""
+    bundle = tmp_path / "bundle"
+    _build_bundle(bundle)
+    SYS_HASH = "f" * 64
+    (bundle / "system_hashes.txt").write_text(
+        f"{SYS_HASH}  /usr/local/sbin/sshd-helper\n", encoding="utf-8"
+    )
+    # 复制剧本并把判定对象改成系统路径（工作区清单里没有它）
+    source = tmp_path / "playbook"
+    shutil.copytree(PLAYBOOK, source)
+    draft_path = source / "case.json"
+    draft = json.loads(draft_path.read_text(encoding="utf-8"))
+    draft["judgment_target"]["file_path"] = "/usr/local/sbin/sshd-helper"
+    draft_path.write_text(json.dumps(draft, ensure_ascii=False), encoding="utf-8")
+
+    suite = tmp_path / "suite_sys"
+    suite.mkdir()
+    shutil.copytree(PROJECT_ROOT / "validation_cases", suite, dirs_exist_ok=True)
+    manifest = json.loads((suite / "manifest.json").read_text(encoding="utf-8"))
+    for entry in manifest["cases"]:
+        entry["content_digest"] = None
+    (suite / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+    settle = _load_settle()
+    settle.settle(
+        source=source, bundle=bundle, host_id=HOST, suite_root=suite,
+        workspace_root_hint="/opt/secval-lab/cases",
+    )
+    settled = json.loads(
+        (suite / "t1105-ingress-tool-transfer" / "case.json").read_text(encoding="utf-8")
+    )
+    assert settled["judgment_target"]["file_hash"] == SYS_HASH
+    input_record = json.loads(
+        (suite / "t1105-ingress-tool-transfer" / "replay" / "input.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert input_record["File_hash"] == SYS_HASH
+
+
+def test_settle_attribution_seeds_from_case_files_and_descendants(tmp_path):
+    """归因修正回归：① exe 不在案例目录的解释器（python3）经"触碰案例文件"播种；
+    ② 系统监视路径（/usr/local/sbin 等）的文件事件保留；③ 子进程闭包使
+    载荷后代（伪装副本/管道子进程）的网络事件归入案例。"""
+    settle = _load_settle()
+    from threat_agent.capability_validation import RawTelemetryEnvelope
+
+    def env(kind, pid, ppid, **payload):
+        return RawTelemetryEnvelope(
+            kind=kind, collector="t", captured_at="2026-10-09T00:00:00Z",
+            host_id=HOST,
+            payload={"pid": pid, "ppid": ppid, "exe": "", "comm": "", **payload},
+        )
+
+    envelopes = [
+        # 案例脚本解释器打开案例文件（file 播种 pid 300）
+        env("process", 300, 200, exe="/usr/bin/python3", comm="python3"),
+        env("file", 300, 200, path="/opt/secval-lab/cases/case-a/beacon.py", op="create"),
+        # 伪装副本在系统路径创建（install，pid 310）并被执行（pid 311）
+        env("file", 310, 200, path="/usr/local/sbin/sshd-helper", op="create"),
+        env("process", 311, 250, exe="/usr/local/sbin/sshd-helper", comm="sshd-helper"),
+        # 中间包装进程（真实数据中 env 包装的 exec envelope 存在）
+        env("process", 250, 200, exe="/usr/bin/env", comm="with_listener.s"),
+        # 载荷子进程的网络（pid 311 已播种；pid 999 无关进程的网络应丢）
+        env("network", 311, 250, remote_ip="127.0.0.1", remote_port=8443),
+        env("network", 999, 998, remote_ip="10.0.0.9", remote_port=443),
+        # 无关进程与无关路径文件
+        env("process", 800, 700, exe="/usr/bin/other", comm="other"),
+        env("file", 800, 700, path="/home/user/notes.txt", op="create"),
+    ]
+    kept = settle._scope_to_case(
+        envelopes, "case-a", root_hint="/opt/secval-lab/cases/case-a"
+    )
+    pids = {(e.kind, e.payload.get("pid")) for e in kept}
+    paths = {e.payload.get("path") for e in kept if e.kind == "file"}
+    assert ("network", 311) in pids, "载荷子进程网络事件应归入案例"
+    assert ("network", 999) not in pids, "无关进程网络事件应丢弃"
+    assert "/usr/local/sbin/sshd-helper" in paths, "系统监视路径文件事件应保留"
+    assert "/home/user/notes.txt" not in paths, "无关路径文件事件应丢弃"

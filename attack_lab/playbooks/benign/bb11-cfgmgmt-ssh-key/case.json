@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "case_id": "bb11-cfgmgmt-ssh-key",
+  "attack_tags": [
+    "baseline"
+  ],
+  "scenario": "配置管理向 root 下发运维公钥（ansible 部署文件在案），并以该密钥完成一次登入验证。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/bb11-cfgmgmt-ssh-key/ops_ed25519.pub",
+    "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "file_type": "key"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": false,
+      "basis": "无攻击行为（合法运维/部署流程）"
+    },
+    "file": {
+      "judgment": "benign",
+      "basis": "配置管理部署文件在案，密钥注释可追溯到运维流程"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": false,
+    "note": "受理回执不适用",
+    "requires_acceptance_receipt": false
+  },
+  "expected_ai": {
+    "verdict": "benign",
+    "risk_level": "none"
+  },
+  "key_evidence": [
+    "配置管理部署文件",
+    "密钥注释可追溯",
+    "登入来源本机"
+  ],
+  "risk_level": "none",
+  "recommended_action": "无需处置",
+  "telemetry": {
+    "event_files": [
+      "generated-by-settle"
+    ],
+    "environment_baseline_sources": []
+  },
+  "provenance": {
+    "origin": "hand-written",
+    "environment": "lab",
+    "collector": null,
+    "created": "2026-10-09"
+  }
+}

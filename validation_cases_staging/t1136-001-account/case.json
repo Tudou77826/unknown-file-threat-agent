@@ -1,0 +1,63 @@
+{
+  "schema_version": "1.0",
+  "case_id": "t1136-001-account",
+  "attack_tags": [
+    "T1136.001"
+  ],
+  "scenario": "创建与 root 同 UID（-o -u 0）的隐藏账号 svcmaint 并以其产生登入会话（/etc/passwd、/etc/shadow 写入可观测）。",
+  "judgment_target": {
+    "file_path": "/etc/passwd",
+    "file_hash": "f21d36332732b7a6a35f360be24d0a1661b86d48e9fea87481b67a625e42ffb1",
+    "file_type": "conf"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "隐藏 root 权限账号创建 + su 会话（USER_ACCT/USER_CMD 可观测）"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "系统账号文件被追加 UID 0 账号，非运维流程（无工单/配置管理凭证）"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "verdict_level": null,
+    "risk_level": "critical",
+    "note": null
+  },
+  "key_evidence": [
+    "/etc/passwd 追加 UID 0 账号",
+    "/etc/shadow 同步写入",
+    "su 会话记录"
+  ],
+  "risk_level": "critical",
+  "recommended_action": "删除隐藏账号，审计已有登入，排查创建来源",
+  "telemetry": {
+    "event_files": [
+      "counter_evidence.jsonl",
+      "file.jsonl",
+      "process.jsonl"
+    ],
+    "environment_baseline_sources": [
+      "rpm-inventory"
+    ]
+  },
+  "provenance": {
+    "origin": "attack-run",
+    "environment": "lab-vm-aliyun-01",
+    "collector": "auditd-collector/1 + collect.sh/1",
+    "created": "2026-10-09",
+    "notes": "settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

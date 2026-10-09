@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0",
+  "case_id": "t1027-obfuscated-script",
+  "attack_tags": [
+    "T1027"
+  ],
+  "scenario": "base64 编码的回连脚本落盘，运行时解码后经 bash 直接执行（不落明文文件）并建立外连。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/t1027-obfuscated-script/beacon.enc",
+    "file_hash": "1420edfa2a4cb534c106686f595c9a69d34bd2d20847ea180ec976d77f355dc9",
+    "file_type": "enc"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "混淆载荷落盘 + 运行时解码执行 + 外连"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "非明文编码载荷文件，解码后为回连脚本，非任何部署产物"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "verdict_level": null,
+    "risk_level": "high",
+    "note": null
+  },
+  "key_evidence": [
+    "编码载荷落盘",
+    "解码后即时执行",
+    "外连行为"
+  ],
+  "risk_level": "high",
+  "recommended_action": "清除载荷，排查投放来源",
+  "telemetry": {
+    "event_files": [
+      "counter_evidence.jsonl",
+      "file.jsonl",
+      "network.jsonl",
+      "process.jsonl"
+    ],
+    "environment_baseline_sources": [
+      "rpm-inventory",
+      "cmdb-baseline"
+    ]
+  },
+  "provenance": {
+    "origin": "attack-run",
+    "environment": "lab-vm-aliyun-01",
+    "collector": "auditd-collector/1 + collect.sh/1",
+    "created": "2026-10-09",
+    "notes": "settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

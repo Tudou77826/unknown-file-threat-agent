@@ -1,0 +1,72 @@
+{
+  "schema_version": "1.0",
+  "case_id": "chain-001-full-intrusion",
+  "attack_tags": [
+    "T1105",
+    "T1053.003",
+    "T1098.004",
+    "T1567.002"
+  ],
+  "scenario": "完整入侵链单案：从外部端点下载首阶段载荷 → cron 持久化并执行 → 追加 SSH 公钥驻留 → 打包敏感文件外传。",
+  "judgment_target": {
+    "file_path": "/opt/secval-lab/cases/chain-001-full-intrusion/stage1.elf",
+    "file_hash": "2aa7d4403a28340f2ac3b3c13b760a13a198af2d2e8a8feece7645795eea883f",
+    "file_type": "elf"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "下载投放 + cron 驻留 + 密钥持久化 + 外传，链路完整达成"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "外部下载的首阶段载荷，后续衍生 cron/密钥/外传多阶段行为，非任何部署内容"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "verdict_level": null,
+    "risk_level": "critical",
+    "note": null
+  },
+  "key_evidence": [
+    "外部下载落盘",
+    "cron 驻留写入",
+    "authorized_keys 追加",
+    "归档外传",
+    "跨阶段同载荷关联"
+  ],
+  "risk_level": "critical",
+  "recommended_action": "按链处置：清除载荷与驻留项、移除公钥、阻断外传端点",
+  "telemetry": {
+    "event_files": [
+      "counter_evidence.jsonl",
+      "file.jsonl",
+      "network.jsonl",
+      "other.jsonl",
+      "persistence.jsonl",
+      "process.jsonl"
+    ],
+    "environment_baseline_sources": [
+      "rpm-inventory",
+      "cmdb-baseline"
+    ]
+  },
+  "provenance": {
+    "origin": "attack-run",
+    "environment": "lab-vm-aliyun-01",
+    "collector": "auditd-collector/1 + collect.sh/1",
+    "created": "2026-10-09",
+    "notes": "settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

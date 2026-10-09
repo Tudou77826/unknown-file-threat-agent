@@ -114,3 +114,31 @@ def test_build_chat_model_keeps_default_clients_without_disable_proxy():
     chat = build_chat_model(settings)
     assert chat.http_client is None
     assert chat.http_async_client is None
+
+
+def test_reasoning_effort_none_by_default_and_settable_per_role(tmp_path: Path):
+    settings = AppSettings.load(env_file=tmp_path / "missing.env", environ={})
+    assert settings.judgment_model.reasoning_effort is None
+
+    settings = AppSettings.load(
+        env_file=tmp_path / "missing.env",
+        environ={
+            "MODEL_REASONING_EFFORT": "low",
+            "JUDGMENT_MODEL_REASONING_EFFORT": "medium",
+        },
+    )
+    assert settings.judgment_model.reasoning_effort == "medium"
+    assert settings.response_model.reasoning_effort == "low"
+    assert settings.report_model.reasoning_effort == "low"
+
+
+def test_build_chat_model_forwards_reasoning_effort_as_extra_body():
+    model = build_chat_model(ModelSettings(
+        api_key=SecretStr("sk-test"), model_name="m", reasoning_effort="low",
+    ))
+    assert model.extra_body == {"reasoning_effort": "low"}
+
+    model = build_chat_model(ModelSettings(
+        api_key=SecretStr("sk-test"), model_name="m",
+    ))
+    assert not getattr(model, "extra_body", None)

@@ -123,7 +123,7 @@ class Runner:
                 "type": "case_error",
                 "run_id": run_id,
                 "error": error_message,
-                "traceback": traceback.format_exc(limit=6),
+                "traceback": traceback.format_exc(limit=30),
             })
         record = RunRecord(
             run_id=run_id,

@@ -97,7 +97,23 @@ def main(argv: list[str] | None = None) -> int:
             reference_dir=output_dir / "reference",
             validation_roots=validation_roots,
         )
+        # 并发 worker 是多进程：线程锁挡不住并发导入。派发前同步建好参考库，
+        # 避免首案撞上"导入进行中"的半成品（Unknown data profile 竞态实证）。
+        task._reference_store()
         limiter = RateLimiter(RateLimitConfig(rpm=args.rpm, tpm=0)) if args.rpm else None
+
+        def _on_event(event: dict) -> None:
+            print(
+                f"[{event.get('type')}] {event.get('run_id', '')} "
+                f"{event.get('status', '') or str(event.get('error', ''))[:120]}",
+                flush=True,
+            )
+            # run_record 只留错误首行；完整 traceback 落盘到固定文件，
+            # 否则崩溃类错误（如此前的 datetime 序列化）只能靠复现定位。
+            if event.get("type") == "case_error":
+                with (output_dir / "case_errors.jsonl").open("a", encoding="utf-8") as sink:
+                    sink.write(json.dumps(event, ensure_ascii=False, default=str) + "\n")
+
         runner = Runner(
             task,
             output_dir=output_dir,
@@ -108,11 +124,7 @@ def main(argv: list[str] | None = None) -> int:
                 timeout_seconds=args.timeout,
             ),
             limiter=limiter,
-            on_event=lambda event: print(
-                f"[{event.get('type')}] {event.get('run_id', '')} "
-                f"{event.get('status', '') or str(event.get('error', ''))[:120]}",
-                flush=True,
-            ),
+            on_event=_on_event,
         )
         results = runner.run_suite(cases)
         _fill_artifacts(results)

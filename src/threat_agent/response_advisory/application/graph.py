@@ -28,6 +28,9 @@ class ResponseGraphState(TypedDict, total=False):
     validation_errors: list[str]
     iterations: int
     max_iterations: int
+    # 结构化输出能力不可用（分级重试耗尽）：再掷一次同样的骰子没有意义，
+    # 图直接降级为 insufficient_context 处置计划，而不是循环重试或让整案失败。
+    planner_failed: bool
     response_plan: ResponsePlan | None
     route: Literal["repair", "finalize", "end"]
 
@@ -141,16 +144,30 @@ class ResponseGraph:
         return constraints[:8]
 
     def _propose_actions(self, state: ResponseGraphState) -> ResponseGraphState:
-        proposal = self.planner.propose(
-            state["judgment_result"],
-            state.get("knowledge_result"),
-            list(state.get("validation_errors") or []),
-            state.get("response_context"),
-        )
+        try:
+            proposal = self.planner.propose(
+                state["judgment_result"],
+                state.get("knowledge_result"),
+                list(state.get("validation_errors") or []),
+                state.get("response_context"),
+            )
+        except Exception as error:  # noqa: BLE001 — 处置规划失败降级，不终止整案
+            # 与知识节点同一条纪律：模型能力缺失只影响处置建议的丰富度，
+            # 不应让已完成的研判整案报错。错误进入 limitations，便于排查。
+            return {
+                "proposal": None,
+                "planner_failed": True,
+                "validation_errors": [
+                    f"Response planner failed: {type(error).__name__}: {str(error)[:300]}"
+                ],
+                "iterations": int(state.get("iterations", 0)) + 1,
+            }
         return {"proposal": proposal, "iterations": int(state.get("iterations", 0)) + 1}
 
     def _validate_plan(self, state: ResponseGraphState) -> ResponseGraphState:
         proposal = state.get("proposal")
+        if state.get("planner_failed"):
+            return {"route": "finalize"}
         if proposal is None:
             errors = ["Response planner returned no proposal"]
         else:

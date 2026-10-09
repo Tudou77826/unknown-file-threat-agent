@@ -28,6 +28,8 @@ class ApplicationSettings(FrozenSettings):
     output_dir: Path | None = None
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     investigation_lookback_hours: float = Field(default=24.0, gt=0, le=24 * 30)
+    # r8 实验开关：记忆契约提示段（归档启用问题解决前可关闭以隔离其影响）
+    memory_contract_prompt: bool = True
 
 
 class CheckpointSettings(FrozenSettings):
@@ -70,6 +72,27 @@ class EvidenceQuerySettings(FrozenSettings):
     max_limit: int = Field(default=5000, ge=1, le=5000)
 
 
+class ArchiveSettings(FrozenSettings):
+    """上下文归档护栏（设计稿《上下文归档与召回》4.6）：区间过短时归档无
+    收益，确定性拒绝，挡掉逐轮细碎归档。"""
+
+    min_span_rounds: int = Field(default=2, ge=1, le=100)
+    min_span_tokens: int = Field(default=1000, ge=0, le=1_000_000)
+
+
+class RecallSettings(FrozenSettings):
+    """召回入口上限与探查预算（设计稿 4.6）。探查模型默认同判定模型，
+    仅覆盖输出上限（答案 ≤ probe_answer_max_tokens）。"""
+
+    max_archives: int = Field(default=2, ge=1, le=10)
+    max_ids: int = Field(default=3, ge=1, le=50)
+    probe_model_name: str | None = None
+    probe_max_calls: int = Field(default=6, ge=0, le=100)
+    probe_max_opens: int = Field(default=4, ge=1, le=20)
+    probe_max_steps: int = Field(default=8, ge=1, le=50)
+    probe_answer_max_tokens: int = Field(default=800, ge=100, le=8192)
+
+
 class ModelSettings(FrozenSettings):
     api_key: SecretStr | None = None
     base_url: str = "https://api.siliconflow.cn/v1"
@@ -89,6 +112,12 @@ class ModelSettings(FrozenSettings):
     # When True the model client skips TLS certificate verification — for
     # intranet endpoints fronted by self-signed certificates.
     disable_tls_verify: bool = False
+    # OpenAI-style reasoning-effort switch, forwarded as ``extra_body``. For
+    # always-thinking models served behind OpenAI-compatible proxies this is
+    # the only working throttle: measured on glm-5.3-flash a rich planning
+    # call drops from ~72s (≈2500 hidden reasoning tokens) to ~10s (0) at
+    # ``low``. None keeps the endpoint default.
+    reasoning_effort: Literal["low", "medium", "high"] | None = None
 
 
 class DemoSettings(FrozenSettings):
@@ -126,6 +155,8 @@ class AppSettings(FrozenSettings):
     response_budget: ResponseBudgetSettings
     knowledge: KnowledgeSettings
     evidence_query: EvidenceQuerySettings
+    archive: ArchiveSettings
+    recall: RecallSettings
     judgment_model: ModelSettings
     response_model: ModelSettings
     report_model: ModelSettings
@@ -170,6 +201,7 @@ class AppSettings(FrozenSettings):
         common_provider = get("THREAT_AGENT_MODEL_PROVIDER", "openai")
         common_model_name = get("MODEL_NAME")
         common_context_window = get("MODEL_CONTEXT_WINDOW_TOKENS", 100000)
+        common_reasoning_effort = get("MODEL_REASONING_EFFORT", None)
         disable_proxy = get("MODEL_DISABLE_PROXY", False)
         disable_tls_verify = get("MODEL_DISABLE_TLS_VERIFY", False)
 
@@ -190,6 +222,9 @@ class AppSettings(FrozenSettings):
                 ),
                 max_retries=get(f"{prefix}_MODEL_MAX_RETRIES", 2),
                 temperature=get(f"{prefix}_MODEL_TEMPERATURE", 0),
+                reasoning_effort=get(
+                    f"{prefix}_MODEL_REASONING_EFFORT", common_reasoning_effort
+                ),
                 disable_proxy=disable_proxy,
                 disable_tls_verify=disable_tls_verify,
             )
@@ -214,6 +249,7 @@ class AppSettings(FrozenSettings):
             ),
             max_retries=get("REPORT_MODEL_MAX_RETRIES", judgment_model.max_retries),
             temperature=get("REPORT_MODEL_TEMPERATURE", 0),
+            reasoning_effort=get("REPORT_MODEL_REASONING_EFFORT", common_reasoning_effort),
             disable_proxy=judgment_model.disable_proxy,
             disable_tls_verify=judgment_model.disable_tls_verify,
         )
@@ -230,6 +266,7 @@ class AppSettings(FrozenSettings):
                 output_dir=path("THREAT_AGENT_OUTPUT_DIR"),
                 log_level=get("THREAT_AGENT_LOG_LEVEL", "INFO"),
                 investigation_lookback_hours=get("INVESTIGATION_LOOKBACK_HOURS", 24.0),
+                memory_contract_prompt=get("MEMORY_CONTRACT_PROMPT", True),
             ),
             checkpoint=CheckpointSettings(
                 backend=get("THREAT_AGENT_CHECKPOINT_BACKEND", "sqlite"),
@@ -262,6 +299,19 @@ class AppSettings(FrozenSettings):
             evidence_query=EvidenceQuerySettings(
                 default_limit=get("EVIDENCE_QUERY_DEFAULT_LIMIT", 1000),
                 max_limit=get("EVIDENCE_QUERY_MAX_LIMIT", 5000),
+            ),
+            archive=ArchiveSettings(
+                min_span_rounds=get("ARCHIVE_MIN_SPAN_ROUNDS", 2),
+                min_span_tokens=get("ARCHIVE_MIN_SPAN_TOKENS", 1000),
+            ),
+            recall=RecallSettings(
+                max_archives=get("RECALL_MAX_ARCHIVES", 2),
+                max_ids=get("RECALL_MAX_IDS", 3),
+                probe_model_name=get("RECALL_PROBE_MODEL"),
+                probe_max_calls=get("RECALL_PROBE_MAX_CALLS", 6),
+                probe_max_opens=get("RECALL_PROBE_MAX_OPENS", 4),
+                probe_max_steps=get("RECALL_PROBE_MAX_STEPS", 8),
+                probe_answer_max_tokens=get("RECALL_PROBE_ANSWER_MAX_TOKENS", 800),
             ),
             judgment_model=judgment_model,
             response_model=response_model,
@@ -349,7 +399,7 @@ def build_chat_model(settings: ModelSettings):
         if needs_client
         else None
     )
-    return ChatOpenAI(
+    openai_kwargs = dict(
         model=settings.model_name,
         api_key=settings.api_key.get_secret_value(),
         base_url=settings.base_url,
@@ -360,6 +410,11 @@ def build_chat_model(settings: ModelSettings):
         http_client=http_client,
         http_async_client=http_async_client,
     )
+    if settings.reasoning_effort is not None:
+        # Forwarded verbatim in the request body; OpenAI-compatible proxies of
+        # always-thinking models use it as the only thinking throttle.
+        openai_kwargs["extra_body"] = {"reasoning_effort": settings.reasoning_effort}
+    return ChatOpenAI(**openai_kwargs)
 
 
 def build_judgment_model(settings: AppSettings | None = None):

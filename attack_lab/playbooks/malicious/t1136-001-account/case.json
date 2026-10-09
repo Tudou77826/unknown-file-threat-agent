@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "case_id": "t1136-001-account",
+  "attack_tags": [
+    "T1136.001"
+  ],
+  "scenario": "创建与 root 同 UID（-o -u 0）的隐藏账号 svcmaint 并以其产生登入会话（/etc/passwd、/etc/shadow 写入可观测）。",
+  "judgment_target": {
+    "file_path": "/etc/passwd",
+    "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "file_type": "conf"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "隐藏 root 权限账号创建 + su 会话（USER_ACCT/USER_CMD 可观测）"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "系统账号文件被追加 UID 0 账号，非运维流程（无工单/配置管理凭证）"
+    },
+    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "risk_level": "critical"
+  },
+  "key_evidence": [
+    "/etc/passwd 追加 UID 0 账号",
+    "/etc/shadow 同步写入",
+    "su 会话记录"
+  ],
+  "risk_level": "critical",
+  "recommended_action": "删除隐藏账号，审计已有登入，排查创建来源",
+  "telemetry": {
+    "event_files": [
+      "generated-by-settle"
+    ],
+    "environment_baseline_sources": []
+  },
+  "provenance": {
+    "origin": "hand-written",
+    "environment": "lab",
+    "collector": null,
+    "created": "2026-10-09"
+  }
+}
