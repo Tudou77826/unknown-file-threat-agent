@@ -409,6 +409,25 @@ def test_publish_investigation_report_dispatches_by_pipeline_attribute():
     assert publisher.published[0][1] == "grounded"
 
 
+def test_publish_via_assembly_uses_wrapper_emit_sink():
+    """Observable wrappers expose ``emit``, not ``event_sink`` — the assembly
+    narration (dropped refs, downgrade counts) must still land."""
+
+    class _EmitOnlyComposer(_FakeAssembledComposer):
+        event_sink = None
+
+        def __init__(self, judgments):
+            super().__init__(judgments)
+            self.emitted: list[tuple] = []
+            self.emit = lambda *a, **k: self.emitted.append((a, k))
+
+    state = _state()
+    composer = _EmitOnlyComposer([_judgment()])
+    publish_report_via_assembly(state, composer, publisher=_RecordingPublisher())
+    messages = [str(args[1]) for args, _ in composer.emitted if len(args) >= 2]
+    assert any("装配" in message for message in messages)
+
+
 def test_assembled_composer_builds_from_model_without_tools():
     class _JsonModeModel:
         model_name = "fake-json"

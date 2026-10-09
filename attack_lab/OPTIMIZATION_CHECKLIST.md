@@ -88,3 +88,28 @@
 
 下一步单变量（r8）：low 档 + 移除记忆契约提示——隔离"+40% 调用数"是否由契约提示引起。
 | r8c | low 档 + 记忆契约关闭（单变量，epochs=2） | **20/20**；dist 0.82 / match 0.95；mc=13.5（未回落基线 9.5） | 契约 on/off 中性（0.81/0.82）；**调用数 +40% 非契约所致**，归因待查；报告阶段升至 58%（1210s/案，5.6 调用×216s）。用户指令：实验停止，专题研究解决方案 |
+
+## 实验记录：2026-10-09 报告管线重构（assembled：一次判断调用+代码装配+分级修复）
+
+单案验证 r9a-assembled-smoke（c2-malicious-elf，与 perf-final-smoke 同案同 GT 直比）：
+
+| 阶段 | legacy（perf-final-smoke） | assembled（r9a） | 变化 |
+| --- | --- | --- | --- |
+| judgment_report | 4 调用 / 892s / 131k tok | **1 调用 / 350s / 30.5k tok** | **-61% 时间 / -77% token** |
+| 重判次数 | 含在 4 调用内 | **0** | 整份重写消失 |
+| judgment_planning | 8 调用 / 271s | 11 调用 / 568s | 未触碰轴（+40% 调用旧问题+端点波动） |
+| response_advisory | 4 调用 / 453s | 6 调用 / 561s | 结构化重试坏日子，与本次改动无关 |
+| 全案墙钟 | 1620.5s / 321k tok | 1480.2s / 283k tok | -8.7% / -12% |
+
+质量：distance 1.0、match 1.0（grounded 发布）、verdict=confirmed_malicious（GT 一致）、
+13 陈述单元、14 个 a 指针引用、6 个确认关系全部解析成功、机械字段（query_boundary/
+主机/时间/编号）代码填充零重判。
+
+新发现（独立修轴，两条管线同等受影响）：
+- **anthropic 门面忽略 thinking:disabled**：synthesize 输出 16.7k tok 中可见判断仅 ~3.8k，
+  其余 ~13k 为隐藏思考；reasoning_effort 只在 openai 路径转发（settings.py build_chat_model）。
+  legacy 的 216s/调用同理含隐藏思考——对比是同条件的。
+- Observable 包装的事件兜底（emit 而非 event_sink）首跑丢失装配统计事件，已修+回归测试。
+
+下一步：demo 10 案全新跑（五维 ≥ 基线核验，L0 漂移观察项）；报告阶段已非瓶颈后的
+新大头=planning 调用数与 advisory 结构化重试。

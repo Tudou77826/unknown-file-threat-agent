@@ -626,7 +626,14 @@ def publish_report_via_assembly(
 
     from .evidence_gate import gate_verdict
 
-    event_sink: Callable = getattr(composer, "event_sink", lambda *_args, **_kwargs: None)
+    event_sink: Callable = (
+        getattr(composer, "event_sink", None)
+        # The demo wiring wraps composers in an observable whose sink is
+        # ``emit``; without this fallback the assembly/repair narration
+        # (dropped refs, downgrade counts, tier timings) silently vanishes.
+        or getattr(composer, "emit", None)
+        or (lambda *_args, **_kwargs: None)
+    )
     validator = validator or ReportGroundingValidator()
     fallback_builder = fallback_builder or DeterministicFallbackBuilder()
     publisher = publisher or ReportPublisher(
