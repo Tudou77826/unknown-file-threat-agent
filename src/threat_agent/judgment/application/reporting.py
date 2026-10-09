@@ -418,10 +418,20 @@ class StructuredReportComposer:
 class ReportPublisher:
     """The only component allowed to construct a formal InvestigationReport."""
 
-    def __init__(self, *, tenant_id: str = "default", run_id: str = "primary", model_name: str = "unknown"):
+    def __init__(
+        self,
+        *,
+        tenant_id: str = "default",
+        run_id: str = "primary",
+        model_name: str = "unknown",
+        prompt_version: str = PROMPT_VERSION,
+    ):
         self.tenant_id = tenant_id
         self.run_id = run_id
         self.model_name = model_name
+        # The assembled pipeline produces the same shape through a different
+        # production method; the version string keeps experiments attributable.
+        self.prompt_version = prompt_version
 
     def publish(
         self,
@@ -455,7 +465,7 @@ class ReportPublisher:
             confirmed_relation_refs=draft.confirmed_relation_refs,
             limitations=draft.limitations,
             producer="judgment-report-graph", model_version=self.model_name,
-            prompt_version=PROMPT_VERSION,
+            prompt_version=self.prompt_version,
         )
 
 

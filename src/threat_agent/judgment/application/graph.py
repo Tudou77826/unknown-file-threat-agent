@@ -45,8 +45,15 @@ def publish_investigation_report(
     rejudgment within budget -> cited-evidence gate -> final consistency ->
     publish grounded or fallback. Reference filtering, evidence capability
     math and fallback field assembly live in the collaborators.
+
+    Composers exposing ``pipeline == "assembled"`` route through the
+    assembled pipeline first (one judgment call + deterministic assembly +
+    tiered repair); it returns ``None`` on judgment-call failure and this
+    legacy flow then runs unchanged — the optimization degrades, never
+    blocks.
     """
     from .evidence_gate import gate_verdict
+    from .report_assembly import assembled_pipeline_supported, publish_report_via_assembly
     from .report_repair import ReportRepairCoordinator
     from .report_validation import ReportGroundingValidator
     from .reporting import DeterministicFallbackBuilder, ReportPublisher
@@ -59,6 +66,20 @@ def publish_investigation_report(
         run_id=run_id,
         model_name=str(getattr(composer, "model_name", "unknown")),
     )
+
+    if assembled_pipeline_supported(composer):
+        report = publish_report_via_assembly(
+            state,
+            composer,
+            validator=validator,
+            fallback_builder=fallback_builder,
+            publisher=publisher,
+            tenant_id=tenant_id,
+            run_id=run_id,
+        )
+        if report is not None:
+            return report
+        # Judgment call degraded — fall through to the legacy flow below.
 
     draft = composer.compose_draft(state)
     outcome = coordinator.evaluate(

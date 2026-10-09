@@ -30,6 +30,9 @@ class ApplicationSettings(FrozenSettings):
     investigation_lookback_hours: float = Field(default=24.0, gt=0, le=24 * 30)
     # r8 实验开关：记忆契约提示段（归档启用问题解决前可关闭以隔离其影响）
     memory_contract_prompt: bool = True
+    # 报告管线：assembled=一次判断调用+代码装配+分级修复（默认）；
+    # legacy=整份 ReportDraft 生成+整份重写。REPORT_PIPELINE=legacy 即时回退。
+    report_pipeline: Literal["assembled", "legacy"] = "assembled"
 
 
 class CheckpointSettings(FrozenSettings):
@@ -267,6 +270,7 @@ class AppSettings(FrozenSettings):
                 log_level=get("THREAT_AGENT_LOG_LEVEL", "INFO"),
                 investigation_lookback_hours=get("INVESTIGATION_LOOKBACK_HOURS", 24.0),
                 memory_contract_prompt=get("MEMORY_CONTRACT_PROMPT", True),
+                report_pipeline=get("REPORT_PIPELINE", "assembled"),
             ),
             checkpoint=CheckpointSettings(
                 backend=get("THREAT_AGENT_CHECKPOINT_BACKEND", "sqlite"),

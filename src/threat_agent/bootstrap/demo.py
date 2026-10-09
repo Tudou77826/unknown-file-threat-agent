@@ -33,6 +33,7 @@ from ..judgment import (
     StructuredReportComposer,
 )
 from ..judgment.application.memory_store import MemoryStore
+from ..judgment.application.report_assembly import AssembledReportComposer
 from ..presentation import InMemoryCaseReadStore
 from ..presentation.api.routes import create_app
 from ..knowledge import (
@@ -148,6 +149,9 @@ class ObservableReportComposer:
         self.delegate = delegate
         self.emit = emit
         self.model_name = getattr(delegate, "model_name", "unknown")
+        # publish_investigation_report routes on this attribute; the wrapper
+        # stays transparent so both pipelines flow through unchanged.
+        self.pipeline = getattr(delegate, "pipeline", "legacy")
 
     @staticmethod
     def _usage(draft) -> dict:
@@ -169,6 +173,22 @@ class ObservableReportComposer:
             "issue_codes": sorted({issue.code for issue in issues}),
         })
         return self.delegate.rejudge(state, previous_draft, issues, attempt=attempt)
+
+    def synthesize(self, state, catalog):
+        self.emit("thinking", "结案研判：综合调查结论、依据、反证与存疑（一次判断调用）", {
+            "node": "compose",
+            "query_count": len(state.tool_ledger.query_results),
+            "activity_count": len(state.tool_ledger.authorized_activity_refs),
+        })
+        return self.delegate.synthesize(state, catalog)
+
+    def rejudge_judgment(self, state, judgment, catalog, issues, *, attempt):
+        self.emit("thinking", f"结案判断单元级重判（第 {attempt} 次，仅修正问题单元）", {
+            "node": "gate",
+            "attempt": attempt,
+            "issue_codes": sorted({issue.code for issue in issues}),
+        })
+        return self.delegate.rejudge_judgment(state, judgment, catalog, issues, attempt=attempt)
 
 
 class ObservableReportPublisher:
@@ -319,20 +339,29 @@ def assemble_investigation_run(
     # One archive memory per run, shared by the archive middleware, the
     # recall entries and the report composer's card-based input (design §4.1).
     memory_store = MemoryStore()
-    report_composer = ObservableReportComposer(
-        StructuredReportComposer(
+    # 报告管线选择：assembled（一次判断调用+代码装配，默认）或 legacy。
+    # 两者发布同一 ReportDraft 形状；REPORT_PIPELINE=legacy 即时回退。
+    if settings.application.report_pipeline == "assembled":
+        report_delegate: StructuredReportComposer | AssembledReportComposer = AssembledReportComposer(
             report_model, emit, tenant_id=tenant_id, memory_store=memory_store
-        ),
-        emit,
-    )
+        )
+        report_prompt_version = "investigation-report/2.0-assembled"
+    else:
+        report_delegate = StructuredReportComposer(
+            report_model, emit, tenant_id=tenant_id, memory_store=memory_store
+        )
+        report_prompt_version = None
+    report_composer = ObservableReportComposer(report_delegate, emit)
     response_planner = ObservableResponsePlanner(
         StructuredResponsePlanner(response_model, emit), emit
     )
+    publisher_kwargs = {"prompt_version": report_prompt_version} if report_prompt_version else {}
     report_publisher = ObservableReportPublisher(
         ReportPublisher(
             tenant_id=tenant_id,
             run_id=run_id,
             model_name=report_composer.model_name,
+            **publisher_kwargs,
         ),
         emit,
     )
