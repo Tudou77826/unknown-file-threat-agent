@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import copy
 import json
 from typing import Any, Callable, Protocol
+
+from pydantic import ValidationError
 
 from ...contracts import (
     JudgmentResult,
     KnowledgeConsultationResult,
     ResponseContext,
 )
+from ...shared.draft_editor import DraftEdits, apply_edits
 from ...shared.llm import forced_structured, invoke_llm, structured_output_method
 from ..domain.models import ResponseProposal
 
@@ -89,6 +93,19 @@ class StructuredResponsePlanner:
             )
         else:
             self.structured_model = forced_structured(model, ResponseProposal)
+        # 定点修补绑定：整写失败后，模型只交编辑指令而不是重写整份草稿
+        # （str_replace 纪律：锚点必须逐字命中，程序只动被点名的字段）。
+        self.repair_model = forced_structured(model, DraftEdits)
+        self.repair_system_prompt = (
+            "你是结构化草稿的修复器。上一版处置建议草稿未通过校验，你只输出定点编辑，"
+            "不要重写整份草稿。规则：set 修改已存在字段时必须给 anchor=当前值，"
+            "anchor 不匹配的编辑会被拒绝；字段缺失时 set 不带 anchor 直接补值；"
+            "insert 向数组指定位置插入完整对象（追加用末尾下标）；remove 删除。"
+            "被拒绝的编辑会在回执里给出实际当前值，按它重新定位。"
+            "已合格的部分不会被改动。只输出符合 DraftEdits JSON Schema 的对象。"
+            + json.dumps(DraftEdits.model_json_schema(), ensure_ascii=False)
+        )
+        self.max_repair_rounds = 2
         self.system_prompt = (
             "Return one JSON object matching the ResponseProposal schema. "
             "The top-level keys are actions, missing_context and residual_risk; "
@@ -163,6 +180,8 @@ class StructuredResponsePlanner:
             {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
         ]
 
+        captured: dict[str, Any] = {"partial": None, "errors": ""}
+
         def invoke_once() -> ResponseProposal:
             return ResponseProposal.model_validate(self.structured_model.invoke(messages))
 
@@ -200,13 +219,124 @@ class StructuredResponsePlanner:
                     "error_message": str(error),
                 },
             )
+            # 整写失败的残稿留底：有它就可以走定点修补，而不是再整写一遍。
+            partial = getattr(error, "args_payload", None)
+            if isinstance(partial, dict) and partial:
+                captured["partial"] = partial
+                captured["errors"] = str(error)
 
-        return invoke_llm(
-            invoke_once,
-            messages=messages,
-            build_feedback=build_feedback,
-            on_attempt=on_attempt,
-            on_output=on_output,
-            on_failure=on_failure,
-            parse_max_attempts=3,
-        )
+        # 第一轮整写（解析预算 1：失败立刻转入修补，不再整写重试）；
+        # 无残稿的失败（模型没按工具调用作答）保留一次带纠错反馈的整写重试。
+        last_error: Exception | None = None
+        for attempt in (1, 2):
+            try:
+                return invoke_llm(
+                    invoke_once,
+                    messages=messages,
+                    build_feedback=build_feedback,
+                    on_attempt=on_attempt,
+                    on_output=on_output,
+                    on_failure=on_failure,
+                    parse_max_attempts=1,
+                )
+            except RuntimeError as error:
+                last_error = error
+                if isinstance(captured["partial"], dict) and captured["partial"]:
+                    repaired = self._repair_draft(messages, captured)
+                    if repaired is not None:
+                        return repaired
+                    raise last_error
+                captured["partial"] = None
+                feedback = build_feedback(attempt, error)
+                if feedback is not None:
+                    messages.append(feedback)
+        raise last_error
+
+    def _repair_draft(self, messages: list, captured: dict[str, Any]) -> ResponseProposal | None:
+        """Targeted repair of the failed draft (str_replace discipline).
+
+        The model emits edit operations only; the applier enforces exact
+        anchors and touches nothing else. Each round feeds validation
+        errors and rejected-edit receipts back. Returns None when repair
+        cannot produce a valid proposal — the caller then degrades exactly
+        as before.
+        """
+
+        draft = copy.deepcopy(captured["partial"])
+        error_text = str(captured.get("errors") or "")[:2000]
+        for attempt in range(1, self.max_repair_rounds + 1):
+            instruction = json.dumps({
+                "task": "只输出修补上一版草稿所需的定点编辑（DraftEdits）",
+                "broken_draft": draft,
+                "validation_errors": [error_text],
+                "rules": [
+                    "set 补缺失字段（无 anchor）；改已存在字段必须带 anchor=当前值",
+                    "insert 可向 actions 追加完整新建议（下标=当前长度）",
+                    "不要重写整份草稿；未列出的字段不会被改动",
+                ],
+            }, ensure_ascii=False)
+            repair_messages = [
+                *messages,
+                {"role": "assistant", "content": json.dumps(draft, ensure_ascii=False)},
+                {"role": "user", "content": instruction},
+                {"role": "system", "content": self.repair_system_prompt},
+            ]
+
+            def invoke_edits() -> DraftEdits:
+                return DraftEdits.model_validate(self.repair_model.invoke(repair_messages))
+
+            def on_edits_failure(round_attempt: int, error: Exception, kind: str) -> None:
+                self.event_sink(
+                    "model_output",
+                    "处置建议修补编辑校验失败" if kind == "parse" else "处置建议修补编辑调用失败",
+                    {
+                        "phase": "response_advisory",
+                        "call": "draft_repair",
+                        "attempt": attempt,
+                        "round_attempt": round_attempt,
+                        "error_type": type(error).__name__,
+                        "error_message": str(error)[:500],
+                    },
+                )
+
+            try:
+                edits = invoke_llm(
+                    invoke_edits,
+                    messages=repair_messages,
+                    parse_max_attempts=2,
+                    on_failure=on_edits_failure,
+                )
+            except Exception as error:
+                self.event_sink("repair", "处置建议定点修补失败，转入降级", {
+                    "phase": "response_advisory",
+                    "attempt": attempt,
+                    "error_type": type(error).__name__,
+                    "error_message": str(error)[:500],
+                })
+                return None
+
+            result = apply_edits(draft, edits.edits)
+            self.event_sink("repair", f"处置建议草稿定点修补（第 {attempt} 轮）", {
+                "phase": "response_advisory",
+                "call": "draft_repair",
+                "attempt": attempt,
+                "edits_total": len(edits.edits),
+                "edits_applied": len(result.applied),
+                "edits_rejected": [
+                    {"index": item.index, "reason": item.reason} for item in result.rejected
+                ],
+            })
+            draft = result.draft
+            try:
+                proposal = ResponseProposal.model_validate(draft)
+            except ValidationError as error:
+                error_text = str(error)[:2000]
+                continue
+            self.event_sink("model_output", "处置建议修补后草稿通过校验", {
+                "phase": "response_advisory",
+                "call": "draft_repair",
+                "attempt": attempt,
+                "output": proposal.model_dump(mode="json"),
+            })
+            return proposal
+        return None

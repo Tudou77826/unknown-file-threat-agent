@@ -109,11 +109,24 @@ def invoke_llm(
     ) from last_error
 
 
-__all__ = ["classify_llm_error", "invoke_llm"]
+__all__ = ["StructuredValidationError", "classify_llm_error", "invoke_llm"]
 
 
 class _NoToolCallError(OutputParserException):
     """Bound tool was not called — retryable at the parse level."""
+
+
+class StructuredValidationError(OutputParserException):
+    """Tool args parsed but failed schema validation.
+
+    Carries the parsed ``args_payload`` so callers can repair the partial
+    draft with targeted edits instead of regenerating the whole object
+    (the str_replace discipline; see ``shared.draft_editor``).
+    """
+
+    def __init__(self, message: str, payload=None):
+        super().__init__(message)
+        self.args_payload = payload
 
 
 def forced_structured(model, schema):
@@ -136,7 +149,10 @@ def forced_structured(model, schema):
         calls = getattr(message, "tool_calls", None) or []
         if not calls:
             raise _NoToolCallError("model did not call the bound structured tool")
-        return schema.model_validate(calls[0]["args"])
+        try:
+            return schema.model_validate(calls[0]["args"])
+        except ValidationError as error:
+            raise StructuredValidationError(str(error), payload=calls[0]["args"]) from error
 
     return RunnableLambda(_invoke)
 
