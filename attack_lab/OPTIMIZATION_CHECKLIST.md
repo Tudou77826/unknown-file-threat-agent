@@ -113,3 +113,12 @@
 
 下一步：demo 10 案全新跑（五维 ≥ 基线核验，L0 漂移观察项）；报告阶段已非瓶颈后的
 新大头=planning 调用数与 advisory 结构化重试。
+
+## 2026-10-09/10 单案验证附记
+
+- r9b 中断：模型端点整夜断连（AnthropicConnectionError），报告阶段起全部调用失败；
+  assembled 降级路径按设计触发（转整份路径），整份同样连不上 → case_error 落盘。
+  非代码回归；端点恢复后重跑 r9c。
+- **运维缺陷（待修）**：RunnerConfig.timeout_seconds 与 _TimeoutMarker 存在但无人抛出
+  ——超时分支是死代码，agent_eval/runner.py _execute_one 同步执行无看门狗。
+  本次断连重试拖了 16 小时无人拦截。修法：看门狗线程超时强制中止或进程级隔离。
