@@ -280,14 +280,54 @@ class SecAgentEvalTask:
                 "SELECT COUNT(*) AS n FROM datasets"
             ).fetchone()["n"]
             if not imported:
+                # 多进程 worker 各自做"查表→空则导入"，两个进程同时导入同一个
+                # 参考库会让读方撞上重建窗口（r10f 实测 1/20：读到 payload 为
+                # NULL 的半成品行）。跨进程文件锁把检查+导入变成互斥段；
+                # 导入方崩溃留下的陈旧锁在超时后被接管。
+                self._import_under_file_lock(store)
+            self._store = store
+            return store
+
+    def _import_under_file_lock(self, store: SQLiteReferenceDataStore) -> None:
+        import os
+
+        lock_path = self.reference_dir / "reference.sqlite.import.lock"
+        deadline = time.monotonic() + 120.0
+        while True:
+            try:
+                descriptor = os.open(
+                    str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY
+                )
+                os.write(descriptor, str(os.getpid()).encode())
+                os.close(descriptor)
+                break
+            except FileExistsError:
+                if time.monotonic() > deadline:
+                    # 陈旧锁接管：导入方已死。删锁重试一轮，仍抢不到就报错。
+                    try:
+                        lock_path.unlink()
+                    except OSError:
+                        pass
+                    deadline = time.monotonic() + 30.0
+                    continue
+                time.sleep(0.5)
+        try:
+            # 拿到锁后必须重新查表：可能刚有邻居进程完成了导入。
+            already = store.connection.execute(
+                "SELECT COUNT(*) AS n FROM datasets"
+            ).fetchone()["n"]
+            if not already:
                 if self.validation_roots:
                     import_validation_datasets(store, self.validation_roots)
                 else:
                     initialize_reference_demo(
                         store, project_root=self.project_root, demo_data_root=None
                     )
-            self._store = store
-            return store
+        finally:
+            try:
+                lock_path.unlink()
+            except OSError:
+                pass
 
     def _raw_input(self, store: SQLiteReferenceDataStore, dataset_id: str, version: str) -> dict[str, Any]:
         row = store.connection.execute(
