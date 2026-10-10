@@ -238,7 +238,11 @@ def _counter_evidence(
 
 
 def _domain_file(event: dict) -> str:
-    if event["event_type"] == "package_provenance" or event["event_type"] == "approved_endpoint":
+    if event["event_type"] in {
+        "package_provenance",
+        "approved_endpoint",
+        "deployment_registry_lookup",
+    }:
         return FILE_DOMAINS["counter"]
     if event["domain"] == "persistence":
         return FILE_DOMAINS["persistence"]

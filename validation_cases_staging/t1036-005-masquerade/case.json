@@ -45,7 +45,6 @@
       "counter_evidence.jsonl",
       "file.jsonl",
       "network.jsonl",
-      "other.jsonl",
       "process.jsonl"
     ],
     "environment_baseline_sources": [
