@@ -659,8 +659,29 @@ def publish_report_via_assembly(
         "units": len(judgment.units),
         "dropped_refs": notes.dropped_refs,
         "downgraded_relations": notes.downgraded_relations,
+        # 每条陈述的解析后引用——与接地校验的输入完全一致，排查对账用
+        "statements": [
+            {"id": statement.statement_id, "refs": statement.supporting_refs}
+            for section in _SECTION_PREFIX
+            for statement in getattr(draft, section)
+        ],
         "duration_ms": round((time.perf_counter() - started) * 1000, 3),
     })
+
+    def emit_issues(tag: str, issue_list: list[ReportValidationIssue]) -> None:
+        if issue_list:
+            event_sink("validation", f"报告接地校验未通过（{tag}）", {
+                "node": "gate",
+                "issues": [
+                    {
+                        "code": issue.code,
+                        "location": issue.location,
+                        "invalid_refs": issue.invalid_refs,
+                        "message": issue.message[:200],
+                    }
+                    for issue in issue_list
+                ],
+            })
 
     def validate_and_backstop(current: ReportDraft) -> tuple[ReportDraft, list[ReportValidationIssue]]:
         issues = validator.validate(state, current)
@@ -672,6 +693,7 @@ def publish_report_via_assembly(
         return current, issues
 
     draft, issues = validate_and_backstop(draft)
+    emit_issues("初稿", issues)
     attempts = 0
     while issues and attempts < state.budget.max_report_rejudgments:
         attempts += 1
@@ -696,6 +718,11 @@ def publish_report_via_assembly(
             "attempt": attempts,
             "previous_issue_codes": previous_codes,
             "issue_codes": sorted({issue.code for issue in issues}),
+            "issue_locations": [issue.location for issue in issues],
+            "issue_detail": [
+                {"code": issue.code, "location": issue.location, "invalid_refs": issue.invalid_refs}
+                for issue in issues
+            ],
             "duration_ms": round((time.perf_counter() - rejudge_started) * 1000, 3),
         })
     state.budget.report_rejudgments_used = attempts
