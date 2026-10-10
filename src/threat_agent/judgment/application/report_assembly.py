@@ -668,32 +668,56 @@ def publish_report_via_assembly(
         "duration_ms": round((time.perf_counter() - started) * 1000, 3),
     })
 
-    def emit_issues(tag: str, issue_list: list[ReportValidationIssue]) -> None:
-        if issue_list:
-            event_sink("validation", f"报告接地校验未通过（{tag}）", {
-                "node": "gate",
-                "issues": [
-                    {
-                        "code": issue.code,
-                        "location": issue.location,
-                        "invalid_refs": issue.invalid_refs,
-                        "message": issue.message[:200],
-                    }
-                    for issue in issue_list
-                ],
-            })
+    def emit_issues(tag: str, issue_list: list[ReportValidationIssue], draft: ReportDraft | None = None) -> None:
+        if not issue_list:
+            return
+        from .report_validation import authorized_evidence_refs, executed_query_ids
+        authorized = authorized_evidence_refs(state)
+        queries = executed_query_ids(state)
+        detail = []
+        for issue in issue_list:
+            entry = {
+                "code": issue.code,
+                "location": issue.location,
+                "invalid_refs": issue.invalid_refs,
+                "message": issue.message[:200],
+            }
+            if draft is not None and issue.code == "statement_without_support":
+                # 定位出问题的陈述，探测其每个引用在两个合法集合里的成员关系——
+                # 兜底定位专用：引用明明解析成功却被判无效时，这里给出直接证据
+                section, _, stmt_id = issue.location.partition("[")
+                stmt_id = stmt_id.split("]")[0]
+                for statement in getattr(draft, section, []) or []:
+                    if statement.statement_id == stmt_id:
+                        entry["refs"] = statement.supporting_refs
+                        entry["membership"] = {
+                            ref: {
+                                "authorized": ref in authorized,
+                                "query": ref in queries,
+                            }
+                            for ref in statement.supporting_refs
+                        }
+                        break
+            detail.append(entry)
+        event_sink("validation", f"报告接地校验未通过（{tag}）", {
+            "node": "gate",
+            "authorized_size": len(authorized),
+            "queries_size": len(queries),
+            "issues": detail,
+        })
 
     def validate_and_backstop(current: ReportDraft) -> tuple[ReportDraft, list[ReportValidationIssue]]:
         issues = validator.validate(state, current)
+        emit_issues(f"装配后首轮 {len(issues)} 项", issues, current)
         if not issues:
             return current, issues
         current, changed = apply_assembly_backstops(state, current, issues)
         if changed:
             issues = validator.validate(state, current)
+            emit_issues("backstop 后", issues, current)
         return current, issues
 
     draft, issues = validate_and_backstop(draft)
-    emit_issues("初稿", issues)
     attempts = 0
     while issues and attempts < state.budget.max_report_rejudgments:
         attempts += 1
