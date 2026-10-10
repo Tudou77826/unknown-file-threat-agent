@@ -19,7 +19,7 @@
       "judgment": "malicious",
       "basis": "非包归属的系统目录新可执行文件（/usr/local/sbin），名称仿冒 sshd 组件，执行后建立外连；部署台账在采集环境不可查询（反证为未知，不作判定依据）——可用证据组合指向伪装驻留"
     },
-    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+    "source": "人工复核通过（2026-10-10）"
   },
   "expected_rule": {
     "expected_hit": true,
@@ -54,7 +54,7 @@
   },
   "provenance": {
     "origin": "attack-run",
-    "environment": "lab-vm-aliyun-01",
+    "environment": "server-01",
     "collector": "auditd-collector/1 + collect.sh/1",
     "created": "2026-10-09",
     "notes": "settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"

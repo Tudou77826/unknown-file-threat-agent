@@ -6,7 +6,7 @@
   ],
   "scenario": "向工作区 web 根投放含命令执行代码的 PHP 文件，并通过本机 HTTP 静态服务取回文件内容（未发生命令执行；本案例仅验证可疑文件投放与访问，不验证 Web Shell 执行）。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1505-003-web-shell/webroot/shell.php",
+    "file_path": "/tmp/.cache/webroot/shell.php",
     "file_hash": "ec6c76aaf49c88a3013254382a395f0fc8d1564f087a89260eed2a72935642b5",
     "file_type": "php"
   },
@@ -50,7 +50,7 @@
   },
   "provenance": {
     "origin": "attack-run",
-    "environment": "lab-vm-aliyun-01",
+    "environment": "server-01",
     "collector": "auditd-collector/1 + collect.sh/1",
     "created": "2026-09-29",
     "notes": "剧本 t1505-003-web-shell | 事实修正(2026-09-30复核)：静态服务无PHP执行；选A口径=只验证投放与访问；如需计入WebShell执行覆盖需选B补真实执行 | settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"

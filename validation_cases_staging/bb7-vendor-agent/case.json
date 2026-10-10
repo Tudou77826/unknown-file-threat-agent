@@ -6,7 +6,7 @@
   ],
   "scenario": "厂商监控 agent 二进制定期向批准端点回连并写心跳日志（部署清单随附）。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/bb7-vendor-agent/vendor-agent",
+    "file_path": "/opt/tools/cases/vendor-agent",
     "file_hash": "2aa7d4403a28340f2ac3b3c13b760a13a198af2d2e8a8feece7645795eea883f",
     "file_type": "elf"
   },
@@ -19,7 +19,7 @@
       "judgment": "benign",
       "basis": "部署清单内容可查（列出该 agent 与批准端点），回连端点经 cmdb 基线核验为批准，执行文件与清单一致；心跳日志仅作旁证（自记录不作独立依据）"
     },
-    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+    "source": "人工复核通过（2026-10-10）"
   },
   "expected_rule": {
     "expected_hit": false,
@@ -53,7 +53,7 @@
   },
   "provenance": {
     "origin": "attack-run",
-    "environment": "lab-vm-aliyun-01",
+    "environment": "server-01",
     "collector": "auditd-collector/1 + collect.sh/1",
     "created": "2026-10-09",
     "notes": "已知剧本缺陷：实际执行间隔与清单声明不一致，重采时修正；不作为本版判定依据 | settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"

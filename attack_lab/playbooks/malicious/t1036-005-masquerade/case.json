@@ -19,7 +19,7 @@
       "judgment": "malicious",
       "basis": "非包归属的系统目录新可执行文件（/usr/local/sbin），名称仿冒 sshd 组件，执行后建立外连；部署台账在采集环境不可查询（反证为未知，不作判定依据）——可用证据组合指向伪装驻留"
     },
-    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+    "source": "人工复核通过（2026-10-10）"
   },
   "expected_rule": {
     "expected_hit": true,

@@ -10,147 +10,137 @@
     {
       "case_id": "t1005-t1560-001-archive",
       "directory": "t1005-t1560-001-archive",
-      "content_digest": "c9763fa59f716e633b03ad7e88097ab51c3f3afad6de6ff391de30401b332587"
+      "content_digest": "36cec479fa0979142875e501a706915b30602c27bacbaa466d61b822aa846b3b"
     },
     {
       "case_id": "t1037-004-rc-local",
       "directory": "t1037-004-rc-local",
-      "content_digest": "58afd87329c4f12af34bc982df8768b6c55eeb12b3a5d6f5b502b1da96732228"
+      "content_digest": "afabe44a644cef6dca9eaf25435e469502de8dba2869b3f4820f9371cd355cdd"
     },
     {
       "case_id": "t1053-003-cron-persistence",
       "directory": "t1053-003-cron-persistence",
-      "content_digest": "851d357b3e9b33fe4ed00fa651a55f003a22c889b4693dcb782a4eab0f2c10a2"
+      "content_digest": "aa1ed378b70dbcdb38c001fd647d1d8add8127db093b92295ae0d59bd39f44f4"
     },
     {
       "case_id": "t1105-ingress-tool-transfer",
       "directory": "t1105-ingress-tool-transfer",
-      "content_digest": "7320d8d3e6c170f26ff9f7a75571d60fbda463f0114823444bad4b4f1aa87b6f"
+      "content_digest": "a26e10d8ba97b0c3dcf5a9165a594babaab69bda3cd17d62e84cafd313171481"
     },
     {
       "case_id": "t1219-rat-tunnel",
       "directory": "t1219-rat-tunnel",
-      "content_digest": "ac6083e0330567c8267de5e8bd4479fadc2c2d3549c0264a35ef3fa82d136043"
+      "content_digest": "3f0ca3e542b13b9bb6070f4a75c79f486228ed3703046258497d1f520a67cde9"
     },
     {
       "case_id": "t1486-ransomware",
       "directory": "t1486-ransomware",
-      "content_digest": "91de766430993f3f3f729472570c6e21de92aebc899256e5e11e5497fff2cc9d"
+      "content_digest": "a48fcb35bda0b7dd1aa95c358f14a4b9e8551e84d31f4611e31a6d6ce7d9232a"
     },
     {
       "case_id": "t1505-003-web-shell",
       "directory": "t1505-003-web-shell",
-      "content_digest": "937dc89098a556e0ee4d28606198ec5836fb7704a463ae26d356784c87feff10"
+      "content_digest": "7bfca081fac3ae15ff258c3379284b2911bef69aa1452019b7d8e0803b88a971"
     },
     {
       "case_id": "t1543-002-systemd-service",
       "directory": "t1543-002-systemd-service",
-      "content_digest": "3ec0ba1789adba3e951498dbd67e6d4f61a8f0b9724ca0b58a694a67c123f8b2"
+      "content_digest": "a6553dac56e53b028aa02f0b5f36436bc800d60af55c27df4b035c34c024a63d"
     },
     {
       "case_id": "t1547-006-kernel-module",
       "directory": "t1547-006-kernel-module",
-      "content_digest": "6f3c32ccace36ed8374ac4a8b29ec697cddd1b32609525b46b0e3e352de6e477"
+      "content_digest": "1f5b83fa91a34120c0b71886d837c056abc176c09a746bf017e06ef92892749a"
     },
     {
       "case_id": "t1567-002-exfil-upload",
       "directory": "t1567-002-exfil-upload",
-      "content_digest": "e30bb7f73f023bcc4e709e3dbe61b6f05c9ca14eab4c6859eedf62cf0ed09e05"
+      "content_digest": "5136a977c55ce11d15ae3ac29a090621c6b87ef6dfe931025cfca6d79de22e52"
     },
     {
       "case_id": "t1574-006-ldpreload",
       "directory": "t1574-006-ldpreload",
-      "content_digest": "73256738d806a4489388353ae5e041e549a401ddddf8a90d82af6cef377b9aaa"
+      "content_digest": "784a439d3e2e6b66f9496a289b65f34c8174f35d9aaae6c70e2515120e315522"
     },
     {
       "case_id": "bb2-admin-backup",
       "directory": "bb2-admin-backup",
-      "content_digest": "afced9015c9c083b87b4c30323cbf4822bab2633dcf5b594b8544d4975b52cb2"
+      "content_digest": "591f2ced2c48fb4156f472272535a08687f97b0912943ecaf57d646f048cd1f2"
     },
     {
       "case_id": "bb3-ops-tool-deploy",
       "directory": "bb3-ops-tool-deploy",
-      "content_digest": "3fef6d90e49c9f7126a0076b2a720095ee410bfbe7c8ef1ef1352f7641aad600"
+      "content_digest": "a9db24c3f741bdb51530b759d487078d51f5da66c539a03641b79c95e389e2da"
     },
     {
       "case_id": "bb4-ops-cron",
       "directory": "bb4-ops-cron",
-      "content_digest": "e285801d9748db91ca079866ad6a592602332ef9d6e8926373533c72afc04209"
+      "content_digest": "62af01d5a5dddc10b712bdfdb224b41b5f094a83831df55c26cff96d9c4e50b0"
     },
     {
       "case_id": "bb5-compiler-artifact",
       "directory": "bb5-compiler-artifact",
-      "content_digest": "dbdcdb17f84085fb2b145c278f45a71e78ada523499f2df1210f846b9291e338"
+      "content_digest": "c76a5446b5cc4d81df2c75fed05d47fe10941f37d6a78e9ffdf4dcc84abd14a8"
     },
     {
       "case_id": "bb6-mirror-download",
       "directory": "bb6-mirror-download",
-      "content_digest": "50266b8b839ac0bd3f2068f2742a8c028c4cf437803145b9234784b8f932e16f"
-    },
-    {
-      "case_id": "t1036-005-masquerade",
-      "directory": "t1036-005-masquerade",
-      "content_digest": "99492c530fb47cd412daf30104839d3811c236a53ae046f20c06043f81c124b1"
+      "content_digest": "9e70d16cad89e1667ce42a52eb7d7ea70d0af6018c996c28e559689efaf9b1a7"
     },
     {
       "case_id": "t1070-006-timestomp",
       "directory": "t1070-006-timestomp",
-      "content_digest": "adaaaa5e041222a3dc49bd9e1020ad323e0dd8b471ae7fd3fb0ed62a3ffea732"
+      "content_digest": "6e4db703e481eb7bd41431f7609aeddca2af21147c29746396c668fd8d93fe8d"
     },
     {
       "case_id": "t1027-obfuscated-script",
       "directory": "t1027-obfuscated-script",
-      "content_digest": "d5146c0444131c906ee2c58fa2e41e576f503d9ed9f8b7fbf2463f39e36f6610"
+      "content_digest": "df615b2dcd922ef5d6a56ca284e19c6e8214b6577cc2810c60b7ff259ffd6377"
     },
     {
       "case_id": "t1098-004-authorized-keys",
       "directory": "t1098-004-authorized-keys",
-      "content_digest": "b2cafad99f1b7a588ee7ffb9bc68d0654a7c97716d9a3f093a969b2d9ed2fb58"
-    },
-    {
-      "case_id": "t1552-004-private-key",
-      "directory": "t1552-004-private-key",
-      "content_digest": "e3d5ebbefd082f8b0079e97deca9357fddd937e005c2031c71e3e9cd465038dd"
+      "content_digest": "01356f1fc64fb72438f56aa2a629bace620f02bfaede86fab6c755c5b4a1ce97"
     },
     {
       "case_id": "t1548-001-setuid",
       "directory": "t1548-001-setuid",
-      "content_digest": "bdaf9ce01798d58d90b13cf42ea9703a3613f7e14d5b1c4af5b9d8f49902ccea"
+      "content_digest": "fc3625d8b7ed7728a9556d63316b8b65a5b7af29c93b9e168d92358aabe79f03"
     },
     {
       "case_id": "t1059-006-python-beacon",
       "directory": "t1059-006-python-beacon",
-      "content_digest": "48a80fe8818bd7bf6129ffafef0767b6d4f722406df3588e05c4d6b779a02065"
-    },
-    {
-      "case_id": "chain-001-full-intrusion",
-      "directory": "chain-001-full-intrusion",
-      "content_digest": "5566bc7e49353a52ac870a3a3caf6cf62a47ec61fca031d16b70b7f0bfe71ff5"
+      "content_digest": "f9dbcd340bc96d5ecf8cb6df6a76e9fe8b773361608d6539b96f29582d5e6835"
     },
     {
       "case_id": "t1136-001-account",
       "directory": "t1136-001-account",
-      "content_digest": "e65077bd2026ce1a42b5ae758e5f8e8dd137971207f56c82ca39cf764c6dc465"
+      "content_digest": "6a61981978fdb7a40b934a92701ed5e34cbf1df281bc5d6db092bd909d4417ce"
     },
     {
       "case_id": "bb7-vendor-agent",
       "directory": "bb7-vendor-agent",
-      "content_digest": "ee8113ed9a8a976cffe116bf6091ab96fccc887d93abb6e75b09f435a2bf73bf"
+      "content_digest": "830bbd06286123365f8f07a79f55fe5b5cc8fdc182f239fb16d59a26ca5ef494"
     },
     {
       "case_id": "bb8-ops-suite-install",
       "directory": "bb8-ops-suite-install",
-      "content_digest": "1da48599dccc039a5864f8d8871dc62302dcf2c3d99d0abf610ffa6b1f66470f"
+      "content_digest": "18bd5bc41458b05ae8942a88788133251c34a1d27fbd225b61dc6dd58bf2142a"
     },
     {
       "case_id": "bb9-log-rotation",
       "directory": "bb9-log-rotation",
-      "content_digest": "1f646e66f69e5dc0454b21c2b23c727b1b6e914e48326c5c467c314749486e17"
+      "content_digest": "9a2d12ae6801d0331647572075d8d903e19249171f1bd6d07bb45c81d68fa1c3"
     },
     {
       "case_id": "bb11-cfgmgmt-ssh-key",
       "directory": "bb11-cfgmgmt-ssh-key",
-      "content_digest": "185aaa12fa4e9bceffa62df064adf8edbbda9d985d409aa06b03bd2722fefd72"
+      "content_digest": "88131fc829bfdd0bf0cfd9f7e60890eaa404c9354577e43752e1122718e38cdc"
+    },
+    {
+      "case_id": "t1036-005-masquerade",
+      "directory": "t1036-005-masquerade",
+      "content_digest": "9a581a3b991b8e3f89fbfd601a18f8d4cd159c985a9c3b32304326b6b94c4572"
     }
   ]
 }

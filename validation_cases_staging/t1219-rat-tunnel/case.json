@@ -6,7 +6,7 @@
   ],
   "scenario": "执行通用连接载荷：建立出站连接、发送标记字节、短时保持后退出（载荷未实现隧道或远控功能）。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1219-rat-tunnel/tunnel.elf",
+    "file_path": "/tmp/.cache/tunnel.elf",
     "file_hash": "2aa7d4403a28340f2ac3b3c13b760a13a198af2d2e8a8feece7645795eea883f",
     "file_type": "elf"
   },
@@ -53,7 +53,7 @@
   },
   "provenance": {
     "origin": "attack-run",
-    "environment": "lab-vm-aliyun-01",
+    "environment": "server-01",
     "collector": "auditd-collector/1 + collect.sh/1",
     "created": "2026-09-29",
     "notes": "剧本 t1219-rat-tunnel | 事实修正(2026-09-30复核)：非隧道工具，为通用连接载荷；预期判定待三步程序校准 | settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"

@@ -19,7 +19,7 @@
       "judgment": "benign",
       "basis": "部署清单内容可查（列出该 agent 与批准端点），回连端点经 cmdb 基线核验为批准，执行文件与清单一致；心跳日志仅作旁证（自记录不作独立依据）"
     },
-    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+    "source": "人工复核通过（2026-10-10）"
   },
   "expected_rule": {
     "expected_hit": false,

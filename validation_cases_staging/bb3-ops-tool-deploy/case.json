@@ -6,7 +6,7 @@
   ],
   "scenario": "运维在变更窗口部署并执行内部工具脚本。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/bb3-ops-tool-deploy/ops-tool.sh",
+    "file_path": "/tmp/.cache/ops-tool.sh",
     "file_hash": "670d17960925cefe472dc1ace2ef7a9745d7646eb756df552987a8755b68bae8",
     "file_type": "script"
   },
@@ -50,7 +50,7 @@
   },
   "provenance": {
     "origin": "attack-run",
-    "environment": "lab-vm-aliyun-01",
+    "environment": "server-01",
     "collector": "auditd-collector/1 + collect.sh/1",
     "created": "2026-09-29",
     "notes": "剧本 bb3-ops-tool-deploy | settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"

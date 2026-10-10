@@ -250,26 +250,49 @@ def _domain_file(event: dict) -> str:
 
 
 # ── 2026-10-10 复核整改：消答案泄露 + 证据回填 ──────────────────────────────
-# 复核裁决：进程命令行携带 playbooks/malicious|benign 路径等于泄露答案——
-# 模型读目录名即可答对，准确率失去含义。回放中的部署路径一律重写为中性
-# run/ 前缀（采集端同步改造，重采不再带出）。
-_CAMP_PATH_RULES = (
-    ("/opt/secval-lab/playbooks/malicious/", "/opt/secval-lab/run/"),
-    ("/opt/secval-lab/playbooks/benign/", "/opt/secval-lab/run/"),
+# 复核裁决一：进程命令行携带 playbooks/malicious|benign 路径等于泄露答案。
+# 复核裁决二（r11 实测更严重）：靶场框架痕迹本身把结论推向"演习→良性"——
+#   /opt/secval-lab（字面即"安全验证实验室"）、案例目录名=ATT&CK 技术号、
+#   lab-vm 主机名、timestomp-evidence.txt 取证文件，模型据此理性推断
+#   "这是演练布的行为，非真实入侵"（29 案恶意几乎全翻 likely_benign）。
+#   旧数据的阵营词泄露一直在反向补偿此干扰，消掉后才显形。
+# 处置：遥测整体去靶场化——路径换生产合理形态，案例标识抹除。
+_LAB_PATH_RULES = (
+    # 路径类（先具体后泛化）
+    ("/opt/secval-lab/playbooks/malicious/", "/opt/tools/"),
+    ("/opt/secval-lab/playbooks/benign/", "/opt/tools/"),
+    ("/opt/secval-lab/playbooks/common/", "/opt/tools/common/"),
+    ("/var/log/secval-demo", "/var/log/applog"),
+    ("/var/backups/secval-demo", "/var/backups/applog"),
+    ("/opt/secval-lab", "/opt/tools"),
+    # 内容类兜底：剧本写的文件名/清单内容里也带 secval 品牌字样
+    ("secval-lab", "ops-infra"),
+    ("SecVal", "Ops"),
+    ("secval", "ops"),
 )
+_EVIDENCE_FILE_RENAMES = {
+    # 取证快照文件名自述技术名（timestomp），等于给模型递剧本
+    "timestomp-evidence.txt": "payload.elf.stat.txt",
+}
+# 框架自身的配置/清单文件不得进入内容事件（自述"哪些路径被监控"）
+_FRAMEWORK_FILE_DENYLIST = {"system_paths.txt"}
 
 
-def _sanitize_leaked_paths(value):
-    """Recursively rewrite camp-bearing playbook paths in an event structure."""
+def _sanitize_leaked_paths(value, case_id: str):
+    """Recursively de-lab an event structure: camp paths, case ids, host marks."""
+    rules = _LAB_PATH_RULES + (
+        (f"/{case_id}/", "/"),  # 残留的案例目录段（携带技术号与语义名）
+        ("//", "/"),
+    )
     if isinstance(value, str):
-        for old, new in _CAMP_PATH_RULES:
+        for old, new in rules:
             if old in value:
                 value = value.replace(old, new)
         return value
     if isinstance(value, list):
-        return [_sanitize_leaked_paths(item) for item in value]
+        return [_sanitize_leaked_paths(item, case_id) for item in value]
     if isinstance(value, dict):
-        return {key: _sanitize_leaked_paths(item) for key, item in value.items()}
+        return {key: _sanitize_leaked_paths(item, case_id) for key, item in value.items()}
     return value
 
 
@@ -303,6 +326,9 @@ def _workspace_evidence_events(bundle: Path, host_id: str, workspace_root: str, 
             suffix = ("." + name.rsplit(".", 1)[-1].lower()) if "." in name else ""
             if suffix not in _TEXT_SUFFIXES:
                 continue
+            if name in _FRAMEWORK_FILE_DENYLIST:
+                continue
+            name = _EVIDENCE_FILE_RENAMES.get(name, name)
             handle = tar.extractfile(member)
             if handle is None:
                 continue
@@ -396,7 +422,7 @@ def settle(*, source: Path, bundle: Path, host_id: str, suite_root: Path, worksp
                 *event.get("subject_refs", []),
                 f"file:{host_id}:{digest}",
             ]
-    events = [_sanitize_leaked_paths(event) for event in events]
+    events = [_sanitize_leaked_paths(event, draft.case_id) for event in events]
 
     case_dir = suite_root / draft.case_id
     replay_dir = case_dir / "replay"
@@ -429,6 +455,15 @@ def settle(*, source: Path, bundle: Path, host_id: str, suite_root: Path, worksp
         )
 
     payload = draft.model_dump()
+    # 输出侧去靶场化：告警输入与案件元数据同样不得携带实验室标识
+    # （r11 实测：输入记录里的 /opt/secval-lab/... 路径足以让模型把整个
+    # 场景判为"安全演练产物"→ 恶意案全体翻良性）。哈希锚定已在原始
+    # 路径上完成，此处只改写对外字符串。
+    payload["judgment_target"]["file_path"] = _sanitize_leaked_paths(
+        payload["judgment_target"]["file_path"], draft.case_id
+    )
+    if payload.get("scenario"):
+        payload["scenario"] = _sanitize_leaked_paths(payload["scenario"], draft.case_id)
     payload["judgment_target"]["file_hash"] = digest
     # 基线来源按实际证据条件化：无网络事件的案例没有端点可核验，
     # 不得声明 cmdb-baseline（声明了会被套件校验拒绝）。
@@ -451,7 +486,7 @@ def settle(*, source: Path, bundle: Path, host_id: str, suite_root: Path, worksp
     input_record = {
         "File_id": f"file-record-{draft.case_id}",
         "File_hash": digest,
-        "File_path": draft.judgment_target.file_path,
+        "File_path": _sanitize_leaked_paths(draft.judgment_target.file_path, draft.case_id),
         "File_type": draft.judgment_target.file_type,
         "source": host_id,
         "Detail": json.dumps({"context": [], "feature": {"hash": digest}}, ensure_ascii=False),

@@ -3,6 +3,6 @@
   "File_hash": "e1a9f49d26dbbba421e8635ea6146b46ec81d9ad09a5a574d74e066f47652c05",
   "File_path": "/root/.ssh/authorized_keys",
   "File_type": "key",
-  "source": "lab-vm-aliyun-01",
+  "source": "server-01",
   "Detail": "{\"context\": [], \"feature\": {\"hash\": \"e1a9f49d26dbbba421e8635ea6146b46ec81d9ad09a5a574d74e066f47652c05\"}}"
 }

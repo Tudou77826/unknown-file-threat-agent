@@ -19,7 +19,7 @@
       "judgment": "malicious",
       "basis": "stat 快照显示 mtime（2024-05）早于 inode 出生时间（2026-10），时间线物理矛盾；叠加落盘后执行、外连与非包归属——回拨时间戳的组合证据"
     },
-    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+    "source": "人工复核通过（2026-10-10）"
   },
   "expected_rule": {
     "expected_hit": true,

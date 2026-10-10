@@ -1,8 +1,8 @@
 {
   "File_id": "file-record-t1547-006-kernel-module",
   "File_hash": "4dfd0141b27f3452c98113a9aa15f6f570c47bfb654845570f31b7bded66e344",
-  "File_path": "/opt/secval-lab/cases/t1547-006-kernel-module/rootkit.ko",
+  "File_path": "/tmp/.cache/rootkit.ko",
   "File_type": "elf",
-  "source": "lab-vm-aliyun-01",
+  "source": "server-01",
   "Detail": "{\"context\": [], \"feature\": {\"hash\": \"4dfd0141b27f3452c98113a9aa15f6f570c47bfb654845570f31b7bded66e344\"}}"
 }

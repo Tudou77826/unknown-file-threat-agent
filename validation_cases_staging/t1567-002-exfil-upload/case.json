@@ -6,7 +6,7 @@
   ],
   "scenario": "将归档上传至外部存储端点。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1567-002-exfil-upload/exfil.tar.gz",
+    "file_path": "/tmp/.cache/exfil.tar.gz",
     "file_hash": "8a2bea4355e9812ae6ed219f16327e0295de3858b52a95116d23f0b90c20340c",
     "file_type": "archive"
   },
@@ -50,7 +50,7 @@
   },
   "provenance": {
     "origin": "attack-run",
-    "environment": "lab-vm-aliyun-01",
+    "environment": "server-01",
     "collector": "auditd-collector/1 + collect.sh/1",
     "created": "2026-09-29",
     "notes": "剧本 t1567-002-exfil-upload | settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"

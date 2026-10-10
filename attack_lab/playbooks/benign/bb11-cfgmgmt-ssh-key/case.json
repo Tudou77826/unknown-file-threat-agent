@@ -19,7 +19,7 @@
       "judgment": "benign",
       "basis": "部署任务文件（ansible 任务定义）内容可查，公钥注释 ops-deploy@cfgmgmt 与下发内容一致，写入先于登入验证，无攻击性后续行为"
     },
-    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+    "source": "人工复核通过（2026-10-10）"
   },
   "expected_rule": {
     "expected_hit": false,

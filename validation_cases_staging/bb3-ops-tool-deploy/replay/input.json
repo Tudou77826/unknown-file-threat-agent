@@ -1,8 +1,8 @@
 {
   "File_id": "file-record-bb3-ops-tool-deploy",
   "File_hash": "670d17960925cefe472dc1ace2ef7a9745d7646eb756df552987a8755b68bae8",
-  "File_path": "/opt/secval-lab/cases/bb3-ops-tool-deploy/ops-tool.sh",
+  "File_path": "/tmp/.cache/ops-tool.sh",
   "File_type": "script",
-  "source": "lab-vm-aliyun-01",
+  "source": "server-01",
   "Detail": "{\"context\": [], \"feature\": {\"hash\": \"670d17960925cefe472dc1ace2ef7a9745d7646eb756df552987a8755b68bae8\"}}"
 }

@@ -1,8 +1,8 @@
 {
   "File_id": "file-record-t1567-002-exfil-upload",
   "File_hash": "8a2bea4355e9812ae6ed219f16327e0295de3858b52a95116d23f0b90c20340c",
-  "File_path": "/opt/secval-lab/cases/t1567-002-exfil-upload/exfil.tar.gz",
+  "File_path": "/tmp/.cache/exfil.tar.gz",
   "File_type": "archive",
-  "source": "lab-vm-aliyun-01",
+  "source": "server-01",
   "Detail": "{\"context\": [], \"feature\": {\"hash\": \"8a2bea4355e9812ae6ed219f16327e0295de3858b52a95116d23f0b90c20340c\"}}"
 }

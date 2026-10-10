@@ -7,7 +7,7 @@
   ],
   "scenario": "tar 打包敏感目录产出归档，为外传做准备。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1005-t1560-001-archive/staging.tar.gz",
+    "file_path": "/tmp/.cache/staging.tar.gz",
     "file_hash": "96297f2d7eda1f0b0d994242e32e5161981b93403c51c8c34ac1b84b701a914a",
     "file_type": "archive"
   },
@@ -51,7 +51,7 @@
   },
   "provenance": {
     "origin": "attack-run",
-    "environment": "lab-vm-aliyun-01",
+    "environment": "server-01",
     "collector": "auditd-collector/1 + collect.sh/1",
     "created": "2026-09-29",
     "notes": "剧本 t1005-t1560-001-archive | settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"

@@ -1,8 +1,8 @@
 {
   "File_id": "file-record-bb8-ops-suite-install",
   "File_hash": "2aa7d4403a28340f2ac3b3c13b760a13a198af2d2e8a8feece7645795eea883f",
-  "File_path": "/opt/secval-lab/cases/bb8-ops-suite-install/vendor-mon",
+  "File_path": "/opt/tools/cases/vendor-mon",
   "File_type": "elf",
-  "source": "lab-vm-aliyun-01",
+  "source": "server-01",
   "Detail": "{\"context\": [], \"feature\": {\"hash\": \"2aa7d4403a28340f2ac3b3c13b760a13a198af2d2e8a8feece7645795eea883f\"}}"
 }

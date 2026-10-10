@@ -6,7 +6,7 @@
   ],
   "scenario": "执行后门后用 touch -r 将其 mtime 回拨至 /bin/ls 的系统时间，掩盖落盘时间线。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1070-006-timestomp/payload.elf",
+    "file_path": "/opt/tools/cases/payload.elf",
     "file_hash": "2aa7d4403a28340f2ac3b3c13b760a13a198af2d2e8a8feece7645795eea883f",
     "file_type": "elf"
   },
@@ -19,7 +19,7 @@
       "judgment": "malicious",
       "basis": "stat 快照显示 mtime（2024-05）早于 inode 出生时间（2026-10），时间线物理矛盾；叠加落盘后执行、外连与非包归属——回拨时间戳的组合证据"
     },
-    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+    "source": "人工复核通过（2026-10-10）"
   },
   "expected_rule": {
     "expected_hit": true,
@@ -53,7 +53,7 @@
   },
   "provenance": {
     "origin": "attack-run",
-    "environment": "lab-vm-aliyun-01",
+    "environment": "server-01",
     "collector": "auditd-collector/1 + collect.sh/1",
     "created": "2026-10-09",
     "notes": "settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"

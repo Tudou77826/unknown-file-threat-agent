@@ -19,7 +19,7 @@
       "judgment": "malicious",
       "basis": "root 属主文件的 setuid 位设置（file 事件 mode 变化 0755→4755），非特权用户以 uid=65534/euid=0 执行该文件（进程事件 uid/euid 双值）；非包归属、非管理员部署的组合"
     },
-    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+    "source": "人工复核通过（2026-10-10）"
   },
   "expected_rule": {
     "expected_hit": true,

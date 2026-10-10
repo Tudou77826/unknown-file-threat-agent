@@ -19,7 +19,7 @@
       "judgment": "malicious",
       "basis": "/etc/passwd 与 /etc/shadow 被追加 UID 0 账号（写入事件带内容哈希，与调查目标锚定一致），该账号随后产生 PAM 会话记录（USER_ACCT：账号被真实使用）；无运维流程凭证"
     },
-    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+    "source": "人工复核通过（2026-10-10）"
   },
   "expected_rule": {
     "expected_hit": true,

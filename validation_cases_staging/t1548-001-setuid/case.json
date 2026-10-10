@@ -6,7 +6,7 @@
   ],
   "scenario": "以 root 属主并设置 setuid 位的 helper 程序，由非特权用户（nobody）执行并建立外连。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1548-001-setuid/suid.elf",
+    "file_path": "/opt/tools/cases/suid.elf",
     "file_hash": "2aa7d4403a28340f2ac3b3c13b760a13a198af2d2e8a8feece7645795eea883f",
     "file_type": "elf"
   },
@@ -19,7 +19,7 @@
       "judgment": "malicious",
       "basis": "root 属主文件的 setuid 位设置（file 事件 mode 变化 0755→4755），非特权用户以 uid=65534/euid=0 执行该文件（进程事件 uid/euid 双值）；非包归属、非管理员部署的组合"
     },
-    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+    "source": "人工复核通过（2026-10-10）"
   },
   "expected_rule": {
     "expected_hit": true,
@@ -54,7 +54,7 @@
   },
   "provenance": {
     "origin": "attack-run",
-    "environment": "lab-vm-aliyun-01",
+    "environment": "server-01",
     "collector": "auditd-collector/1 + collect.sh/1",
     "created": "2026-10-09",
     "notes": "settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"

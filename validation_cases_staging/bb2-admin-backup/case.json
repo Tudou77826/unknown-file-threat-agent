@@ -6,7 +6,7 @@
   ],
   "scenario": "管理员按变更单将应用目录打包备份至工作区。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/bb2-admin-backup/backup.tar.gz",
+    "file_path": "/tmp/.cache/backup.tar.gz",
     "file_hash": "e409ec7a16bca32e427b37436ecde0bf500cbdb5f12e7af1980765ca5b3f951c",
     "file_type": "archive"
   },
@@ -49,7 +49,7 @@
   },
   "provenance": {
     "origin": "attack-run",
-    "environment": "lab-vm-aliyun-01",
+    "environment": "server-01",
     "collector": "auditd-collector/1 + collect.sh/1",
     "created": "2026-09-29",
     "notes": "剧本 bb2-admin-backup | settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"

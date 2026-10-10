@@ -1,8 +1,8 @@
 {
   "File_id": "file-record-bb9-log-rotation",
   "File_hash": "f0e671a578515afc3cb0259b839c18a4a64df21f5b4f9693ea7a4e72c27d2264",
-  "File_path": "/opt/secval-lab/cases/bb9-log-rotation/rotate.sh",
+  "File_path": "/opt/tools/cases/rotate.sh",
   "File_type": "script",
-  "source": "lab-vm-aliyun-01",
+  "source": "server-01",
   "Detail": "{\"context\": [], \"feature\": {\"hash\": \"f0e671a578515afc3cb0259b839c18a4a64df21f5b4f9693ea7a4e72c27d2264\"}}"
 }

@@ -19,7 +19,7 @@
       "judgment": "malicious",
       "basis": "authorized_keys 被追加写入，同批出现成对新密钥（私钥+公钥现场生成），并以该密钥尝试本机登入；部署台账不可查询（反证为未知，不作判定依据）——可用证据组合指向未授权公钥驻留"
     },
-    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+    "source": "人工复核通过（2026-10-10）"
   },
   "expected_rule": {
     "expected_hit": true,

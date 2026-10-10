@@ -6,7 +6,7 @@
   ],
   "scenario": "落盘加密器 ELF 加密蜜罐目录（演练后恢复）。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1486-ransomware/cryptor.elf",
+    "file_path": "/tmp/.cache/cryptor.elf",
     "file_hash": "4a063d235783be9406a2309bd4fa3dfbdda310e7f260742e2e4ecbe54c211abb",
     "file_type": "elf"
   },
@@ -51,7 +51,7 @@
   },
   "provenance": {
     "origin": "attack-run",
-    "environment": "lab-vm-aliyun-01",
+    "environment": "server-01",
     "collector": "auditd-collector/1 + collect.sh/1",
     "created": "2026-09-29",
     "notes": "剧本 t1486-ransomware | settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"

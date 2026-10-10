@@ -6,7 +6,7 @@
   ],
   "scenario": "python 脚本落盘并由解释器执行，周期性建立外连（脚本级 C2 回连行为）。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1059-006-python-beacon/beacon.py",
+    "file_path": "/opt/tools/cases/beacon.py",
     "file_hash": "2f19227404c4ffb6c038c82d3a0fb7b4eec9cd33f057828bf34440a1d7721deb",
     "file_type": "py"
   },
@@ -19,7 +19,7 @@
       "judgment": "malicious",
       "basis": "非部署的回连脚本由 python 解释器执行，外连多次观测（observed_count>1 的周期性连接）；与部署清单无关"
     },
-    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+    "source": "人工复核通过（2026-10-10）"
   },
   "expected_rule": {
     "expected_hit": true,
@@ -53,7 +53,7 @@
   },
   "provenance": {
     "origin": "attack-run",
-    "environment": "lab-vm-aliyun-01",
+    "environment": "server-01",
     "collector": "auditd-collector/1 + collect.sh/1",
     "created": "2026-10-09",
     "notes": "settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"

@@ -6,7 +6,7 @@
   ],
   "scenario": "配置管理向 root 下发运维公钥（ansible 部署文件在案），并以该密钥完成一次登入验证。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/bb11-cfgmgmt-ssh-key/ops_ed25519.pub",
+    "file_path": "/opt/tools/cases/ops_ed25519.pub",
     "file_hash": "f58e82e91aaa91eb1097ed2a697472efeee61c878424decd42073e516abeebd4",
     "file_type": "key"
   },
@@ -19,7 +19,7 @@
       "judgment": "benign",
       "basis": "部署任务文件（ansible 任务定义）内容可查，公钥注释 ops-deploy@cfgmgmt 与下发内容一致，写入先于登入验证，无攻击性后续行为"
     },
-    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+    "source": "人工复核通过（2026-10-10）"
   },
   "expected_rule": {
     "expected_hit": false,
@@ -52,7 +52,7 @@
   },
   "provenance": {
     "origin": "attack-run",
-    "environment": "lab-vm-aliyun-01",
+    "environment": "server-01",
     "collector": "auditd-collector/1 + collect.sh/1",
     "created": "2026-10-09",
     "notes": "已知剧本缺陷：无真实 ansible 执行记录（以部署文件模拟），镜像对照为文档级；重采时引入真实配置管理执行 | settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"
