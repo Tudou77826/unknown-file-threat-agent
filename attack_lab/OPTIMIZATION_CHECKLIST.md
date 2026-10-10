@@ -162,3 +162,17 @@ r10-effort-low-smoke（c2-malicious-elf 同案）：
   兑底归零（r10 为 9/20）。残余：malicious-l2 一轮判 suspicious（差一级）；
   1/20 框架级并发撕裂读（参考库导入竞态）→ 已加跨进程文件锁修复（406 测试绿）。
   L0 案 dist 0.4-0.6 与基线历史行为一致（L0 漂移为既有观察项，非本轮回归）。
+
+## 2026-10-10 r11 验证套件全量（低思考档）——方向性误判警报
+
+r11-validation-full（29案×2=58run，assembled管线+openai+low）：执行零错误、match 1.0、
+115s/案。**但 dist 0.50 / side_correct 0.45：恶意案几乎全部判成 likely_benign/benign**
+（非 insufficient_evidence 的保守，是方向错误）。对比同套件旧基线（旧配置，5案）：
+dist 0.76 / side 1.0 / 18 次工具调用每案；r11 只有 10 次。demo 套件同配置却满分——
+demo 数据富、验证套件稀疏，低思考下浅调查不足以串联稀疏证据链。
+
+结构缺口同时确认：认证域事件（login_event/USER_ACCT）无专用查询工具（落
+ExtensionActivity，七个 query 工具不覆盖）；系统文件内容（/etc/passwd 写入了什么）
+未采集——t1136 的"UID 0"事实 AI 实际看不到，判"良性"有其数据侧理由。
+
+r11b（单变量：仅 effort low→medium，epochs=1）进行中：判定"浅调查归因"是否成立。
