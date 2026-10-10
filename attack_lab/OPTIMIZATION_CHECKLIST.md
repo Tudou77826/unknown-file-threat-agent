@@ -122,3 +122,9 @@
 - **运维缺陷（待修）**：RunnerConfig.timeout_seconds 与 _TimeoutMarker 存在但无人抛出
   ——超时分支是死代码，agent_eval/runner.py _execute_one 同步执行无看门狗。
   本次断连重试拖了 16 小时无人拦截。修法：看门狗线程超时强制中止或进程级隔离。
+
+- r9c（端点恢复后重跑，draft-repair 已挂载）：ok；dist/match/side 1.0；墙钟 1435s。
+  报告阶段 695s（synthesize + 1 次单元级重判——tier-2 修补在实跑中首次触发并成功）；
+  处置建议 1 次调用 183s/12.4k tok 首发通过——修补循环未实跑触发（随机性：
+  同案 r9a 3/3 全败、legacy 1/3 败、本次 0 败），其正确性由 12 个单测覆盖，
+  下次校验失败时自动接管（整写预算已降为 1，有残稿即转修补）。
