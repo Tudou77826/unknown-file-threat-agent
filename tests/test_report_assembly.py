@@ -428,6 +428,71 @@ def test_publish_via_assembly_uses_wrapper_emit_sink():
     assert any("装配" in message for message in messages)
 
 
+# -- r10 regression: query citations at verdict level -------------------------
+
+
+def test_assembly_moves_verdict_query_refs_to_statement_level():
+    """r10 兑底根因：模型按提示把查询引用写进结论层反证（verdict.contradicting_refs），
+    而校验器只允许陈述层引用查询。装配时过滤结论层查询引用；反证陈述里的
+    查询引用必须原样保留（那里是合法的）。"""
+    state = _state()
+    catalog = PointerCatalog.build(state)
+    query_id = "query-001"
+    assert query_id in catalog._resolver.values()  # 前置：查询在目录里
+    judgment = _judgment(
+        verdict_refs=["a001"],
+        contradicting_refs=["q001"],  # 查询引用进结论层反证
+        units=[
+            JudgmentUnit(section="counter_evidence", text="文件写入来源查询为空。", refs=["q001"]),
+        ],
+    )
+    draft, _notes = assemble_report_draft(state, judgment, catalog)
+
+    # 结论层不再有查询引用
+    assert draft.verdict.contradicting_refs == []
+    # 反证陈述的查询引用保留（陈述层合法）
+    assert draft.counter_evidence[0].supporting_refs == [query_id]
+    # 报告级支撑清单也不含查询引用
+    assert query_id not in draft.supporting_evidence_refs
+    assert ReportGroundingValidator().validate(state, draft) == []
+
+
+def test_backstop_strip_is_scoped_to_named_locations():
+    """兑底只修问题点名的位置：verdict 层的未知引用不得牵连陈述层引用。"""
+    state = _state()
+    draft = ReportDraft(
+        verdict=CandidateVerdict(
+            level="confirmed_malicious",
+            threat_type="backdoor_c2",
+            summary="x",
+            supporting_refs=["activity-raw-001"],
+            contradicting_refs=["query-ghost-999"],  # 结论层未知引用
+        ),
+        executive_summary="x",
+        key_evidence=[
+            {
+                "statement_id": "ke-01",
+                "text": "陈述",
+                "supporting_refs": ["query-001"],  # 陈述层查询引用：合法
+            }
+        ],
+        supporting_evidence_refs=["activity-raw-001"],
+    )
+    issues = ReportGroundingValidator().validate(state, draft)
+    assert any(
+        issue.code == "unknown_evidence_ref"
+        and issue.location == "verdict.contradicting_refs"
+        for issue in issues
+    )
+
+    fixed, changed = apply_assembly_backstops(state, draft, issues)
+    assert changed
+    assert fixed.verdict.contradicting_refs == []
+    # 陈述层的查询引用没有被牵连
+    assert fixed.key_evidence[0].supporting_refs == ["query-001"]
+    assert ReportGroundingValidator().validate(state, fixed) == []
+
+
 def test_assembled_composer_builds_from_model_without_tools():
     class _JsonModeModel:
         model_name = "fake-json"

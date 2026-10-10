@@ -262,6 +262,18 @@ def assemble_report_draft(
     supporting_union: list[str] = []
     seen_supporting: set[str] = set()
 
+    # 校验器的不对称规则：陈述层可引用查询（否定结论），结论层与报告级
+    # 引用清单只接受活动/证据/关系/实体。装配时把查询引用留在陈述层，
+    # 结论层的查询引用过滤掉并记录——可追溯性由反证陈述承担。
+    from .report_validation import authorized_evidence_refs
+
+    authorized_refs = authorized_evidence_refs(state)
+
+    def split_query_refs(refs: list[str]) -> tuple[list[str], list[str]]:
+        kept = [ref for ref in refs if ref in authorized_refs]
+        moved = [ref for ref in refs if ref not in authorized_refs]
+        return kept, moved
+
     def resolve_into(refs: list[str]) -> list[str]:
         resolved, rejected = catalog.resolve(refs)
         notes.dropped_refs.extend(rejected)
@@ -272,7 +284,7 @@ def assemble_report_draft(
 
     def add_supporting(resolved: list[str]) -> None:
         for canonical_id in resolved:
-            if canonical_id not in seen_supporting:
+            if canonical_id in authorized_refs and canonical_id not in seen_supporting:
                 seen_supporting.add(canonical_id)
                 supporting_union.append(canonical_id)
 
@@ -302,8 +314,15 @@ def assemble_report_draft(
         if unit.section != "counter_evidence":
             add_supporting(resolved)
 
-    verdict_supporting = resolve_into(judgment.verdict_refs)
-    verdict_contradicting = resolve_into(judgment.contradicting_refs)
+    verdict_supporting_resolved = resolve_into(judgment.verdict_refs)
+    verdict_contradicting_resolved = resolve_into(judgment.contradicting_refs)
+    verdict_supporting, moved_supporting = split_query_refs(verdict_supporting_resolved)
+    verdict_contradicting, moved_contradicting = split_query_refs(verdict_contradicting_resolved)
+    if moved_supporting:
+        notes.dropped_refs.extend(moved_supporting)
+    if moved_contradicting:
+        # 查询引用留在陈述层（反证陈述里本就引用同一批查询），结论层不放
+        notes.dropped_refs.extend(moved_contradicting)
     add_supporting(verdict_supporting)
 
     # confirmed_relations: resolved only; candidates are downgraded out with
@@ -415,29 +434,52 @@ def apply_assembly_backstops(
             changed = True
 
     if {"unknown_evidence_ref", "evidence_ref_out_of_scope"} & codes:
-        bad = set()
-        for issue in issues:
-            if issue.code in {"unknown_evidence_ref", "evidence_ref_out_of_scope"}:
-                bad.update(issue.invalid_refs)
         forbidden = known_out_of_scope_refs(state)
-        bad |= forbidden
-
-        def strip(refs: list[str]) -> list[str]:
-            return [ref for ref in refs if ref not in bad]
-
-        verdict = draft.verdict.model_copy(update={
-            "supporting_refs": strip(draft.verdict.supporting_refs),
-            "contradicting_refs": strip(draft.verdict.contradicting_refs),
-        })
-        update["verdict"] = verdict
-        update["supporting_evidence_refs"] = strip(draft.supporting_evidence_refs)
-        update["confirmed_relation_refs"] = strip(update.get("confirmed_relation_refs", draft.confirmed_relation_refs))
-        for section in _SECTION_PREFIX:
-            statements = [
-                statement.model_copy(update={"supporting_refs": strip(statement.supporting_refs)})
-                for statement in getattr(draft, section)
-            ]
-            update[section] = statements
+        # 只修问题点名的位置，绝不动其它字段：陈述层的查询引用是合法的
+        # （否定结论的正当引用方式），全局连根拔会把小瑕疵放大成整份
+        # 报告失去支撑——这正是 r10 全量兑底的放大器。
+        verdict_update: dict[str, list[str]] = {}
+        update.setdefault("verdict", draft.verdict)
+        for issue in issues:
+            if issue.code not in {"unknown_evidence_ref", "evidence_ref_out_of_scope"}:
+                continue
+            bad = set(issue.invalid_refs) | forbidden
+            location = issue.location
+            if location == "verdict.supporting_refs":
+                verdict_update["supporting_refs"] = [
+                    ref for ref in draft.verdict.supporting_refs if ref not in bad
+                ]
+            elif location == "verdict.contradicting_refs":
+                verdict_update["contradicting_refs"] = [
+                    ref for ref in draft.verdict.contradicting_refs if ref not in bad
+                ]
+            elif location == "supporting_evidence_refs":
+                update["supporting_evidence_refs"] = [
+                    ref for ref in draft.supporting_evidence_refs if ref not in bad
+                ]
+            elif location == "confirmed_relation_refs":
+                update["confirmed_relation_refs"] = [
+                    ref for ref in update.get(
+                        "confirmed_relation_refs", draft.confirmed_relation_refs
+                    )
+                    if ref not in bad
+                ]
+            elif ".supporting_refs" in location:
+                section, _, stmt_id = location.partition("[")
+                stmt_id = stmt_id.split("]")[0]
+                stripped = [
+                    statement.model_copy(update={
+                        "supporting_refs": [
+                            ref for ref in statement.supporting_refs if ref not in bad
+                        ]
+                    })
+                    if statement.statement_id == stmt_id
+                    else statement
+                    for statement in getattr(draft, section, []) or []
+                ]
+                update[section] = stripped
+        if verdict_update:
+            update["verdict"] = draft.verdict.model_copy(update=verdict_update)
         changed = True
 
     if not changed:
