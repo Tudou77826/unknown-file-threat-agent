@@ -228,6 +228,115 @@ def _domain_file(event: dict) -> str:
     return FILE_DOMAINS.get(event["domain"], FILE_DOMAINS["other"])
 
 
+# ── 2026-10-10 复核整改：消答案泄露 + 证据回填 ──────────────────────────────
+# 复核裁决：进程命令行携带 playbooks/malicious|benign 路径等于泄露答案——
+# 模型读目录名即可答对，准确率失去含义。回放中的部署路径一律重写为中性
+# run/ 前缀（采集端同步改造，重采不再带出）。
+_CAMP_PATH_RULES = (
+    ("/opt/secval-lab/playbooks/malicious/", "/opt/secval-lab/run/"),
+    ("/opt/secval-lab/playbooks/benign/", "/opt/secval-lab/run/"),
+)
+
+
+def _sanitize_leaked_paths(value):
+    """Recursively rewrite camp-bearing playbook paths in an event structure."""
+    if isinstance(value, str):
+        for old, new in _CAMP_PATH_RULES:
+            if old in value:
+                value = value.replace(old, new)
+        return value
+    if isinstance(value, list):
+        return [_sanitize_leaked_paths(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _sanitize_leaked_paths(item) for key, item in value.items()}
+    return value
+
+
+_TEXT_SUFFIXES = {
+    ".txt", ".json", ".yaml", ".yml", ".pub", ".md", ".cfg", ".conf",
+    ".list", ".sh", ".py", ".service", ".cron",
+}
+_MAX_CONTENT_BYTES = 4096
+
+
+def _workspace_evidence_events(bundle: Path, host_id: str, workspace_root: str, observed_at: str) -> list[dict]:
+    """复核整改：把工作区里"采到了但没进回放"的两类证据补进回放——
+
+    1. 文本类文件的内容（部署清单/ansible 文件/轮转策略/公钥）：此前只有
+       文件名事件，内容 AI 不可查，良性案的判定依据形同虚设；
+    2. ``*-evidence.txt`` 里的 stat 快照（mtime/ctime/birth）：时间戳回拨案
+       的唯一定性证据，Modify 早于 Birth 的时间线矛盾必须在回放里可见。
+    """
+
+    import tarfile
+
+    events: list[dict] = []
+    tar_path = bundle / "workspace.tar.gz"
+    if not tar_path.exists():
+        return events
+    with tarfile.open(tar_path, "r:gz") as tar:
+        for member in tar.getmembers():
+            if not member.isfile() or member.size > _MAX_CONTENT_BYTES:
+                continue
+            name = member.name[2:] if member.name.startswith("./") else member.name
+            suffix = ("." + name.rsplit(".", 1)[-1].lower()) if "." in name else ""
+            if suffix not in _TEXT_SUFFIXES:
+                continue
+            handle = tar.extractfile(member)
+            if handle is None:
+                continue
+            try:
+                content = handle.read().decode("utf-8")
+            except UnicodeDecodeError:
+                continue
+            abs_path = f"{workspace_root}/{name}"
+            if name.endswith("-evidence.txt") and content.lstrip().startswith("File:"):
+                # stat 的对象是快照内 File: 行指向的文件（如 payload.elf），
+                # 不是证据文件自身——事件必须锚定被测文件。
+                subject_rel = ""
+                first = content.splitlines()[0].split("File:", 1)[-1].strip()
+                if first:
+                    subject_rel = first[2:] if first.startswith("./") else first
+                stat_fields: dict[str, str] = {}
+                for line in content.splitlines():
+                    if ":" not in line:
+                        continue
+                    key, _, raw = line.strip().partition(":")
+                    key = key.strip().rstrip("0123456789 ") or key.strip()
+                    value = raw.strip()
+                    if not value:
+                        continue
+                    if key in {"Modify", "Change", "Birth", "Access"} and not key.startswith("Access:"):
+                        stat_fields[f"{key.lower()}_time"] = value
+                    elif key == "Uid":
+                        stat_fields["owner_uid"] = value.split("/")[0].strip()
+                if stat_fields:
+                    stat_subject = (
+                        f"{workspace_root}/{subject_rel}" if subject_rel else abs_path
+                    )
+                    events.append({
+                        "event_id": f"file-stat-{name}",
+                        "event_type": "file_stat_snapshot",
+                        "domain": "file",
+                        "source_system": "stat-snapshot/1",
+                        "observed_at": observed_at,
+                        "host_id": host_id,
+                        "subject_refs": [f"file:{host_id}:{stat_subject}"],
+                        "data": {"path": stat_subject, **stat_fields},
+                    })
+            events.append({
+                "event_id": f"file-content-{name}",
+                "event_type": "file_content",
+                "domain": "file",
+                "source_system": "file-reader/1",
+                "observed_at": observed_at,
+                "host_id": host_id,
+                "subject_refs": [f"file:{host_id}:{abs_path}"],
+                "data": {"path": abs_path, "size": member.size, "content": content},
+            })
+    return events
+
+
 def settle(*, source: Path, bundle: Path, host_id: str, suite_root: Path, workspace_root_hint: str | None = None) -> Path:
     draft = TestCase.model_validate(
         json.loads((source / "case.json").read_text(encoding="utf-8"))
@@ -251,6 +360,22 @@ def settle(*, source: Path, bundle: Path, host_id: str, suite_root: Path, worksp
         .replace("+00:00", "Z")
     )
     events.extend(_counter_evidence(events, bundle, host_id, observed_at))
+    events.extend(_workspace_evidence_events(bundle, host_id, workspace_root, observed_at))
+    # 文件事件补内容哈希关联：/etc/passwd 这类系统路径的写入事件此前不带
+    # 哈希，调查目标与事件无法凭哈希对上（复核意见：t1136）。
+    all_hashes = {**_load_system_hashes(bundle), **path_hashes}
+    for event in events:
+        if event.get("event_type") != "file_event":
+            continue
+        path = str(event.get("data", {}).get("path", ""))
+        digest = all_hashes.get(path)
+        if digest:
+            event["data"]["content_sha256"] = digest
+            event["subject_refs"] = [
+                *event.get("subject_refs", []),
+                f"file:{host_id}:{digest}",
+            ]
+    events = [_sanitize_leaked_paths(event) for event in events]
 
     case_dir = suite_root / draft.case_id
     replay_dir = case_dir / "replay"
@@ -360,7 +485,7 @@ def _parse_conn_poll(bundle: Path, host_id: str):
     if not path.exists():
         return []
     envelopes = []
-    seen = set()
+    seen: dict[tuple, dict] = {}
     ts_ms = 0
     for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
         line = line.strip()
@@ -376,9 +501,14 @@ def _parse_conn_poll(bundle: Path, host_id: str):
         peer_port = int(match.group(2))
         comm = match.group(3)
         pid = int(match.group(4))
-        if (pid, peer_ip, peer_port) in seen:
+        key = (pid, peer_ip, peer_port)
+        # 复核整改：按 (pid,远端) 去重会把周期回连压成一条，丢掉"多次外连"
+        # 这半个事实（python 回连案的定性依据）。聚合保留观测次数与首末时间。
+        if key in seen:
+            seen[key]["count"] += 1
+            seen[key]["last_ms"] = ts_ms
             continue
-        seen.add((pid, peer_ip, peer_port))
+        seen[key] = {"count": 1, "first_ms": ts_ms, "last_ms": ts_ms}
         captured = (
             datetime.fromtimestamp(ts_ms / 1000, tz=timezone.utc)
             .isoformat(timespec="milliseconds")
@@ -394,6 +524,7 @@ def _parse_conn_poll(bundle: Path, host_id: str):
                     "pid": pid, "ppid": 0, "uid": "", "euid": "",
                     "exe": "", "comm": comm,
                     "remote_ip": peer_ip, "remote_port": peer_port, "protocol": "tcp",
+                    "_poll_meta": seen[key],
                 },
             )
         )
@@ -416,7 +547,7 @@ def _scope_to_case(envelopes, case_id, root_hint):
     # (python3 beacon.py / bash pipe). Paths mirror audit-rules §2 watches.
     kept_paths = (
         root + "/", "/etc/", "/usr/local/sbin/", "/usr/local/bin/",
-        "/root/.ssh/", "/var/log/secval-demo/",
+        "/root/.ssh/", "/var/log/secval-demo/", "/var/backups/secval-demo/",
     )
     for envelope in envelopes:
         if envelope.kind != "file":

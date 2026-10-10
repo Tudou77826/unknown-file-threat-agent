@@ -17,7 +17,7 @@
     },
     "file": {
       "judgment": "benign",
-      "basis": "有部署清单的厂商 agent，回连端点在批准清单，心跳自记录"
+      "basis": "部署清单内容可查（列出该 agent 与批准端点），回连端点经 cmdb 基线核验为批准，执行文件与清单一致；心跳日志仅作旁证（自记录不作独立依据）"
     },
     "source": "剧本设计推导（GT 草案，人工复核后生效）"
   },
@@ -31,9 +31,9 @@
     "risk_level": "none"
   },
   "key_evidence": [
-    "部署清单",
-    "批准端点",
-    "心跳日志"
+    "部署清单内容可查",
+    "回连端点在批准清单（cmdb 核验一致）",
+    "执行文件与清单一致"
   ],
   "risk_level": "none",
   "recommended_action": "无需处置",
@@ -47,6 +47,7 @@
     "origin": "hand-written",
     "environment": "lab",
     "collector": null,
-    "created": "2026-10-09"
+    "created": "2026-10-09",
+    "notes": " | 已知剧本缺陷：实际执行间隔与清单声明不一致，重采时修正；不作为本版判定依据"
   }
 }

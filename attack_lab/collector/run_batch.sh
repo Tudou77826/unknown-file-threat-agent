@@ -27,11 +27,22 @@ for case_id in "$@"; do
   dir="$LAB/playbooks/$kind/$case_id"
   [ -f "$dir/run.sh" ] || { echo "== $case_id SKIP(no run.sh)"; continue; }
 
-  echo "== $case_id ($kind)"
+  echo "== $case_id"
+  # 2026-10-10 复核整改：命令行不得出现阵营词（playbooks/malicious|benign
+  # 等于向模型泄露答案）。同步到中性 run/ 目录执行，HERE 重写为绝对路径，
+  # 脚本内部 $HERE/common/... 引用保持同构。
+  neutral_dir="$LAB/run/$case_id"
+  sudo rm -rf "$LAB/run"
+  sudo mkdir -p "$neutral_dir" "$LAB/run/common"
+  sudo cp "$dir/run.sh" "$neutral_dir/run.sh"
+  [ -f "$dir/case.json" ] && sudo cp "$dir/case.json" "$neutral_dir/case.json"
+  sudo cp "$LAB/playbooks/common/"*.sh "$LAB/run/common/" 2>/dev/null || true
+  sudo cp "$LAB/playbooks/common/payload.c" "$LAB/run/common/" 2>/dev/null || true
+  sudo sed -i "s#^HERE=.*#HERE=\"$LAB/run\"#" "$neutral_dir/run.sh"
   rules_on
   [ "$RULES_ON" = 1 ] || { echo "   ---"; continue; }
   sudo rm -rf "$LAB/cases/$case_id" "$LAB/bundles/$case_id.bundle"
-  sudo bash $LAB/collector/collect.sh "$case_id" bash "$dir/run.sh" 2>&1 | tail -1
+  sudo bash $LAB/collector/collect.sh "$case_id" bash "$neutral_dir/run.sh" 2>&1 | tail -1
   rules_off
   # 每案采后立即清残留：写入持久化项的案例（cron/密钥/账号）若不清，
   # 其驻留项会在后续案例的采集窗口内开火，造成跨案污染（chain cron 实证）

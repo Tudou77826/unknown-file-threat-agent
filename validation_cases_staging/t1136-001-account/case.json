@@ -17,7 +17,7 @@
     },
     "file": {
       "judgment": "malicious",
-      "basis": "系统账号文件被追加 UID 0 账号，非运维流程（无工单/配置管理凭证）"
+      "basis": "/etc/passwd 与 /etc/shadow 被追加 UID 0 账号（写入事件带内容哈希，与调查目标锚定一致），该账号随后产生 PAM 会话记录（USER_ACCT：账号被真实使用）；无运维流程凭证"
     },
     "source": "剧本设计推导（GT 草案，人工复核后生效）"
   },
@@ -33,9 +33,9 @@
     "note": null
   },
   "key_evidence": [
-    "/etc/passwd 追加 UID 0 账号",
+    "/etc/passwd 追加 UID 0 账号（事件哈希与目标一致）",
     "/etc/shadow 同步写入",
-    "su 会话记录"
+    "su 会话记录（USER_ACCT）"
   ],
   "risk_level": "critical",
   "recommended_action": "删除隐藏账号，审计已有登入，排查创建来源",
@@ -43,6 +43,7 @@
     "event_files": [
       "counter_evidence.jsonl",
       "file.jsonl",
+      "other.jsonl",
       "process.jsonl"
     ],
     "environment_baseline_sources": [

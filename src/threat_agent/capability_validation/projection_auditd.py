@@ -270,6 +270,24 @@ def _classify_user_record(
             },
             **base,
         )
+    if "USER_ACCT" in records:
+        # PAM 账号阶段记录：su/sudo 切换账号的会话证据（UID0 隐藏账号案的关键
+        # 一环——账号不仅被创建，还被真实使用）。归入 authentication。
+        message = raws.get("USER_ACCT", "")
+        acct = re.search(r'acct="?([^" ]+)"?', message)
+        op = re.search(r"op=([^ ]+)", message)
+        return RawTelemetryEnvelope(
+            kind="authentication",
+            collector=collector,
+            payload={
+                **base,
+                "user": acct.group(1) if acct else "",
+                "source_ip": "",
+                "result": "success" if "res=success" in message else "failure",
+                "service": op.group(1) if op else "PAM:accounting",
+            },
+            **base,
+        )
     return None
 
 
@@ -349,6 +367,9 @@ class AuditDProjector:
             "process_ref": ref,
             "executable": exe,
             "cmdline": " ".join([exe, *args[1:]]) if args else exe,
+            # uid+euid 双值承载提权语义（setuid 案：uid=65534/euid=0）；
+            # 只留 euid 会丢掉"非特权用户执行"这半个事实。
+            "uid": str(payload.get("uid", "")),
             "euid": str(payload.get("euid", "")),
         }
         subjects = [ref]
@@ -408,18 +429,27 @@ class AuditDProjector:
         start_ms = self._starts.get(pid, _payload_ms(envelope))
         ref = self._process_ref(pid, start_ms)
         endpoint = f"endpoint:{payload['remote_ip']}:{payload['remote_port']}"
+        data: dict[str, Any] = {
+            "process_ref": ref,
+            "remote_ip": payload["remote_ip"],
+            "remote_port": int(payload["remote_port"]),
+            "protocol": payload.get("protocol", "tcp"),
+        }
+        # 轮询器聚合元数据（settle_case）：同一四元组的观测次数与首末时间，
+        # 承载"周期性多次外连"的证据（回连类案例的定性依据）。
+        meta = payload.get("_poll_meta")
+        if isinstance(meta, dict):
+            data["observed_count"] = int(meta.get("count", 1))
+            for key in ("first_ms", "last_ms"):
+                if meta.get(key):
+                    data[key] = int(meta[key])
         return [
             _event(
                 "network_connection",
                 "network",
                 envelope,
                 [ref, endpoint],
-                {
-                    "process_ref": ref,
-                    "remote_ip": payload["remote_ip"],
-                    "remote_port": int(payload["remote_port"]),
-                    "protocol": payload.get("protocol", "tcp"),
-                },
+                data,
             )
         ]
 

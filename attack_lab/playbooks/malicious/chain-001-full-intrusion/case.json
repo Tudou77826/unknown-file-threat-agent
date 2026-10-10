@@ -22,7 +22,7 @@
       "judgment": "malicious",
       "basis": "外部下载的首阶段载荷，后续衍生 cron/密钥/外传多阶段行为，非任何部署内容"
     },
-    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+    "source": "blocked-pending-recollection"
   },
   "expected_rule": {
     "expected_hit": true,
@@ -52,6 +52,7 @@
     "origin": "hand-written",
     "environment": "lab",
     "collector": null,
-    "created": "2026-10-09"
+    "created": "2026-10-09",
+    "notes": "2026-10-10 复核裁决：后续阶段（密钥/外传）由 run.sh 兄弟命令执行而非 stage1.elf 派生，归因断裂；cron 内容与上传回执缺失——待重采（载荷派生执行后续阶段）"
   }
 }

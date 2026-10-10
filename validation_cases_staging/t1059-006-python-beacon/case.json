@@ -17,7 +17,7 @@
     },
     "file": {
       "judgment": "malicious",
-      "basis": "非部署的周期回连脚本，由 python 解释器执行"
+      "basis": "非部署的回连脚本由 python 解释器执行，外连多次观测（observed_count>1 的周期性连接）；与部署清单无关"
     },
     "source": "剧本设计推导（GT 草案，人工复核后生效）"
   },
@@ -35,7 +35,7 @@
   "key_evidence": [
     "脚本落盘",
     "解释器执行",
-    "多次外连"
+    "多次外连（observed_count>1，客户端侧记录）"
   ],
   "risk_level": "high",
   "recommended_action": "清除脚本，排查回连目的地与投放来源",

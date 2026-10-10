@@ -17,7 +17,7 @@
     },
     "file": {
       "judgment": "benign",
-      "basis": "轮转策略文件在案，操作对象限定 /var/log/secval-demo，归档保留副本"
+      "basis": "轮转策略文件内容可查（限定 /var/log/secval-demo、归档至 /var/backups、超过 7 天），压缩/移动/删除的进程命令与策略一致，结果快照显示目录清空且归档保留"
     },
     "source": "剧本设计推导（GT 草案，人工复核后生效）"
   },
@@ -31,9 +31,9 @@
     "risk_level": "none"
   },
   "key_evidence": [
-    "轮转策略在案",
-    "操作范围限定",
-    "归档保留"
+    "轮转策略文件内容可查",
+    "操作范围与策略一致（/var/log/secval-demo）",
+    "归档保留（结果快照）"
   ],
   "risk_level": "none",
   "recommended_action": "无需处置",

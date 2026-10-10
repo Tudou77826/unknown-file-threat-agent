@@ -17,7 +17,7 @@
     },
     "file": {
       "judgment": "malicious",
-      "basis": "authorized_keys 被追加未知来源公钥（非配置管理部署，无部署凭证）"
+      "basis": "authorized_keys 被追加写入，同批出现成对新密钥（私钥+公钥现场生成），并以该密钥尝试本机登入；无配置管理部署记录——组合指向未授权公钥驻留"
     },
     "source": "剧本设计推导（GT 草案，人工复核后生效）"
   },
@@ -32,8 +32,9 @@
   },
   "key_evidence": [
     "authorized_keys 追加写入",
-    "未知来源公钥",
-    "密钥登入尝试（USER_AUTH）"
+    "同批生成的新密钥对",
+    "密钥登入尝试（USER_LOGIN）",
+    "无配置管理部署记录"
   ],
   "risk_level": "critical",
   "recommended_action": "移除未知公钥，轮换主机密钥，排查登入来源",

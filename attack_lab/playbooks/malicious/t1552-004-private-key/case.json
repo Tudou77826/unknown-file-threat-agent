@@ -20,7 +20,7 @@
       "judgment": "malicious",
       "basis": "私钥文件副本出现在暂存目录并被打包外传，非任何合法用途"
     },
-    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+    "source": "blocked-pending-recollection"
   },
   "expected_rule": {
     "expected_hit": true,
@@ -48,6 +48,7 @@
     "origin": "hand-written",
     "environment": "lab",
     "collector": null,
-    "created": "2026-10-09"
+    "created": "2026-10-09",
+    "notes": "2026-10-10 复核裁决：剧本现场生成新密钥而非窃取已有私钥，上传接收端不支持 POST——GT 行为未真实达成，待重采（先复制真实存在的私钥、接收端可回执）"
   }
 }

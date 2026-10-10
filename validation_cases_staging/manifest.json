@@ -15,27 +15,27 @@
     {
       "case_id": "t1037-004-rc-local",
       "directory": "t1037-004-rc-local",
-      "content_digest": "024f13efae1e44d5b4466dff4d80e9da7e29330b5fe3e0afc84d20d17fa7e774"
+      "content_digest": "58afd87329c4f12af34bc982df8768b6c55eeb12b3a5d6f5b502b1da96732228"
     },
     {
       "case_id": "t1053-003-cron-persistence",
       "directory": "t1053-003-cron-persistence",
-      "content_digest": "9a1fb1b9a99aff998d6323f8e2371c3e26281fdf3536fc8a78b3066e88518f97"
+      "content_digest": "851d357b3e9b33fe4ed00fa651a55f003a22c889b4693dcb782a4eab0f2c10a2"
     },
     {
       "case_id": "t1105-ingress-tool-transfer",
       "directory": "t1105-ingress-tool-transfer",
-      "content_digest": "27baf6171353286b0d77a5775f7da20f49712fac33a4c27bf5603de68c96e537"
+      "content_digest": "7320d8d3e6c170f26ff9f7a75571d60fbda463f0114823444bad4b4f1aa87b6f"
     },
     {
       "case_id": "t1219-rat-tunnel",
       "directory": "t1219-rat-tunnel",
-      "content_digest": "49677c1c9d5161f99b612fd8bbd9eccdfbf5599d724d1c2c0142127ba1c12a39"
+      "content_digest": "ac6083e0330567c8267de5e8bd4479fadc2c2d3549c0264a35ef3fa82d136043"
     },
     {
       "case_id": "t1486-ransomware",
       "directory": "t1486-ransomware",
-      "content_digest": "e599581f72f6c85b03872144c12da18ea119b982904554e7059ea45e84623fbf"
+      "content_digest": "91de766430993f3f3f729472570c6e21de92aebc899256e5e11e5497fff2cc9d"
     },
     {
       "case_id": "t1505-003-web-shell",
@@ -45,7 +45,7 @@
     {
       "case_id": "t1543-002-systemd-service",
       "directory": "t1543-002-systemd-service",
-      "content_digest": "fe83a8f49a0aa89dab03792323ec5d109c09044913ecf9f3a59f30f247800b33"
+      "content_digest": "3ec0ba1789adba3e951498dbd67e6d4f61a8f0b9724ca0b58a694a67c123f8b2"
     },
     {
       "case_id": "t1547-006-kernel-module",
@@ -80,77 +80,77 @@
     {
       "case_id": "bb5-compiler-artifact",
       "directory": "bb5-compiler-artifact",
-      "content_digest": "fc7c013eed80a12eb5553bd7faa61ec8102a3d72b4cd5fe8fd106ed85891542e"
+      "content_digest": "dbdcdb17f84085fb2b145c278f45a71e78ada523499f2df1210f846b9291e338"
     },
     {
       "case_id": "bb6-mirror-download",
       "directory": "bb6-mirror-download",
-      "content_digest": "6985a81cea7b99abfd256fb65710a1b04d818ee513067230e08bf40e58a0809a"
+      "content_digest": "50266b8b839ac0bd3f2068f2742a8c028c4cf437803145b9234784b8f932e16f"
     },
     {
       "case_id": "t1036-005-masquerade",
       "directory": "t1036-005-masquerade",
-      "content_digest": "673ff80fc70ba4f448412594f599300a82e2573379be820b9525ca292650b8ad"
+      "content_digest": "f0be2ec35d441e0ba948dc6b11d7c2e144281376bd1311af1e14a4c420a159c9"
     },
     {
       "case_id": "t1070-006-timestomp",
       "directory": "t1070-006-timestomp",
-      "content_digest": "aee91158cf522a2e49c0c577fdf3af3515f0f0085ad01ac659e0a5ce527d52a3"
+      "content_digest": "adaaaa5e041222a3dc49bd9e1020ad323e0dd8b471ae7fd3fb0ed62a3ffea732"
     },
     {
       "case_id": "t1027-obfuscated-script",
       "directory": "t1027-obfuscated-script",
-      "content_digest": "57cb040a207558a83f6d021e55988e2f4941f212eb56af93afbdc31f9533aad6"
+      "content_digest": "d5146c0444131c906ee2c58fa2e41e576f503d9ed9f8b7fbf2463f39e36f6610"
     },
     {
       "case_id": "t1098-004-authorized-keys",
       "directory": "t1098-004-authorized-keys",
-      "content_digest": "ce7bfc276771ebb198354e931794a1f2089cebdddbc68928deb6f4aaf2bc18cc"
+      "content_digest": "48929810b1cf78aff1e5cf9209cbdae5bc58a1fa61a47ead160a6690d3c79278"
     },
     {
       "case_id": "t1552-004-private-key",
       "directory": "t1552-004-private-key",
-      "content_digest": "015c2fd9dae6901134fe9490b3818e953e7d8ccd6e6e1d27be0aa9dc47ec33d1"
+      "content_digest": "e3d5ebbefd082f8b0079e97deca9357fddd937e005c2031c71e3e9cd465038dd"
     },
     {
       "case_id": "t1548-001-setuid",
       "directory": "t1548-001-setuid",
-      "content_digest": "7c0a0ee357676cedad5e4e7601d521229e3609d4714daeeafb86cbc595766b90"
+      "content_digest": "bdaf9ce01798d58d90b13cf42ea9703a3613f7e14d5b1c4af5b9d8f49902ccea"
     },
     {
       "case_id": "t1059-006-python-beacon",
       "directory": "t1059-006-python-beacon",
-      "content_digest": "e5448f0182febd37271133d63adb14d17c42ac0c86f6eabc2b73cb90dc1116ab"
+      "content_digest": "48a80fe8818bd7bf6129ffafef0767b6d4f722406df3588e05c4d6b779a02065"
     },
     {
       "case_id": "chain-001-full-intrusion",
       "directory": "chain-001-full-intrusion",
-      "content_digest": "4d529b94ae95b7833b56d7d91370081145fd44396c24ccf74106ed6ab090e6ee"
+      "content_digest": "5566bc7e49353a52ac870a3a3caf6cf62a47ec61fca031d16b70b7f0bfe71ff5"
     },
     {
       "case_id": "t1136-001-account",
       "directory": "t1136-001-account",
-      "content_digest": "5bbaccff6540fec47ffc28ebcd51b35dcc147491adcf0463c218bd6d1c81ed3c"
+      "content_digest": "e65077bd2026ce1a42b5ae758e5f8e8dd137971207f56c82ca39cf764c6dc465"
     },
     {
       "case_id": "bb7-vendor-agent",
       "directory": "bb7-vendor-agent",
-      "content_digest": "85154a82cdb718752052e0652af779f1b0e1fbe6444384c1e9c778ad81737c06"
+      "content_digest": "ee8113ed9a8a976cffe116bf6091ab96fccc887d93abb6e75b09f435a2bf73bf"
     },
     {
       "case_id": "bb8-ops-suite-install",
       "directory": "bb8-ops-suite-install",
-      "content_digest": "beadee9582e99e3604c262c037b2e0fb265106fe03e2e0e35dfb8eeb7057478e"
+      "content_digest": "1da48599dccc039a5864f8d8871dc62302dcf2c3d99d0abf610ffa6b1f66470f"
     },
     {
       "case_id": "bb9-log-rotation",
       "directory": "bb9-log-rotation",
-      "content_digest": "21b0491833cb0a06174374828eef848fbfcbca384a417a9bca359656f3510f66"
+      "content_digest": "1f646e66f69e5dc0454b21c2b23c727b1b6e914e48326c5c467c314749486e17"
     },
     {
       "case_id": "bb11-cfgmgmt-ssh-key",
       "directory": "bb11-cfgmgmt-ssh-key",
-      "content_digest": "623f75ef6aca5598df85e1fd1d8f6bcbe96b967232417b4a9e54caff32804c01"
+      "content_digest": "185aaa12fa4e9bceffa62df064adf8edbbda9d985d409aa06b03bd2722fefd72"
     }
   ]
 }
