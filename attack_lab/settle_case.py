@@ -188,6 +188,23 @@ def _counter_evidence(
                 },
             }
         )
+        # 部署台账在实验室环境不可查询（内部迁移后才有该工具）。按真话原则
+        # 显式给出"查询不可用、结论未知"，AI 不得从"没有记录"推断"未授权"。
+        evidence.append(
+            {
+                "event_id": f"baseline-registry-{digest[:12]}",
+                "event_type": "deployment_registry_lookup",
+                "domain": "reputation",
+                "source_system": "deploy-registry",
+                "observed_at": observed_at,
+                "host_id": host_id,
+                "subject_refs": [f"file:{host_id}:{digest}"],
+                "data": {
+                    "registry_available": False,
+                    "registered": None,
+                },
+            }
+        )
     baseline_lines = [
         line.strip()
         for line in (bundle / "approved_endpoints.txt").read_text(encoding="utf-8").splitlines()

@@ -90,7 +90,7 @@
     {
       "case_id": "t1036-005-masquerade",
       "directory": "t1036-005-masquerade",
-      "content_digest": "f0be2ec35d441e0ba948dc6b11d7c2e144281376bd1311af1e14a4c420a159c9"
+      "content_digest": "0abeeaff73de7981e6a8605fa744531f01d802dbd58ca382f16cd462849fc56f"
     },
     {
       "case_id": "t1070-006-timestomp",
@@ -105,7 +105,7 @@
     {
       "case_id": "t1098-004-authorized-keys",
       "directory": "t1098-004-authorized-keys",
-      "content_digest": "48929810b1cf78aff1e5cf9209cbdae5bc58a1fa61a47ead160a6690d3c79278"
+      "content_digest": "4ca0812e10efa8f66191e30879b4c65df6415120898f3c96c15d4901a69c0a3e"
     },
     {
       "case_id": "t1552-004-private-key",
