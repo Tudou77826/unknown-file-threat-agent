@@ -22,6 +22,38 @@ _SYSTEM_PROMPT = (
 # calculate_activity_metrics) require the planner to quote activity IDs
 # verbatim, so downsizing must never strip the identifiers it needs. Dropping
 # them made the model invent IDs by pattern and get rejected every round.
+# 2026-10-10 r11/r11c 实测：决定性证据（提权 uid/euid、时间戳快照、部署
+# 台账状态）只存在于活动的 extension 附件里，摘要投影整体丢弃 extension
+# 后模型永远看不到——setuid 案的"非特权用户执行 root 程序"半事实丢失。
+# 摘要按白名单透出这些键；文件内容类给截断预览，全文走 get_raw_records。
+_EXTENSION_DATA_KEYS = (
+    "uid", "euid",
+    "modify_time", "change_time", "birth_time", "access_time",
+    "registered", "registry_available", "owns_file", "package",
+    "approved", "remote_ip",
+)
+_CONTENT_PREVIEW_CHARS = 200
+
+
+def _extension_hint(activity):
+    extension = activity.get("extension")
+    if not isinstance(extension, dict):
+        return {}
+    hint = {}
+    if extension.get("source_event_type"):
+        hint["source_event_type"] = extension["source_event_type"]
+    source_data = extension.get("source_data")
+    if isinstance(source_data, dict):
+        for key in _EXTENSION_DATA_KEYS:
+            value = source_data.get(key)
+            if value is not None:
+                hint[key] = value
+        content = source_data.get("content")
+        if isinstance(content, str) and content:
+            hint["content_preview"] = content[:_CONTENT_PREVIEW_CHARS]
+    return hint
+
+
 _ACTIVITY_FIELDS = (
     "activity_id",
     "activity_type",
@@ -79,13 +111,13 @@ def brief_result(result: Any) -> Any:
         brief = []
         for activity in activities[:10]:
             if isinstance(activity, dict):
-                brief.append(
-                    {
-                        key: activity[key]
-                        for key in _ACTIVITY_FIELDS
-                        if activity.get(key) is not None
-                    }
-                )
+                item = {
+                    key: activity[key]
+                    for key in _ACTIVITY_FIELDS
+                    if activity.get(key) is not None
+                }
+                item.update(_extension_hint(activity))
+                brief.append(item)
         boundary = data.get("execution_boundary") or {}
         return {
             "returned_count": boundary.get("returned_count"),
@@ -99,13 +131,13 @@ def brief_result(result: Any) -> Any:
         brief = []
         for activity in timeline[:10]:
             if isinstance(activity, dict):
-                brief.append(
-                    {
-                        key: activity[key]
-                        for key in _ACTIVITY_FIELDS
-                        if activity.get(key) is not None
-                    }
-                )
+                item = {
+                    key: activity[key]
+                    for key in _ACTIVITY_FIELDS
+                    if activity.get(key) is not None
+                }
+                item.update(_extension_hint(activity))
+                brief.append(item)
         return {
             "returned_count": data.get("returned_count"),
             "evidence_references": _reference_ids(data.get("evidence_references")),

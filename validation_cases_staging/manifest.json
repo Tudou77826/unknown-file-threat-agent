@@ -90,7 +90,7 @@
     {
       "case_id": "t1070-006-timestomp",
       "directory": "t1070-006-timestomp",
-      "content_digest": "6e4db703e481eb7bd41431f7609aeddca2af21147c29746396c668fd8d93fe8d"
+      "content_digest": "86e2f23efd3a79b1827d9c6532a8925939461d7ca04223902f42708a23be3c74"
     },
     {
       "case_id": "t1027-obfuscated-script",

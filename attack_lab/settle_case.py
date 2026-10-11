@@ -328,6 +328,9 @@ def _workspace_evidence_events(bundle: Path, host_id: str, workspace_root: str, 
                 continue
             if name in _FRAMEWORK_FILE_DENYLIST:
                 continue
+            # 先按原始文件名判定 stat 快照（改名后不再匹配 *-evidence.txt），
+            # 再做输出去靶场化改名——顺序颠倒会把时间戳证据整个丢掉（t1070 实证）
+            is_stat_snapshot = name.endswith("-evidence.txt") or name in _EVIDENCE_FILE_RENAMES
             name = _EVIDENCE_FILE_RENAMES.get(name, name)
             handle = tar.extractfile(member)
             if handle is None:
@@ -337,7 +340,7 @@ def _workspace_evidence_events(bundle: Path, host_id: str, workspace_root: str, 
             except UnicodeDecodeError:
                 continue
             abs_path = f"{workspace_root}/{name}"
-            if name.endswith("-evidence.txt") and content.lstrip().startswith("File:"):
+            if is_stat_snapshot and content.lstrip().startswith("File:"):
                 # stat 的对象是快照内 File: 行指向的文件（如 payload.elf），
                 # 不是证据文件自身——事件必须锚定被测文件。
                 subject_rel = ""
