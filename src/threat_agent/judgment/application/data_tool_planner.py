@@ -8,6 +8,7 @@ from pydantic import Field
 
 from ...contracts import (
     AssetActivitiesInput,
+    AuthenticationActivitiesInput,
     CalculateActivityMetricsInput,
     ExploreEntityInput,
     FileActivitiesInput,
@@ -41,8 +42,8 @@ class DataToolSelection(StrictModel):
     action: Literal[
         "query_process_activities", "query_network_activities", "query_socket_activities",
         "query_file_activities", "query_service_activities", "query_package_activities",
-        "query_asset_activities", "explore_entity", "get_raw_records",
-        "calculate_activity_metrics", "finish_investigation",
+        "query_asset_activities", "query_authentication_activities", "explore_entity",
+        "get_raw_records", "calculate_activity_metrics", "finish_investigation",
     ]
     objective: str = Field(default="执行下一步受控数据调查", min_length=10)
     arguments: dict[str, Any] = Field(default_factory=dict)
@@ -68,6 +69,7 @@ _TOOL_TO_ACTIVITY_TYPE = {
     "query_service_activities": "service",
     "query_package_activities": "package",
     "query_asset_activities": "asset",
+    "query_authentication_activities": "authentication",
 }
 
 # Authorized permission domain -> the concrete activity_types it covers. Used
@@ -78,6 +80,7 @@ _DOMAIN_TO_ACTIVITY_TYPES = {
     "file": ["file"],
     "persistence": ["service"],
     "reputation": ["package", "asset"],
+    "authentication": ["authentication"],
 }
 
 _COMPACTION_SYSTEM_PROMPT = (
@@ -104,6 +107,9 @@ TOOL_DEFINITIONS = [
      "查询服务活动：systemd 等服务的定义、启用、启动与停止。"),
     ("query_package_activities", PackageActivitiesInput,
      "查询软件包活动：包归属、安装、签名与文件关联。"),
+    ("query_authentication_activities", AuthenticationActivitiesInput,
+     "查询登录与账号会话事件：登入尝试（成功/失败）、su/sudo 切换账号的会话记录。"
+     "公钥/账号持久化类调查的关键半事实——'凭据被真实使用'由此证实。"),
     ("query_asset_activities", AssetActivitiesInput,
      "查询资产活动：主机环境、业务关键度、负责人与批准上下文。"),
     ("explore_entity", ExploreEntityInput,
@@ -248,7 +254,8 @@ class StructuredDataToolPlanner:
         data_tool_names = {
             "query_process_activities", "query_network_activities", "query_socket_activities",
             "query_file_activities", "query_service_activities", "query_package_activities",
-            "query_asset_activities", "explore_entity", "get_raw_records", "calculate_activity_metrics",
+            "query_asset_activities", "query_authentication_activities", "explore_entity",
+            "get_raw_records", "calculate_activity_metrics",
         }
         actions: list[InvestigationAction] = []
         for index, (name, arguments, call_id) in enumerate(parse_tool_calls(response)):

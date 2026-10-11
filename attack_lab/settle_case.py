@@ -387,6 +387,43 @@ def _workspace_evidence_events(bundle: Path, host_id: str, workspace_root: str, 
     return events
 
 
+def _system_content_events(bundle: Path, host_id: str, observed_at: str) -> list[dict]:
+    """协议 v2：系统文件内容快照 → file_content 事件（真实系统路径）。
+
+    /etc/passwd、authorized_keys 等的"写入了什么"此前不可查（只有变更事件），
+    t1136 复核据此裁定判定依据断裂——UID 0 账号这个关键事实 AI 看不到。
+    """
+
+    manifest = bundle / "system_contents" / "manifest.txt"
+    if not manifest.exists():
+        return []
+    events: list[dict] = []
+    for line in manifest.read_text(encoding="utf-8").splitlines():
+        if "\t" not in line:
+            continue
+        real_path, flat = line.split("\t", 1)
+        source = bundle / "system_contents" / flat
+        if not source.exists():
+            continue
+        try:
+            content = source.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        if len(content.encode()) > 16384:  # 与采集端上限一致
+            continue
+        events.append({
+            "event_id": f"sys-content-{flat}",
+            "event_type": "file_content",
+            "domain": "file",
+            "source_system": "file-reader/1",
+            "observed_at": observed_at,
+            "host_id": host_id,
+            "subject_refs": [f"file:{host_id}:{real_path}"],
+            "data": {"path": real_path, "size": len(content.encode()), "content": content},
+        })
+    return events
+
+
 def settle(*, source: Path, bundle: Path, host_id: str, suite_root: Path, workspace_root_hint: str | None = None) -> Path:
     draft = TestCase.model_validate(
         json.loads((source / "case.json").read_text(encoding="utf-8"))
@@ -411,6 +448,7 @@ def settle(*, source: Path, bundle: Path, host_id: str, suite_root: Path, worksp
     )
     events.extend(_counter_evidence(events, bundle, host_id, observed_at))
     events.extend(_workspace_evidence_events(bundle, host_id, workspace_root, observed_at))
+    events.extend(_system_content_events(bundle, host_id, observed_at))
     # 文件事件补内容哈希关联：/etc/passwd 这类系统路径的写入事件此前不带
     # 哈希，调查目标与事件无法凭哈希对上（复核意见：t1136）。
     all_hashes = {**_load_system_hashes(bundle), **path_hashes}

@@ -11,7 +11,9 @@ from typing import Any, Callable
 from ...contracts import (
     ActivityMetricResult,
     AssetActivitiesInput,
+    AuthenticationActivitiesInput,
     AssetActivityQuery,
+    AuthenticationActivityQuery,
     BoundaryDenied,
     CalculateActivityMetricsInput,
     EntityExplorationResult,
@@ -49,6 +51,7 @@ _QUERY_CLASSES = {
     "service": ServiceActivityQuery,
     "package": PackageActivityQuery,
     "asset": AssetActivityQuery,
+    "authentication": AuthenticationActivityQuery,
     "extension": ExtensionActivityQuery,
 }
 
@@ -63,6 +66,7 @@ _DOMAIN_TOOLS = {
     "query_service_activities": ("service", ServiceActivitiesInput),
     "query_package_activities": ("package", PackageActivitiesInput),
     "query_asset_activities": ("asset", AssetActivitiesInput),
+    "query_authentication_activities": ("authentication", AuthenticationActivitiesInput),
 }
 
 # The model occasionally emits the literal string "null" (or "none"/"") for an
@@ -114,6 +118,7 @@ class InvestigationToolGateway:
         "query_service_activities",
         "query_package_activities",
         "query_asset_activities",
+        "query_authentication_activities",
         "explore_entity",
         "get_raw_records",
         "calculate_activity_metrics",
@@ -333,6 +338,10 @@ class InvestigationToolGateway:
     def query_asset_activities(self, raw, context, ledger):
         request = AssetActivitiesInput.model_validate(raw)
         return self._query_domain("asset", request, context, ledger)
+
+    def query_authentication_activities(self, raw, context, ledger):
+        request = AuthenticationActivitiesInput.model_validate(raw)
+        return self._query_domain("authentication", request, context, ledger)
 
     def explore_entity(self, raw, context, ledger):
         request = ExploreEntityInput.model_validate(raw)

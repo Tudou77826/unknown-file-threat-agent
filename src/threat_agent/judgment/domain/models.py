@@ -48,7 +48,7 @@ class DataToolRequest(StrictModel):
     tool_name: Literal[
         "query_process_activities", "query_network_activities", "query_socket_activities",
         "query_file_activities", "query_service_activities", "query_package_activities",
-        "query_asset_activities", "explore_entity", "get_raw_records", "calculate_activity_metrics",
+        "query_asset_activities", "query_authentication_activities", "explore_entity", "get_raw_records", "calculate_activity_metrics",
     ]
     objective: str = Field(min_length=10)
     arguments: dict[str, Any] = Field(default_factory=dict)

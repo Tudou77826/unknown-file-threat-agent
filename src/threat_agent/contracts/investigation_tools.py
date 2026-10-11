@@ -20,6 +20,7 @@ InvestigationToolName = Literal[
     "query_service_activities",
     "query_package_activities",
     "query_asset_activities",
+    "query_authentication_activities",
     "explore_entity",
     "get_raw_records",
     "calculate_activity_metrics",
@@ -118,6 +119,15 @@ class PackageActivitiesInput(DomainActivityQueryInput):
 
 class AssetActivitiesInput(DomainActivityQueryInput):
     asset_refs: list[str] = Field(default_factory=list, description="按资产引用过滤")
+
+
+class AuthenticationActivitiesInput(DomainActivityQueryInput):
+    """查询登录/账号会话事件（登入尝试、su/sudo 会话）。"""
+
+    user_refs: list[str] = Field(default_factory=list, description="按用户引用过滤（如 user:svcmaint）")
+    results: list[Literal["success", "failure", "unknown"]] = Field(
+        default_factory=list, description="按认证结果过滤"
+    )
 
 
 class ExploreEntityInput(StrictModel):

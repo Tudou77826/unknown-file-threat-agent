@@ -5,22 +5,22 @@
     "T1552.004",
     "T1567"
   ],
-  "scenario": "窃取的 SSH 私钥以副本形式落盘暂存，随后打包上传至外部端点（实验室本机模拟）。",
+  "scenario": "复制已存在的运维私钥（ops@inventory-2024，窗口外创建）到暂存目录，打包后 POST 上传至外部端点，接收端留有回执。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1552-004-private-key/staged_id_rsa",
-    "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
-    "file_type": "key"
+    "file_path": "/tmp/.keydrop/staged_id_rsa",
+    "file_type": "key",
+    "file_hash": null
   },
   "ground_truth": {
     "behavior": {
       "technique_achieved": true,
-      "basis": "凭据材料副本落盘 + 打包上传外部端点"
+      "basis": "复制既有私钥（源密钥创建于窗口外，遥测只应有复制无创建）→ 暂存 → 打包 → POST 上传成功（接收端回执物证）"
     },
     "file": {
       "judgment": "malicious",
-      "basis": "私钥文件副本出现在暂存目录并被打包外传，非任何合法用途"
+      "basis": "他人私钥副本出现在暂存目录并被打包外传——源密钥注释（ops@inventory-2024）指向非攻击者资产；部署台账不可查（未知，不作判定依据）"
     },
-    "source": "blocked-pending-recollection"
+    "source": "剧本设计推导 v2（2026-10-12 重写为真行为，人工复核后生效）"
   },
   "expected_rule": {
     "expected_hit": true,
@@ -29,12 +29,15 @@
   },
   "expected_ai": {
     "verdict": "malicious",
-    "risk_level": "critical"
+    "verdict_level": "confirmed_malicious",
+    "risk_level": "critical",
+    "note": null
   },
   "key_evidence": [
-    "私钥副本落盘",
+    "既有私钥的复制事件（源 /home/ops/.ssh → 暂存目录）",
     "打包归档",
-    "上传外部端点"
+    "POST 上传与接收端回执",
+    "源密钥创建时间在窗口外（非现场生成）"
   ],
   "risk_level": "critical",
   "recommended_action": "吊销相关凭据，清除副本，排查外传目的地",

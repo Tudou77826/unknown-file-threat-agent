@@ -132,8 +132,8 @@ def test_gateway_exposes_domain_data_tools_and_routes_typed_query(tmp_path: Path
         assert gateway.tool_names == (
             "query_process_activities", "query_network_activities", "query_socket_activities",
             "query_file_activities", "query_service_activities", "query_package_activities",
-            "query_asset_activities", "explore_entity", "get_raw_records",
-            "calculate_activity_metrics",
+            "query_asset_activities", "query_authentication_activities", "explore_entity",
+            "get_raw_records", "calculate_activity_metrics",
         )
         result = gateway.invoke(
             "query_process_activities",

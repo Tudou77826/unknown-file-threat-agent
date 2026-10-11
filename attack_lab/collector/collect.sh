@@ -12,12 +12,17 @@ BUNDLE="$LAB_ROOT/bundles/$CASE_ID.bundle"
 mkdir -p "$WORK" "$BUNDLE"
 START_MS=$(date +%s%3N)
 
-# 环境基线快照（§10 端口 / 包清单；批准端点由 CMDB 导出文件提供）
+# 环境基线快照（§10 端口 / 包清单；批准端点按案提供）
 ss -ltnp > "$BUNDLE/listening_ports.txt" 2>/dev/null || true
 ss -tnp   > "$BUNDLE/connections.txt" 2>/dev/null || true
 rpm -qa   > "$BUNDLE/rpm_inventory.txt" 2>/dev/null || dpkg-query -W -f '${Package}\n' > "$BUNDLE/rpm_inventory.txt" 2>/dev/null || true
-# 批准基线按真实用途预置（复核裁决：空清单=批准未知）；自定义时用 SECLAB_APPROVED_ENDPOINTS
-cp "${SECLAB_APPROVED_ENDPOINTS:-$LAB_ROOT/approved_endpoints.lab.txt}" "$BUNDLE/approved_endpoints.txt" 2>/dev/null || : > "$BUNDLE/approved_endpoints.txt"
+# 端点批准基线（协议 v2 按案化）：剧本 prepare 写入 WORK/approved_endpoints.txt
+# （良性案登记 C2 地址；恶意案写空文件=批准情况未知）。缺省回退实验室全局清单。
+if [ -s "$WORK/approved_endpoints.txt" ] || [ -f "$WORK/approved_endpoints.txt" ]; then
+  cp "$WORK/approved_endpoints.txt" "$BUNDLE/approved_endpoints.txt"
+else
+  cp "${SECLAB_APPROVED_ENDPOINTS:-$LAB_ROOT/approved_endpoints.lab.txt}" "$BUNDLE/approved_endpoints.txt" 2>/dev/null || : > "$BUNDLE/approved_endpoints.txt"
+fi
 # §1 进程谱系：pid/ppid/启动时间，供父进程关联与 process_ref 稳定化
 ps -eo pid,ppid,lstart,args --sort=pid > "$BUNDLE/ps_before.txt" 2>/dev/null || true
 
@@ -52,6 +57,14 @@ awk -F'type=' '/type=/{split($2,a," "); c[a[1]]++} END{for(k in c) print k, c[k]
 if [ -s "$BUNDLE/audit.log" ]; then
   # 原始窗口切片留存（诊断用：过滤误伤可离线复核）
   gzip -c "$BUNDLE/audit.log" > "$BUNDLE/audit.raw.log.gz"
+  # 协议 v2：剧本声明 watch_paths.txt（投放目录等绝对路径，一行一个），
+  # 过滤器的绝对名匹配动态并入——否则 /tmp/.xxx 投放记录会被基础规则漏掉
+  EXTRA_WATCH=""
+  if [ -f "$WORK/watch_paths.txt" ]; then
+    while IFS= read -r wp; do
+      [ -n "$wp" ] && EXTRA_WATCH="$EXTRA_WATCH|${wp//\//\\/}"
+    done < "$WORK/watch_paths.txt"
+  fi
   # 两遍扫描：SYSCALL 是每个事件的第一行，而序号命中靠后面的 PATH/CWD——
   # 单遍流式会在序号入集合前放走 SYSCALL 行（此前系统性丢失文件/执行 SYSCALL 的根因）
   # 保留判定（按序号）：
@@ -60,15 +73,16 @@ if [ -s "$BUNDLE/audit.log" ]; then
   #      按绝对名匹配会整个丢失载荷执行记录，bb7/t1059 实证）
   #   c. connect / USER_* 兜底（低频全捕）
   # 丢弃：comm="ss"（轮询器自身 netlink connect 命中兜底；ss 作为被调查对象不现实）
-  gawk '
+  gawk -v extra="$EXTRA_WATCH" '
     NR == FNR {
       if (match($0, /audit\([0-9.]+:([0-9]+)\)/, k)) {
         s = k[1]
         if ($0 ~ /comm="ss"/) drop[s] = 1
         if ($0 ~ /^type=CWD/ && match($0, /cwd="([^"]*)"/, c)) cwd[s] = c[1]
         if ($0 ~ /name="[^"]*(secval-lab|\/etc\/(systemd|cron|rc\.d|passwd|shadow)|authorized_keys|\/usr\/local\/sbin|\/usr\/local\/bin|\.ssh\/authorized_keys|\/var\/log\/secval-demo)/) keep[s] = 1
+        else if (extra != "" && index($0, "name=\"") && $0 ~ ("name=\"[^\" ]*(" substr(extra, 2) ")")) keep[s] = 1
         else if ($0 ~ /^type=PATH/ && $0 !~ /name="\//) pend[s] = 1
-        # EXECVE 带相对参数且组 CWD 在案例目录：解释器执行案例脚本/载荷的形态
+        # EXECVE 带相对参数且组 CWD 在案例目录下：解释器执行案例脚本/载荷的形态
         # （python3 beacon.py）；采集器自身工具不适用（黑名单防自噪音回潮）
         if ($0 ~ /^type=EXECVE/ && $0 ~ /a[0-9]+="[^\/"][^"]*"/) pendexe[s] = 1
         if ($0 ~ /^type=SYSCALL/ && match($0, /comm="([^"]*)"/, cm)) ecomm[s] = cm[1]
@@ -99,6 +113,22 @@ if [ -f "$WORK/system_paths.txt" ]; then
   : > "$BUNDLE/system_hashes.txt"
   while IFS= read -r p; do
     [ -n "$p" ] && [ -f "$p" ] && sha256sum "$p" >> "$BUNDLE/system_hashes.txt" || echo "WARN: system path missing $p" >&2
+  done < "$WORK/system_paths.txt"
+  # 协议 v2：系统文件内容快照（窗口后抓取）。t1136 复核实证：/etc/passwd 写入了
+  # 什么（UID 0 账号）是定性关键，但此前只有"被写过"的事件没有内容——
+  # AI 只能看到"useradd 改了 passwd"，与合法建账号无法区分。
+  # 文本且 ≤16KB 才抓；路径映射存 manifest（文件名不可含 /）。
+  mkdir -p "$BUNDLE/system_contents"
+  : > "$BUNDLE/system_contents/manifest.txt"
+  while IFS= read -r p; do
+    [ -n "$p" ] && [ -f "$p" ] || continue
+    size=$(stat -c %s "$p" 2>/dev/null || echo 0)
+    [ "$size" -le 16384 ] || continue
+    if file -b "$p" 2>/dev/null | grep -qiE 'text|empty|json|script'; then
+      flat=$(echo "$p" | sed 's#^/##; s#/#_#g')
+      cp "$p" "$BUNDLE/system_contents/$flat"
+      printf '%s\t%s\n' "$p" "$flat" >> "$BUNDLE/system_contents/manifest.txt"
+    fi
   done < "$WORK/system_paths.txt"
 fi
 

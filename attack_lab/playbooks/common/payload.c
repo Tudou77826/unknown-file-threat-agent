@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 int main(int argc, char **argv) {
@@ -22,10 +23,22 @@ int main(int argc, char **argv) {
     addr.sin_port = htons((unsigned short)port);
     inet_pton(AF_INET, ip, &addr.sin_addr);
     if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) == 0) {
-        char mark[] = "secval-beacon";
+        char mark[] = "beacon";
         write(fd, mark, sizeof(mark) - 1);
     }
     usleep(dwell * 1000);
     close(fd);
+
+    /* 派生阶段（chain 形态）：argv[4] 起为待执行命令，由本载荷 fork/exec——
+     * 进程树上后续动作归属本载荷，跨阶段归因由此成立（r11 复核整改）。 */
+    if (argc > 4) {
+        pid_t pid = fork();
+        if (pid == 0) {
+            execv("/bin/bash", (char *[]){"/bin/bash", "-c", argv[4], NULL});
+            _exit(127);
+        }
+        int status = 0;
+        waitpid(pid, &status, 0);
+    }
     return 0;
 }

@@ -147,6 +147,7 @@ def test_progress_projection_marks_unqueried_when_all_domains_queried():
         "query_service_activities",
         "query_package_activities",
         "query_asset_activities",
+        "query_authentication_activities",
     ):
         state.tool_ledger.traces.append(_trace(tool_name, 1))
     progress = planner._build_progress(state)

@@ -5,6 +5,7 @@ from typing import Any
 
 from ...contracts import (
     AssetActivity,
+    AuthenticationActivity,
     ExtensionActivity,
     FileActivity,
     NetworkActivity,
@@ -140,6 +141,18 @@ class ReferenceEventParser:
                 **base, host_ref=host, package_ref=package, file_ref=file_ref,
                 repository=data.get("repository"), signature_valid=data.get("signature_valid"),
                 operation="ownership_observed",
+            ))
+        elif event_type == "login_event":
+            auth_result = str(data.get("result") or "unknown")
+            auth_result = auth_result if auth_result in {"success", "failure", "unknown"} else "unknown"
+            service = str(data.get("service") or "")
+            result.append(AuthenticationActivity(
+                **base, host_ref=host,
+                user_ref=f"user:{data.get('user') or 'unknown'}",
+                source_ip=str(data.get("source_ip")) or None,
+                service=service or None,
+                result=auth_result,
+                operation="accounting" if "accounting" in service else "login",
             ))
         elif event_type == "approved_endpoint":
             result.append(AssetActivity(

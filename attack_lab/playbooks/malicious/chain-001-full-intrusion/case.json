@@ -7,22 +7,22 @@
     "T1098.004",
     "T1567.002"
   ],
-  "scenario": "完整入侵链单案：从外部端点下载首阶段载荷 → cron 持久化并执行 → 追加 SSH 公钥驻留 → 打包敏感文件外传。",
+  "scenario": "完整入侵链单案：外部下载投放 stage1.elf → 执行回连 → 载荷派生子进程执行二阶段（cron 驻留、SSH 公钥驻留与登入、敏感文件打包 POST 外传）——后续阶段与首段载荷进程树同根。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/chain-001-full-intrusion/stage1.elf",
-    "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
-    "file_type": "elf"
+    "file_path": "/tmp/.sysupd/stage1.elf",
+    "file_type": "elf",
+    "file_hash": null
   },
   "ground_truth": {
     "behavior": {
       "technique_achieved": true,
-      "basis": "下载投放 + cron 驻留 + 密钥持久化 + 外传，链路完整达成"
+      "basis": "下载投放（GET 源在窗口外备好）→ 执行回连 → stage1.elf fork/exec 派生 bash 执行二阶段——进程树跨阶段同根，归因成立"
     },
     "file": {
       "judgment": "malicious",
-      "basis": "外部下载的首阶段载荷，后续衍生 cron/密钥/外传多阶段行为，非任何部署内容"
+      "basis": "外部下载的载荷，派生 cron/密钥持久化与外传；cron 与 authorized_keys 内容可查、外传有接收回执；部署台账不可查（未知，不作判定依据）"
     },
-    "source": "blocked-pending-recollection"
+    "source": "剧本设计推导 v2（2026-10-12 重写为载荷派生链，人工复核后生效）"
   },
   "expected_rule": {
     "expected_hit": true,
@@ -31,14 +31,17 @@
   },
   "expected_ai": {
     "verdict": "malicious",
-    "risk_level": "critical"
+    "verdict_level": "confirmed_malicious",
+    "risk_level": "critical",
+    "note": null
   },
   "key_evidence": [
-    "外部下载落盘",
-    "cron 驻留写入",
-    "authorized_keys 追加",
-    "归档外传",
-    "跨阶段同载荷关联"
+    "外部下载落盘（curl GET）",
+    "执行后回连",
+    "二阶段由载荷派生（进程树父子关系）",
+    "cron 驻留内容",
+    "authorized_keys 追加与登入尝试",
+    "打包外传回执"
   ],
   "risk_level": "critical",
   "recommended_action": "按链处置：清除载荷与驻留项、移除公钥、阻断外传端点",

@@ -49,3 +49,12 @@ done
 if id svcmaint >/dev/null 2>&1; then leftover="$leftover account:svcmaint"; fi
 if [ -n "$leftover" ]; then echo "SELF-CHECK FAILED, still present:$leftover"; exit 1; fi
 echo "self-check ok: no lab residue in system paths"
+
+# ── 采集协议 v2（2026-10-12）新增残留 ──
+for f in /etc/cron.d/sysupd-maint; do
+  [ -e "$f" ] && sudo rm -f "$f" && removed+=("$f")
+done
+for d in /tmp/.sysupd /tmp/.keydrop /tmp/.seclab-recv-1552 /tmp/.seclab-recv-chain; do
+  [ -d "$d" ] && sudo rm -rf "$d" && removed+=("$d")
+done
+sudo ip addr del 198.51.100.50/32 dev lo 2>/dev/null || true

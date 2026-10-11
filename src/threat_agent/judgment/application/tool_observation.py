@@ -74,6 +74,9 @@ _ACTIVITY_FIELDS = (
     "package_ref",
     "repository",
     "signature_valid",
+    "user_ref",
+    "source_ip",
+    "result",
 )
 
 

@@ -88,6 +88,22 @@ class ServiceActivity(ActivityEnvelope):
     operation: Literal["define", "enable", "disable", "start", "stop"]
 
 
+class AuthenticationActivity(ActivityEnvelope):
+    """登录/账号会话事件（USER_LOGIN / USER_ACCT 投影）。
+
+    r11 复核缺口整改：此类事件此前落入 ExtensionActivity 且七个查询工具
+    均不覆盖——公钥驻留/隐藏账号案的"登入尝试/账号被真实使用"半事实不可查。
+    """
+
+    activity_type: Literal["authentication"] = "authentication"
+    host_ref: str = Field(min_length=1)
+    user_ref: str = Field(min_length=1)
+    source_ip: str | None = None
+    service: str | None = None
+    result: Literal["success", "failure", "unknown"] = "unknown"
+    operation: Literal["login", "accounting"]
+
+
 class PackageActivity(ActivityEnvelope):
     activity_type: Literal["package"] = "package"
     host_ref: str = Field(min_length=1)
@@ -126,6 +142,7 @@ NormalizedActivity = Annotated[
     | ServiceActivity
     | PackageActivity
     | AssetActivity
+    | AuthenticationActivity
     | ExtensionActivity,
     Field(discriminator="activity_type"),
 ]

@@ -10,6 +10,7 @@ from ...contracts import (
     ActivityQueryBase,
     ActivityQueryResult,
     AssetActivityQuery,
+    AuthenticationActivityQuery,
     EvidenceReference,
     ExtensionActivityQuery,
     FileActivityQuery,
@@ -34,6 +35,7 @@ _SCOPE_DOMAIN_BY_ACTIVITY = {
     "process": "process", "network": "network", "socket": "network",
     "file": "file", "service": "persistence", "package": "reputation",
     "asset": "reputation", "extension": "extension",
+    "authentication": "authentication",
 }
 
 
@@ -99,6 +101,9 @@ class SQLiteActivityQueryAdapter:
         return self._query(query)
 
     def query_extension(self, query: ExtensionActivityQuery) -> ActivityQueryResult:
+        return self._query(query)
+
+    def query_authentication(self, query: AuthenticationActivityQuery) -> ActivityQueryResult:
         return self._query(query)
 
     def _query(self, query: ActivityQueryBase) -> ActivityQueryResult:
@@ -198,7 +203,7 @@ class SQLiteActivityQueryAdapter:
         mappings = {
             "process_refs": refs, "endpoint_refs": refs, "socket_refs": refs,
             "file_refs": refs, "service_refs": refs, "package_refs": refs,
-            "asset_refs": refs,
+            "asset_refs": refs, "user_refs": refs,
         }
         for field, actual in mappings.items():
             requested = getattr(query, field, [])
@@ -209,6 +214,9 @@ class SQLiteActivityQueryAdapter:
             return False
         protocols = getattr(query, "protocols", [])
         if protocols and getattr(activity, "protocol", None) not in protocols:
+            return False
+        results = getattr(query, "results", [])
+        if results and getattr(activity, "result", None) not in results:
             return False
         executable = getattr(query, "executable", None)
         if executable and getattr(activity, "executable", None) != executable:
@@ -237,8 +245,8 @@ class SQLiteActivityQueryAdapter:
         filters: dict[str, Any] = {"activity_type": query.activity_type}
         for name in (
             "source_event_types", "process_refs", "endpoint_refs", "socket_refs", "file_refs",
-            "service_refs", "package_refs", "asset_refs", "operations", "protocols",
-            "extension_schemas",
+            "service_refs", "package_refs", "asset_refs", "user_refs", "results",
+            "operations", "protocols", "extension_schemas",
         ):
             value = getattr(query, name, None)
             if value:
@@ -268,6 +276,7 @@ class SQLiteActivityQueryAdapter:
             "service": ["service_refs", "operations"],
             "package": ["package_refs", "file_refs"],
             "asset": ["asset_refs"],
+            "authentication": ["user_refs", "results"],
             "extension": ["extension_schemas"],
         }[query.activity_type]
         return QueryInterfaceDefinition(

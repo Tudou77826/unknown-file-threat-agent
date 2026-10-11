@@ -61,7 +61,7 @@ class Scope(StrictModel):
     container_ids: list[str] = Field(default_factory=list)
     entity_ids: list[str] = Field(default_factory=list)
     allowed_domains: list[str] = Field(
-        default_factory=lambda: ["process", "file", "network", "persistence", "reputation"]
+        default_factory=lambda: ["process", "file", "network", "persistence", "reputation", "authentication"]
     )
     start_time: datetime | None = None
     end_time: datetime | None = None

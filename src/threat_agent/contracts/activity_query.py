@@ -68,6 +68,12 @@ class PackageActivityQuery(ActivityQueryBase):
     file_refs: list[str] = Field(default_factory=list)
 
 
+class AuthenticationActivityQuery(ActivityQueryBase):
+    activity_type: Literal["authentication"] = "authentication"
+    user_refs: list[str] = Field(default_factory=list)
+    results: list[Literal["success", "failure", "unknown"]] = Field(default_factory=list)
+
+
 class AssetActivityQuery(ActivityQueryBase):
     activity_type: Literal["asset"] = "asset"
     asset_refs: list[str] = Field(default_factory=list)
@@ -86,6 +92,7 @@ ActivityQuery = Annotated[
     | ServiceActivityQuery
     | PackageActivityQuery
     | AssetActivityQuery
+    | AuthenticationActivityQuery
     | ExtensionActivityQuery,
     Field(discriminator="activity_type"),
 ]
