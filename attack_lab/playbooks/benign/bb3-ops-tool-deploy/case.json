@@ -6,7 +6,7 @@
   ],
   "scenario": "运维在变更窗口部署并执行内部工具脚本。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/bb3-ops-tool-deploy/ops-tool.sh",
+    "file_path": "/usr/local/bin/ops-healthcheck",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "script"
   },

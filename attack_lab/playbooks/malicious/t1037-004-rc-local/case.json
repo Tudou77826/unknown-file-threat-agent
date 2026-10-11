@@ -6,7 +6,7 @@
   ],
   "scenario": "追加 rc.local 启动项（未重启验证自启）并手动执行载荷一次。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1037-004-rc-local/payload.elf",
+    "file_path": "/tmp/.cache/sysupd/payload.elf",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "elf"
   },

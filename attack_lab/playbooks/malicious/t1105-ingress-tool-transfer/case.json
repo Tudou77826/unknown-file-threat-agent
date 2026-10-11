@@ -7,7 +7,7 @@
   ],
   "scenario": "本地文件获取（file:// 本地协议复制，未发生外部网络传输）、chmod 加执行权限、执行并回连本机模拟端口 127.0.0.1:8443 一次。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1105-ingress-tool-transfer/payload.elf",
+    "file_path": "/tmp/.cache/ingress/payload.elf",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "elf"
   },

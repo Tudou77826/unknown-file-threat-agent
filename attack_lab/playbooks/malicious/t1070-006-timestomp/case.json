@@ -6,7 +6,7 @@
   ],
   "scenario": "执行后门后用 touch -r 将其 mtime 回拨至 /bin/ls 的系统时间，掩盖落盘时间线。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1070-006-timestomp/payload.elf",
+    "file_path": "/tmp/.cache/sysupd/payload.elf",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "elf"
   },

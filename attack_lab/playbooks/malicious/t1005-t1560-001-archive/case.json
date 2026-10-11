@@ -7,7 +7,7 @@
   ],
   "scenario": "tar 打包敏感目录产出归档，为外传做准备。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1005-t1560-001-archive/staging.tar.gz",
+    "file_path": "/tmp/.cache/stage/staging.tar.gz",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "archive"
   },

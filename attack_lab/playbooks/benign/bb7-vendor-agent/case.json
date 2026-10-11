@@ -6,7 +6,7 @@
   ],
   "scenario": "厂商监控 agent 二进制定期向批准端点回连并写心跳日志（部署清单随附）。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/bb7-vendor-agent/vendor-agent",
+    "file_path": "/usr/local/bin/vendor-agent",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "elf"
   },

@@ -6,7 +6,7 @@
   ],
   "scenario": "执行通用连接载荷：建立出站连接、发送标记字节、短时保持后退出（载荷未实现隧道或远控功能）。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1219-rat-tunnel/tunnel.elf",
+    "file_path": "/tmp/.cache/tunnel/tunnel.elf",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "elf"
   },

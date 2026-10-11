@@ -9,7 +9,7 @@
   "judgment_target": {
     "file_path": "/tmp/.keydrop/staged_id_rsa",
     "file_type": "key",
-    "file_hash": null
+    "file_hash": "0000000000000000000000000000000000000000000000000000000000000000"
   },
   "ground_truth": {
     "behavior": {

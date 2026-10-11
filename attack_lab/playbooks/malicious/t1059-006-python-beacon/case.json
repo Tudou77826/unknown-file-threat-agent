@@ -6,7 +6,7 @@
   ],
   "scenario": "python 脚本落盘并由解释器执行，周期性建立外连（脚本级 C2 回连行为）。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1059-006-python-beacon/beacon.py",
+    "file_path": "/tmp/.cache/beacon/beacon.py",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "py"
   },

@@ -6,7 +6,7 @@
   ],
   "scenario": "开发者编译演示程序并运行，回连本机批准端点。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/bb5-compiler-artifact/demo.elf",
+    "file_path": "/opt/build/demo.elf",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "elf"
   },

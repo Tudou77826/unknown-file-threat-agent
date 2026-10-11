@@ -11,7 +11,7 @@
   "judgment_target": {
     "file_path": "/tmp/.sysupd/stage1.elf",
     "file_type": "elf",
-    "file_hash": null
+    "file_hash": "0000000000000000000000000000000000000000000000000000000000000000"
   },
   "ground_truth": {
     "behavior": {

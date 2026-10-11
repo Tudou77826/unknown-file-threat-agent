@@ -160,6 +160,11 @@ def _build_bundle(bundle: Path) -> None:
     )
     (bundle / "workspace_files.txt").write_text("payload.elf\n", encoding="utf-8")
     (bundle / "workspace_owners.txt").write_text("payload.elf\tNOT-OWNED\n", encoding="utf-8")
+    # v2 协议：判定目标在投放路径（/tmp/...），由采集端按 system_paths.txt
+    # 声明抓哈希——夹具按同构方式提供 system_hashes
+    (bundle / "system_hashes.txt").write_text(
+        f"{HASH}  /tmp/.cache/ingress/payload.elf\n", encoding="utf-8"
+    )
     (bundle / "approved_endpoints.txt").write_text("# cmdb export\n10.0.0.5\n", encoding="utf-8")
     (bundle / "rpm_inventory.txt").write_text("bash-5.2\n", encoding="utf-8")
     ps_row = (

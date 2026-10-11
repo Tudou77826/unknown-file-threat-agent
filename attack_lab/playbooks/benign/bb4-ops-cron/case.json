@@ -6,7 +6,7 @@
   ],
   "scenario": "运维写入日志清理 cron 任务并手动执行一次。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/bb4-ops-cron/logclean.sh",
+    "file_path": "/usr/local/bin/ops-logclean",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "script"
   },

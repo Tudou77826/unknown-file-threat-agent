@@ -6,7 +6,7 @@
   ],
   "scenario": "从内部批准镜像下载运维工具并执行。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/bb6-mirror-download/mirror-tool",
+    "file_path": "/usr/local/bin/ops-mirror-tool",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "elf"
   },

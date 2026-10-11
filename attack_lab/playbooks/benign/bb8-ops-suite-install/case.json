@@ -6,7 +6,7 @@
   ],
   "scenario": "管理员安装监控套件：系统目录写二进制、systemd 单元、cron 报告任务同时出现（持久化行为密集但合法）。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/bb8-ops-suite-install/vendor-mon",
+    "file_path": "/usr/local/bin/vendor-mon",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "elf"
   },

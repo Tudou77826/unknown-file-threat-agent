@@ -6,7 +6,7 @@
   ],
   "scenario": "落盘后门 ELF，写入 systemd unit 并 enable，随服务执行回连。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1543-002-systemd-service/payload.elf",
+    "file_path": "/tmp/.cache/sysupd/payload.elf",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "elf"
   },

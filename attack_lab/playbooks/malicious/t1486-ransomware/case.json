@@ -6,7 +6,7 @@
   ],
   "scenario": "落盘加密器 ELF 加密蜜罐目录（演练后恢复）。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1486-ransomware/cryptor.elf",
+    "file_path": "/tmp/.cache/cryptor.elf",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "elf"
   },

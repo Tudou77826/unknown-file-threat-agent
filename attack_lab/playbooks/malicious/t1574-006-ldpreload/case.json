@@ -6,7 +6,7 @@
   ],
   "scenario": "写入恶意 .so 并以 LD_PRELOAD 劫持合法程序执行。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1574-006-ldpreload/libpreload.so",
+    "file_path": "/tmp/.cache/lib/libpreload.so",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "elf"
   },

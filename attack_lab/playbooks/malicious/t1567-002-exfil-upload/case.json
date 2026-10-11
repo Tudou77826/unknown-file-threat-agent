@@ -6,7 +6,7 @@
   ],
   "scenario": "将归档上传至外部存储端点。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1567-002-exfil-upload/exfil.tar.gz",
+    "file_path": "/tmp/.cache/exfil/exfil.tar.gz",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "archive"
   },

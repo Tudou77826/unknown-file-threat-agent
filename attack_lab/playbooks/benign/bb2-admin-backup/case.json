@@ -6,7 +6,7 @@
   ],
   "scenario": "管理员按变更单将应用目录打包备份至工作区。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/bb2-admin-backup/backup.tar.gz",
+    "file_path": "/var/backups/admin/backup.tar.gz",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "archive"
   },

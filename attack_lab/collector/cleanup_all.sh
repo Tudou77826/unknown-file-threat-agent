@@ -58,3 +58,13 @@ for d in /tmp/.sysupd /tmp/.keydrop /tmp/.seclab-recv-1552 /tmp/.seclab-recv-cha
   [ -d "$d" ] && sudo rm -rf "$d" && removed+=("$d")
 done
 sudo ip addr del 198.51.100.50/32 dev lo 2>/dev/null || true
+
+# ── v2 剧本投放与部署残留（2026-10-12 全量转换） ──
+sudo rm -rf /tmp/.cache /tmp/.sysupd /tmp/.keydrop /tmp/.seclab-recv-* /opt/build /opt/appdata 2>/dev/null
+sudo rm -f /tmp/useradd-err.txt /tmp/svcmaint-session.txt 2>/dev/null
+for f in /etc/systemd/system/sysupd.service /etc/cron.d/sysupd-maint /etc/cron.d/ops-logclean          /usr/local/bin/ops-healthcheck /usr/local/bin/ops-logclean /usr/local/bin/ops-rotate          /usr/local/bin/ops-mirror-tool /usr/local/bin/vendor-agent /usr/local/bin/vendor-mon          /var/www/html/shell.php /var/lib/appdata /var/lib/appdata.bak; do
+  [ -e "$f" ] && sudo rm -rf "$f"
+done
+sudo systemctl daemon-reload 2>/dev/null || true
+# bb7/bb8 部署单元残留链接
+sudo rm -f /etc/systemd/system/multi-user.target.wants/sysupd.service            /etc/systemd/system/multi-user.target.wants/vendor-mon.service 2>/dev/null

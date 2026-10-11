@@ -6,7 +6,7 @@
   ],
   "scenario": "以 root 属主并设置 setuid 位的 helper 程序，由非特权用户（nobody）执行并建立外连。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1548-001-setuid/suid.elf",
+    "file_path": "/tmp/.cache/suid/suid.elf",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "elf"
   },

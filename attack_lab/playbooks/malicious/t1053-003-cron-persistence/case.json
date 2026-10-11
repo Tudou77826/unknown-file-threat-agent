@@ -6,7 +6,7 @@
   ],
   "scenario": "写入 /etc/cron.d 定时任务文件并手动执行载荷一次（crond 周期执行未实际发生）。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1053-003-cron-persistence/payload.elf",
+    "file_path": "/tmp/.cache/sysupd/payload.elf",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "elf"
   },

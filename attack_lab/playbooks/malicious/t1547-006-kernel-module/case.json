@@ -6,7 +6,7 @@
   ],
   "scenario": "落盘内核模块 .ko 并 insmod 加载（环境敏感，需匹配靶机内核）。",
   "judgment_target": {
-    "file_path": "/opt/secval-lab/cases/t1547-006-kernel-module/rootkit.ko",
+    "file_path": "/tmp/.cache/lkm/rootkit.ko",
     "file_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "file_type": "elf"
   },
