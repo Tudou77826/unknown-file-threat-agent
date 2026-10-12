@@ -22,7 +22,7 @@
       "judgment": "malicious",
       "basis": "外部下载的载荷，派生 cron/密钥持久化与外传；cron 与 authorized_keys 内容可查、外传有接收回执；部署台账不可查（未知，不作判定依据）"
     },
-    "source": "剧本设计推导 v2（2026-10-12 重写为载荷派生链，人工复核后生效）"
+    "source": "人工复核通过（2026-10-12，物证验证门后终审）"
   },
   "expected_rule": {
     "expected_hit": true,
