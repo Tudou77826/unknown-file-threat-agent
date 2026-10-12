@@ -60,6 +60,10 @@ for case_id in "$@"; do
   sudo rm -rf "$LAB/cases/$case_id" "$LAB/bundles/$case_id.bundle"
   sudo mkdir -p "$LAB/cases/$case_id"
 
+  # 投放根目录预建（v2 剧本统一投放 /tmp/.cache/*；t1486/t1098 首跑实证
+  # 各自 prepare 不会都建，缺目录时 cc/ssh-keygen 直接失败）
+  sudo mkdir -p /tmp/.cache
+
   # ── prepare 阶段（窗口外：不装规则、不绑 C2 之后的动作不进遥测）──
   # 编译载荷、起监听器、登记端点基线与附加 watch 声明都发生在这里。
   if [ -f "$neutral_dir/prepare.sh" ]; then
@@ -87,14 +91,14 @@ for case_id in "$@"; do
   done
 
   B="$LAB/bundles/$case_id.bundle"
-  hash_n=$(wc -l < "$B/workspace_hashes.txt" 2>/dev/null || echo 0)
-  poll_n=$(grep -c "ESTAB.*$C2_IP" "$B/conn_poll.log" 2>/dev/null || echo 0)
-  audit_n=$(wc -l < "$B/audit.log" 2>/dev/null || echo 0)
-  create_n=$(grep -c 'nametype=CREATE' "$B/audit.log" 2>/dev/null || echo 0)
+  hash_n=$(wc -l < "$B/workspace_hashes.txt" 2>/dev/null || true)
+  poll_n=$(grep -c "ESTAB.*$C2_IP" "$B/conn_poll.log" 2>/dev/null || true)
+  audit_n=$(wc -l < "$B/audit.log" 2>/dev/null || true)
+  create_n=$(grep -c 'nametype=CREATE' "$B/audit.log" 2>/dev/null || true)
   # 自身路径断言：本案例工作区路径必须出现在审计记录里（防"采到别家的、漏掉自家的"）
-  own_n=$(grep -c "secval-lab/cases/$case_id" "$B/audit.log" 2>/dev/null || echo 0)
+  own_n=$(grep -c "secval-lab/cases/$case_id" "$B/audit.log" 2>/dev/null || true)
   # 出窗断言：窗口内不得出现编译链（prepare 泄漏检测——gcc/cc1/ld 出现即本例穿帮）
-  build_n=$(grep -cE 'a[0-9]+="[^"]*gcc|comm="(gcc|cc1|ld|as)"|build\.sh' "$B/audit.log" 2>/dev/null || echo 0)
+  build_n=$(grep -cE 'a[0-9]+="[^"]*gcc|comm="(gcc|cc1|ld|as)"|build\.sh' "$B/audit.log" 2>/dev/null || true)
   warn=""
   [ "${own_n:-0}" -lt 1 ] && warn="$warn ⚠自身路径缺失"
   [ "${build_n:-0}" -gt 0 ] && warn="$warn ⚠窗口内编译泄漏(${build_n})"

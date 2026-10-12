@@ -1,8 +1,8 @@
 {
   "File_id": "file-record-bb4-ops-cron",
-  "File_hash": "61bebfaaea01dd9f0c8906f7673fdbf6efac2c0454d96eb82262ecf05279bbbb",
-  "File_path": "/tmp/.cache/logclean.sh",
+  "File_hash": "8dbe62b885740d0ad94d632bbefc334e6e7bf9d147290603c5d017ae0ddd2535",
+  "File_path": "/usr/local/bin/ops-logclean",
   "File_type": "script",
   "source": "server-01",
-  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"61bebfaaea01dd9f0c8906f7673fdbf6efac2c0454d96eb82262ecf05279bbbb\"}}"
+  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"8dbe62b885740d0ad94d632bbefc334e6e7bf9d147290603c5d017ae0ddd2535\"}}"
 }

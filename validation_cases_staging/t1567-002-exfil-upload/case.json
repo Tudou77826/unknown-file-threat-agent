@@ -6,8 +6,8 @@
   ],
   "scenario": "将归档上传至外部存储端点。",
   "judgment_target": {
-    "file_path": "/tmp/.cache/exfil.tar.gz",
-    "file_hash": "8a2bea4355e9812ae6ed219f16327e0295de3858b52a95116d23f0b90c20340c",
+    "file_path": "/tmp/.cache/exfil/exfil.tar.gz",
+    "file_hash": "07f6f5ffdaa07a19c57e1832aa26fc6affa4735e63d8cb3f09012059684255a4",
     "file_type": "archive"
   },
   "ground_truth": {
@@ -42,7 +42,8 @@
   "telemetry": {
     "event_files": [
       "counter_evidence.jsonl",
-      "file.jsonl"
+      "file.jsonl",
+      "process.jsonl"
     ],
     "environment_baseline_sources": [
       "rpm-inventory"

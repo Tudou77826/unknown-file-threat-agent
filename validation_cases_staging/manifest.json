@@ -10,137 +10,147 @@
     {
       "case_id": "t1005-t1560-001-archive",
       "directory": "t1005-t1560-001-archive",
-      "content_digest": "36cec479fa0979142875e501a706915b30602c27bacbaa466d61b822aa846b3b"
+      "content_digest": "3d226d8d604263ced2a3a6508e65a6a0a0cdc7f9443740f07865f3b5caf7ef6d"
     },
     {
       "case_id": "t1037-004-rc-local",
       "directory": "t1037-004-rc-local",
-      "content_digest": "afabe44a644cef6dca9eaf25435e469502de8dba2869b3f4820f9371cd355cdd"
+      "content_digest": "82861603fd0e9f5b8c69380dee0431448c022a99e997056ea9c41923ad4d7f82"
     },
     {
       "case_id": "t1053-003-cron-persistence",
       "directory": "t1053-003-cron-persistence",
-      "content_digest": "aa1ed378b70dbcdb38c001fd647d1d8add8127db093b92295ae0d59bd39f44f4"
+      "content_digest": "32412ac95dc715b163bffc50abf522da381ae2bdb30c9177ec39e352a23f2f61"
     },
     {
       "case_id": "t1105-ingress-tool-transfer",
       "directory": "t1105-ingress-tool-transfer",
-      "content_digest": "a26e10d8ba97b0c3dcf5a9165a594babaab69bda3cd17d62e84cafd313171481"
+      "content_digest": "2764ec08b244043cb2d448a8b486aacff8d55d96c342882feb4a74f64d2d345e"
     },
     {
       "case_id": "t1219-rat-tunnel",
       "directory": "t1219-rat-tunnel",
-      "content_digest": "3f0ca3e542b13b9bb6070f4a75c79f486228ed3703046258497d1f520a67cde9"
+      "content_digest": "83da61cb8f20faf560d4ff4336973848ed0c4dcd07d030d92fb4488f73c1a7d3"
     },
     {
       "case_id": "t1486-ransomware",
       "directory": "t1486-ransomware",
-      "content_digest": "a48fcb35bda0b7dd1aa95c358f14a4b9e8551e84d31f4611e31a6d6ce7d9232a"
+      "content_digest": "2f4281d6318eaa97461ea7d3ed03764d04c493754f2dab02e5ba71429971b285"
     },
     {
       "case_id": "t1505-003-web-shell",
       "directory": "t1505-003-web-shell",
-      "content_digest": "7bfca081fac3ae15ff258c3379284b2911bef69aa1452019b7d8e0803b88a971"
+      "content_digest": "533ac023a3bb1d4b010bc75e1f9bcf506a7eb8056a805729437d39aedc009973"
     },
     {
       "case_id": "t1543-002-systemd-service",
       "directory": "t1543-002-systemd-service",
-      "content_digest": "a6553dac56e53b028aa02f0b5f36436bc800d60af55c27df4b035c34c024a63d"
+      "content_digest": "ecc0dabfee4b2ad4c4ed082d46490acf2823ac34698dfa61cf83ac1c132d89f1"
     },
     {
       "case_id": "t1547-006-kernel-module",
       "directory": "t1547-006-kernel-module",
-      "content_digest": "1f5b83fa91a34120c0b71886d837c056abc176c09a746bf017e06ef92892749a"
+      "content_digest": "b2fdd85ffe3ac12f8148e828066a325dad5b6f07f98eb115d7b521864133d0e2"
     },
     {
       "case_id": "t1567-002-exfil-upload",
       "directory": "t1567-002-exfil-upload",
-      "content_digest": "5136a977c55ce11d15ae3ac29a090621c6b87ef6dfe931025cfca6d79de22e52"
+      "content_digest": "b1c7d26d22d49aed1b49fe7addc045049a2f078d95be5bb563a12c20584dfc7c"
     },
     {
       "case_id": "t1574-006-ldpreload",
       "directory": "t1574-006-ldpreload",
-      "content_digest": "784a439d3e2e6b66f9496a289b65f34c8174f35d9aaae6c70e2515120e315522"
+      "content_digest": "181d6fdf2dce1c0b29ab9775772908f10a14e0a1a5b861282fb6e9203529a195"
     },
     {
       "case_id": "bb2-admin-backup",
       "directory": "bb2-admin-backup",
-      "content_digest": "591f2ced2c48fb4156f472272535a08687f97b0912943ecaf57d646f048cd1f2"
+      "content_digest": "5af1d8b48ae5a9b8597db1ffa6ea5611f11a65ba29c98abd9cae01111fdfbf2d"
     },
     {
       "case_id": "bb3-ops-tool-deploy",
       "directory": "bb3-ops-tool-deploy",
-      "content_digest": "a9db24c3f741bdb51530b759d487078d51f5da66c539a03641b79c95e389e2da"
+      "content_digest": "3c693cf48fc1a433ce54d698a8ba8848bf453d59e4516fc4092baf991e880270"
     },
     {
       "case_id": "bb4-ops-cron",
       "directory": "bb4-ops-cron",
-      "content_digest": "62af01d5a5dddc10b712bdfdb224b41b5f094a83831df55c26cff96d9c4e50b0"
+      "content_digest": "a98c773cbd3255de175aac4e519784a27b4b5b3de28461991630a044ae68e2dc"
     },
     {
       "case_id": "bb5-compiler-artifact",
       "directory": "bb5-compiler-artifact",
-      "content_digest": "c76a5446b5cc4d81df2c75fed05d47fe10941f37d6a78e9ffdf4dcc84abd14a8"
+      "content_digest": "01d8f981d5073c27b94a24c21899a0786805d05680408b97122cc7b6105e0382"
     },
     {
       "case_id": "bb6-mirror-download",
       "directory": "bb6-mirror-download",
-      "content_digest": "9e70d16cad89e1667ce42a52eb7d7ea70d0af6018c996c28e559689efaf9b1a7"
+      "content_digest": "159fe91889e70721dad3be2c7bf5dd2a26382572ce943c585dd1c917e704ee47"
     },
     {
       "case_id": "t1070-006-timestomp",
       "directory": "t1070-006-timestomp",
-      "content_digest": "86e2f23efd3a79b1827d9c6532a8925939461d7ca04223902f42708a23be3c74"
+      "content_digest": "4578dea1630220dbf46c41e7a99fc330daf9f87e144aef22483e25c551846aa8"
     },
     {
       "case_id": "t1027-obfuscated-script",
       "directory": "t1027-obfuscated-script",
-      "content_digest": "df615b2dcd922ef5d6a56ca284e19c6e8214b6577cc2810c60b7ff259ffd6377"
+      "content_digest": "85edfb8774feb3e3153bee3aba007a278b03e11986acf8e0be587c69ccae165e"
     },
     {
       "case_id": "t1098-004-authorized-keys",
       "directory": "t1098-004-authorized-keys",
-      "content_digest": "01356f1fc64fb72438f56aa2a629bace620f02bfaede86fab6c755c5b4a1ce97"
+      "content_digest": "cbec60607cb9a896bcb45e7f537c1a038e2b4ae7c42031a75cc5663e689d012b"
     },
     {
       "case_id": "t1548-001-setuid",
       "directory": "t1548-001-setuid",
-      "content_digest": "fc3625d8b7ed7728a9556d63316b8b65a5b7af29c93b9e168d92358aabe79f03"
+      "content_digest": "92251d7c4a620d5c41149cab84b00bfba88be4f20556c7f1b30a381759d49515"
     },
     {
       "case_id": "t1059-006-python-beacon",
       "directory": "t1059-006-python-beacon",
-      "content_digest": "f9dbcd340bc96d5ecf8cb6df6a76e9fe8b773361608d6539b96f29582d5e6835"
+      "content_digest": "6f12a046a5bab229e528ac8d0ce0ab23593a10423b612a08b67e39d10a203b4b"
     },
     {
       "case_id": "t1136-001-account",
       "directory": "t1136-001-account",
-      "content_digest": "6a61981978fdb7a40b934a92701ed5e34cbf1df281bc5d6db092bd909d4417ce"
+      "content_digest": "75505a34b4dd2a5ca1249f423b8db082de42fc5cde8aa8c1b20316538a76886f"
     },
     {
       "case_id": "bb7-vendor-agent",
       "directory": "bb7-vendor-agent",
-      "content_digest": "830bbd06286123365f8f07a79f55fe5b5cc8fdc182f239fb16d59a26ca5ef494"
+      "content_digest": "e2a73176caa73b446d2b188faa4361d9a0c4ac96c323f55c51932be1d17b4d56"
     },
     {
       "case_id": "bb8-ops-suite-install",
       "directory": "bb8-ops-suite-install",
-      "content_digest": "18bd5bc41458b05ae8942a88788133251c34a1d27fbd225b61dc6dd58bf2142a"
+      "content_digest": "ea6396dd300b9054401d4fa8aa90fefb62fa3675839d685337337a46b458312f"
     },
     {
       "case_id": "bb9-log-rotation",
       "directory": "bb9-log-rotation",
-      "content_digest": "9a2d12ae6801d0331647572075d8d903e19249171f1bd6d07bb45c81d68fa1c3"
+      "content_digest": "451ba7f0e1a2fa2a66b1d6f85ee86e3c22cd7e1f3edabcbb3e0129e21b91a70d"
     },
     {
       "case_id": "bb11-cfgmgmt-ssh-key",
       "directory": "bb11-cfgmgmt-ssh-key",
-      "content_digest": "88131fc829bfdd0bf0cfd9f7e60890eaa404c9354577e43752e1122718e38cdc"
+      "content_digest": "0e0103f68e69ca6cef2fb1a830d4e41c55d95f34a8a06f9dd6aa431d435ca5de"
     },
     {
       "case_id": "t1036-005-masquerade",
       "directory": "t1036-005-masquerade",
-      "content_digest": "9a581a3b991b8e3f89fbfd601a18f8d4cd159c985a9c3b32304326b6b94c4572"
+      "content_digest": "1633c4f8e9b5f1a5789a64d2b9bcf20aa17c3bcf92dd806c77bd44b0ddfc29a1"
+    },
+    {
+      "case_id": "chain-001-full-intrusion",
+      "directory": "chain-001-full-intrusion",
+      "content_digest": "74d955686d1f3b34e5cfd00782d4929f966e5a2a3a1497569230930f48a95cac"
+    },
+    {
+      "case_id": "t1552-004-private-key",
+      "directory": "t1552-004-private-key",
+      "content_digest": "11df9f98c46c785e6eb8cecdaee3e2d26fdcaf810e41157aa270da11d9a63265"
     }
   ]
 }

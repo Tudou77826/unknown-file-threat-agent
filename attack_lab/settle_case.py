@@ -206,7 +206,8 @@ def _counter_evidence(
             }
         )
     baseline_lines = [
-        line.strip()
+        # 剧本侧常写 IP:port（更精确），事件侧只有裸 IP——按主机段比较
+        line.strip().rsplit(":", 1)[0] if ":" in line.strip() else line.strip()
         for line in (bundle / "approved_endpoints.txt").read_text(encoding="utf-8").splitlines()
         if line.strip() and not line.startswith("#")
     ]
@@ -387,6 +388,46 @@ def _workspace_evidence_events(bundle: Path, host_id: str, workspace_root: str, 
     return events
 
 
+def _tar_mtime_stat_events(bundle: Path, host_id: str, workspace_root: str, observed_at: str) -> list[dict]:
+    """tar 归档完整保留了每个成员的 mtime——对二进制载荷（文本内容事件
+    覆盖不到）以 tar 元数据生成 stat 快照事件。时间戳回拨案的核心证据
+    （mtime 早于落盘事件时间）由此进入回放。"""
+
+    import tarfile
+    from datetime import datetime, timezone as tz
+
+    tar_path = bundle / "workspace.tar.gz"
+    if not tar_path.exists():
+        return []
+    events: list[dict] = []
+    try:
+        with tarfile.open(tar_path, "r:gz") as tar:
+            for member in tar.getmembers():
+                if not member.isfile() or member.name.endswith((".log", ".txt", ".json", ".yaml", ".yml")):
+                    continue  # 文本类走内容事件；此处补二进制载荷的元数据
+                name = member.name[2:] if member.name.startswith("./") else member.name
+                abs_path = f"{workspace_root}/{name}"
+                mtime = datetime.fromtimestamp(member.mtime, tz=tz.utc).isoformat()
+                events.append({
+                    "event_id": f"tar-stat-{name}",
+                    "event_type": "file_stat_snapshot",
+                    "domain": "file",
+                    "source_system": "file-meta-scan/1",
+                    "observed_at": observed_at,
+                    "host_id": host_id,
+                    "subject_refs": [f"file:{host_id}:{abs_path}"],
+                    "data": {
+                        "path": abs_path,
+                        "modify_time": mtime,
+                        "mode": oct(member.mode),
+                        "uid": str(member.uid),
+                    },
+                })
+    except tarfile.TarError:
+        return []
+    return events
+
+
 def _system_content_events(bundle: Path, host_id: str, observed_at: str) -> list[dict]:
     """协议 v2：系统文件内容快照 → file_content 事件（真实系统路径）。
 
@@ -424,6 +465,43 @@ def _system_content_events(bundle: Path, host_id: str, observed_at: str) -> list
     return events
 
 
+def _system_stat_events(bundle: Path, host_id: str, observed_at: str) -> list[dict]:
+    """采集端窗口后 stat 快照（system_stats.txt）→ file_stat_snapshot 事件。
+
+    行格式 name|mtime|ctime|birth|owner|mode（collect.sh 协议 v2）。
+    """
+
+    path = bundle / "system_stats.txt"
+    if not path.exists():
+        return []
+    events: list[dict] = []
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        parts = line.split("|")
+        if len(parts) < 6 or not parts[0].strip():
+            continue
+        name, mtime, ctime, birth, owner, mode = (p.strip() for p in parts[:6])
+        if birth == "-":
+            birth = ""
+        events.append({
+            "event_id": f"sys-stat-{name}",
+            "event_type": "file_stat_snapshot",
+            "domain": "file",
+            "source_system": "stat-snapshot/1",
+            "observed_at": observed_at,
+            "host_id": host_id,
+            "subject_refs": [f"file:{host_id}:{name}"],
+            "data": {
+                "path": name,
+                "modify_time": mtime,
+                "change_time": ctime,
+                **({"birth_time": birth} if birth else {}),
+                "owner": owner,
+                "mode": mode,
+            },
+        })
+    return events
+
+
 def settle(*, source: Path, bundle: Path, host_id: str, suite_root: Path, workspace_root_hint: str | None = None) -> Path:
     draft = TestCase.model_validate(
         json.loads((source / "case.json").read_text(encoding="utf-8"))
@@ -433,7 +511,7 @@ def settle(*, source: Path, bundle: Path, host_id: str, suite_root: Path, worksp
     window_lines = _filter_window(lines, start_ms, end_ms)
     envelopes = parse_auditd_lines(window_lines, host_id=host_id)
     envelopes.extend(_parse_conn_poll(bundle, host_id))
-    envelopes = _scope_to_case(envelopes, draft.case_id, workspace_root_hint)
+    envelopes = _scope_to_case(envelopes, draft.case_id, workspace_root_hint, extra_watch=_bundle_watch_paths(bundle))
 
     workspace_root = f"{(workspace_root_hint or '/opt/secval-lab/cases').rstrip('/')}/{draft.case_id}"
     path_hashes = _load_path_hashes(bundle, workspace_root)
@@ -449,6 +527,8 @@ def settle(*, source: Path, bundle: Path, host_id: str, suite_root: Path, worksp
     events.extend(_counter_evidence(events, bundle, host_id, observed_at))
     events.extend(_workspace_evidence_events(bundle, host_id, workspace_root, observed_at))
     events.extend(_system_content_events(bundle, host_id, observed_at))
+    events.extend(_tar_mtime_stat_events(bundle, host_id, workspace_root, observed_at))
+    events.extend(_system_stat_events(bundle, host_id, observed_at))
     # 文件事件补内容哈希关联：/etc/passwd 这类系统路径的写入事件此前不带
     # 哈希，调查目标与事件无法凭哈希对上（复核意见：t1136）。
     all_hashes = {**_load_system_hashes(bundle), **path_hashes}
@@ -628,7 +708,31 @@ def _parse_conn_poll(bundle: Path, host_id: str):
     return envelopes
 
 
-def _scope_to_case(envelopes, case_id, root_hint):
+def _bundle_watch_paths(bundle: Path) -> list[str]:
+    """v2 剧本把投放目录声明在 workspace 的 watch_paths.txt（采集过滤器
+    依赖它保留记录）。范围收敛必须读同一份声明——v2 首采实证：/tmp/.cache
+    等投放路径不在 v1 硬编码白名单里，事件在采集包里有、沉淀时被丢。"""
+    import tarfile
+
+    tar_path = bundle / "workspace.tar.gz"
+    if not tar_path.exists():
+        return []
+    try:
+        with tarfile.open(tar_path, "r:gz") as tar:
+            # 成员名带 ./ 前缀；extractfile 对缺失成员在不同 Python 版本上
+            # 行为不一（None 或 KeyError），遍历匹配最稳
+            for member in tar.getmembers():
+                if member.name.lstrip("./") == "watch_paths.txt":
+                    handle = tar.extractfile(member)
+                    if handle is None:
+                        return []
+                    return [line.strip() for line in handle.read().decode("utf-8").splitlines() if line.strip()]
+            return []
+    except (tarfile.TarError, KeyError, UnicodeDecodeError):
+        return []
+
+
+def _scope_to_case(envelopes, case_id, root_hint, extra_watch=None):
     """The audit rules see the whole host (aegis/panel churn included); the
     replay should carry the case's own activity: workspace paths, /etc
     persistence writes, and the process closure of the case's pids."""
@@ -644,7 +748,9 @@ def _scope_to_case(envelopes, case_id, root_hint):
     # (python3 beacon.py / bash pipe). Paths mirror audit-rules §2 watches.
     kept_paths = (
         root + "/", "/etc/", "/usr/local/sbin/", "/usr/local/bin/",
-        "/root/.ssh/", "/var/log/secval-demo/", "/var/backups/secval-demo/",
+        "/root/.ssh/", "/var/log/applog/", "/var/backups/applog/",
+        "/var/www/html/", "/var/lib/appdata/",
+        *(extra_watch or []),
     )
     for envelope in envelopes:
         if envelope.kind != "file":

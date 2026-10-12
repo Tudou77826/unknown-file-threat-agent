@@ -7,7 +7,7 @@
   "scenario": "生成攻击者密钥对并将公钥追加到 root 的 authorized_keys，随后以该密钥尝试 SSH 登入本机。",
   "judgment_target": {
     "file_path": "/root/.ssh/authorized_keys",
-    "file_hash": "e1a9f49d26dbbba421e8635ea6146b46ec81d9ad09a5a574d74e066f47652c05",
+    "file_hash": "6d27552be37a61cae472e000ec12e6914b07a4e9fa5b3c5057e968847f608f72",
     "file_type": "key"
   },
   "ground_truth": {

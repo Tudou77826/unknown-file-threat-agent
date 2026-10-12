@@ -1,0 +1,73 @@
+{
+  "schema_version": "1.0",
+  "case_id": "chain-001-full-intrusion",
+  "attack_tags": [
+    "T1105",
+    "T1053.003",
+    "T1098.004",
+    "T1567.002"
+  ],
+  "scenario": "完整入侵链单案：外部下载投放 stage1.elf → 执行回连 → 载荷派生子进程执行二阶段（cron 驻留、SSH 公钥驻留与登入、敏感文件打包 POST 外传）——后续阶段与首段载荷进程树同根。",
+  "judgment_target": {
+    "file_path": "/tmp/.sysupd/stage1.elf",
+    "file_hash": "5fe7520b134d9f491023c08130447fb91074ecbb34b04de16d305ba3019707de",
+    "file_type": "elf"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "下载投放（GET 源在窗口外备好）→ 执行回连 → stage1.elf fork/exec 派生 bash 执行二阶段——进程树跨阶段同根，归因成立"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "外部下载的载荷，派生 cron/密钥持久化与外传；cron 与 authorized_keys 内容可查、外传有接收回执；部署台账不可查（未知，不作判定依据）"
+    },
+    "source": "剧本设计推导 v2（2026-10-12 重写为载荷派生链，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "verdict_level": "confirmed_malicious",
+    "risk_level": "critical",
+    "note": null
+  },
+  "key_evidence": [
+    "外部下载落盘（curl GET）",
+    "执行后回连",
+    "二阶段由载荷派生（进程树父子关系）",
+    "cron 驻留内容",
+    "authorized_keys 追加与登入尝试",
+    "打包外传回执"
+  ],
+  "risk_level": "critical",
+  "recommended_action": "按链处置：清除载荷与驻留项、移除公钥、阻断外传端点",
+  "telemetry": {
+    "event_files": [
+      "counter_evidence.jsonl",
+      "file.jsonl",
+      "network.jsonl",
+      "other.jsonl",
+      "persistence.jsonl",
+      "process.jsonl"
+    ],
+    "environment_baseline_sources": [
+      "rpm-inventory",
+      "cmdb-baseline"
+    ]
+  },
+  "provenance": {
+    "origin": "attack-run",
+    "environment": "server-01",
+    "collector": "auditd-collector/1 + collect.sh/1",
+    "created": "2026-10-09",
+    "notes": "2026-10-10 复核裁决：后续阶段（密钥/外传）由 run.sh 兄弟命令执行而非 stage1.elf 派生，归因断裂；cron 内容与上传回执缺失——待重采（载荷派生执行后续阶段） | settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

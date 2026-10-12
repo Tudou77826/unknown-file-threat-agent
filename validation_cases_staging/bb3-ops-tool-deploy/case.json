@@ -6,8 +6,8 @@
   ],
   "scenario": "运维在变更窗口部署并执行内部工具脚本。",
   "judgment_target": {
-    "file_path": "/tmp/.cache/ops-tool.sh",
-    "file_hash": "670d17960925cefe472dc1ace2ef7a9745d7646eb756df552987a8755b68bae8",
+    "file_path": "/usr/local/bin/ops-healthcheck",
+    "file_hash": "4b20c73720477fd6c17d7120ed61ecb34aa3571892b2e1928855f800ba3ca629",
     "file_type": "script"
   },
   "ground_truth": {
@@ -42,7 +42,8 @@
   "telemetry": {
     "event_files": [
       "counter_evidence.jsonl",
-      "file.jsonl"
+      "file.jsonl",
+      "process.jsonl"
     ],
     "environment_baseline_sources": [
       "rpm-inventory"

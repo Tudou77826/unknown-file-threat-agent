@@ -6,8 +6,8 @@
   ],
   "scenario": "运维轮转脚本压缩归档 30 天前的旧日志并删除原件（删除/压缩/时间操作密集但合法，轮转策略在案）。",
   "judgment_target": {
-    "file_path": "/opt/tools/cases/rotate.sh",
-    "file_hash": "f0e671a578515afc3cb0259b839c18a4a64df21f5b4f9693ea7a4e72c27d2264",
+    "file_path": "/usr/local/bin/ops-rotate",
+    "file_hash": "168fa2e5f119bb80906a9f4864b43fe976395b28bb0df27cf4c9ad498f3f755c",
     "file_type": "script"
   },
   "ground_truth": {
@@ -43,7 +43,6 @@
     "event_files": [
       "counter_evidence.jsonl",
       "file.jsonl",
-      "other.jsonl",
       "process.jsonl"
     ],
     "environment_baseline_sources": [

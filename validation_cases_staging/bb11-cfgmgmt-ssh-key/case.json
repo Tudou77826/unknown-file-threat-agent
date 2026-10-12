@@ -6,8 +6,8 @@
   ],
   "scenario": "配置管理向 root 下发运维公钥（ansible 部署文件在案），并以该密钥完成一次登入验证。",
   "judgment_target": {
-    "file_path": "/opt/tools/cases/ops_ed25519.pub",
-    "file_hash": "f58e82e91aaa91eb1097ed2a697472efeee61c878424decd42073e516abeebd4",
+    "file_path": "/root/.ssh/authorized_keys",
+    "file_hash": "0b07ee0204dc8172091513fe48af473a7e27bccf2639607a641b4ccc0a10cd78",
     "file_type": "key"
   },
   "ground_truth": {
@@ -43,11 +43,13 @@
     "event_files": [
       "counter_evidence.jsonl",
       "file.jsonl",
+      "network.jsonl",
       "other.jsonl",
       "process.jsonl"
     ],
     "environment_baseline_sources": [
-      "rpm-inventory"
+      "rpm-inventory",
+      "cmdb-baseline"
     ]
   },
   "provenance": {

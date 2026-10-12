@@ -6,8 +6,8 @@
   ],
   "scenario": "管理员按变更单将应用目录打包备份至工作区。",
   "judgment_target": {
-    "file_path": "/tmp/.cache/backup.tar.gz",
-    "file_hash": "e409ec7a16bca32e427b37436ecde0bf500cbdb5f12e7af1980765ca5b3f951c",
+    "file_path": "/var/backups/admin/backup.tar.gz",
+    "file_hash": "04e0d81805effe57a08e3276c16b2047f7f61b4d3661d86d3500ddbfe97c988e",
     "file_type": "archive"
   },
   "ground_truth": {
@@ -41,7 +41,9 @@
   "telemetry": {
     "event_files": [
       "counter_evidence.jsonl",
-      "file.jsonl"
+      "file.jsonl",
+      "other.jsonl",
+      "process.jsonl"
     ],
     "environment_baseline_sources": [
       "rpm-inventory"

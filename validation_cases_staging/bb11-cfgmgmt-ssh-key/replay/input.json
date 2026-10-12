@@ -1,8 +1,8 @@
 {
   "File_id": "file-record-bb11-cfgmgmt-ssh-key",
-  "File_hash": "f58e82e91aaa91eb1097ed2a697472efeee61c878424decd42073e516abeebd4",
-  "File_path": "/opt/tools/cases/ops_ed25519.pub",
+  "File_hash": "0b07ee0204dc8172091513fe48af473a7e27bccf2639607a641b4ccc0a10cd78",
+  "File_path": "/root/.ssh/authorized_keys",
   "File_type": "key",
   "source": "server-01",
-  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"f58e82e91aaa91eb1097ed2a697472efeee61c878424decd42073e516abeebd4\"}}"
+  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"0b07ee0204dc8172091513fe48af473a7e27bccf2639607a641b4ccc0a10cd78\"}}"
 }

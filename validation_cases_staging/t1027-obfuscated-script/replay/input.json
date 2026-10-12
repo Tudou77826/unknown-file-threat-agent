@@ -1,8 +1,8 @@
 {
   "File_id": "file-record-t1027-obfuscated-script",
-  "File_hash": "1420edfa2a4cb534c106686f595c9a69d34bd2d20847ea180ec976d77f355dc9",
-  "File_path": "/opt/tools/cases/beacon.enc",
+  "File_hash": "7aa23398add0cf600079ddc53340fd8f00776ad58cd445143213c65fbbdc7832",
+  "File_path": "/tmp/.cache/beacon/beacon.enc",
   "File_type": "enc",
   "source": "server-01",
-  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"1420edfa2a4cb534c106686f595c9a69d34bd2d20847ea180ec976d77f355dc9\"}}"
+  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"7aa23398add0cf600079ddc53340fd8f00776ad58cd445143213c65fbbdc7832\"}}"
 }

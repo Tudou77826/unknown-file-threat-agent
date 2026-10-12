@@ -1,8 +1,8 @@
 {
   "File_id": "file-record-t1567-002-exfil-upload",
-  "File_hash": "8a2bea4355e9812ae6ed219f16327e0295de3858b52a95116d23f0b90c20340c",
-  "File_path": "/tmp/.cache/exfil.tar.gz",
+  "File_hash": "07f6f5ffdaa07a19c57e1832aa26fc6affa4735e63d8cb3f09012059684255a4",
+  "File_path": "/tmp/.cache/exfil/exfil.tar.gz",
   "File_type": "archive",
   "source": "server-01",
-  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"8a2bea4355e9812ae6ed219f16327e0295de3858b52a95116d23f0b90c20340c\"}}"
+  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"07f6f5ffdaa07a19c57e1832aa26fc6affa4735e63d8cb3f09012059684255a4\"}}"
 }

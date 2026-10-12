@@ -1,8 +1,8 @@
 {
   "File_id": "file-record-t1059-006-python-beacon",
-  "File_hash": "2f19227404c4ffb6c038c82d3a0fb7b4eec9cd33f057828bf34440a1d7721deb",
-  "File_path": "/opt/tools/cases/beacon.py",
+  "File_hash": "98bdf549ead7eff21db0f39baa9a8df7704108bf38df3c32c5bec031ffe83dbb",
+  "File_path": "/tmp/.cache/beacon/beacon.py",
   "File_type": "py",
   "source": "server-01",
-  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"2f19227404c4ffb6c038c82d3a0fb7b4eec9cd33f057828bf34440a1d7721deb\"}}"
+  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"98bdf549ead7eff21db0f39baa9a8df7704108bf38df3c32c5bec031ffe83dbb\"}}"
 }

@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0",
+  "case_id": "t1552-004-private-key",
+  "attack_tags": [
+    "T1552.004",
+    "T1567"
+  ],
+  "scenario": "复制已存在的运维私钥（ops@inventory-2024，窗口外创建）到暂存目录，打包后 POST 上传至外部端点，接收端留有回执。",
+  "judgment_target": {
+    "file_path": "/tmp/.keydrop/staged_id_rsa",
+    "file_hash": "707444dc11cac2d6555dd21294bb1e3aeda84a2ff878adb0abac50fbea038564",
+    "file_type": "key"
+  },
+  "ground_truth": {
+    "behavior": {
+      "technique_achieved": true,
+      "basis": "复制既有私钥（源密钥创建于窗口外，遥测只应有复制无创建）→ 暂存 → 打包 → POST 上传成功（接收端回执物证）"
+    },
+    "file": {
+      "judgment": "malicious",
+      "basis": "他人私钥副本出现在暂存目录并被打包外传——源密钥注释（ops@inventory-2024）指向非攻击者资产；部署台账不可查（未知，不作判定依据）"
+    },
+    "source": "剧本设计推导 v2（2026-10-12 重写为真行为，人工复核后生效）"
+  },
+  "expected_rule": {
+    "expected_hit": true,
+    "note": "漏检统计需受理回执",
+    "requires_acceptance_receipt": true
+  },
+  "expected_ai": {
+    "verdict": "malicious",
+    "verdict_level": "confirmed_malicious",
+    "risk_level": "critical",
+    "note": null
+  },
+  "key_evidence": [
+    "既有私钥的复制事件（源 /home/ops/.ssh → 暂存目录）",
+    "打包归档",
+    "POST 上传与接收端回执",
+    "源密钥创建时间在窗口外（非现场生成）"
+  ],
+  "risk_level": "critical",
+  "recommended_action": "吊销相关凭据，清除副本，排查外传目的地",
+  "telemetry": {
+    "event_files": [
+      "counter_evidence.jsonl",
+      "file.jsonl",
+      "process.jsonl"
+    ],
+    "environment_baseline_sources": [
+      "rpm-inventory"
+    ]
+  },
+  "provenance": {
+    "origin": "attack-run",
+    "environment": "server-01",
+    "collector": "auditd-collector/1 + collect.sh/1",
+    "created": "2026-10-09",
+    "notes": "2026-10-10 复核裁决：剧本现场生成新密钥而非窃取已有私钥，上传接收端不支持 POST——GT 行为未真实达成，待重采（先复制真实存在的私钥、接收端可回执） | settle_case.py 生成：GT 与预期结果为剧本草案，人工复核后方可入正式套件"
+  },
+  "parameters": {
+    "defaults": {},
+    "variants": []
+  }
+}

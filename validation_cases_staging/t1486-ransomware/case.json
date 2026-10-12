@@ -7,7 +7,7 @@
   "scenario": "落盘加密器 ELF 加密蜜罐目录（演练后恢复）。",
   "judgment_target": {
     "file_path": "/tmp/.cache/cryptor.elf",
-    "file_hash": "4a063d235783be9406a2309bd4fa3dfbdda310e7f260742e2e4ecbe54c211abb",
+    "file_hash": "6bdabe84510f829042684061d3df19ca6aa7af3274aebb2193b4b8faab7c805d",
     "file_type": "elf"
   },
   "ground_truth": {

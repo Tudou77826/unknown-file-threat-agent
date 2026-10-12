@@ -1,0 +1,8 @@
+{
+  "File_id": "file-record-t1552-004-private-key",
+  "File_hash": "707444dc11cac2d6555dd21294bb1e3aeda84a2ff878adb0abac50fbea038564",
+  "File_path": "/tmp/.keydrop/staged_id_rsa",
+  "File_type": "key",
+  "source": "server-01",
+  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"707444dc11cac2d6555dd21294bb1e3aeda84a2ff878adb0abac50fbea038564\"}}"
+}

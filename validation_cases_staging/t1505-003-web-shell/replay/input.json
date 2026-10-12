@@ -1,7 +1,7 @@
 {
   "File_id": "file-record-t1505-003-web-shell",
   "File_hash": "ec6c76aaf49c88a3013254382a395f0fc8d1564f087a89260eed2a72935642b5",
-  "File_path": "/tmp/.cache/webroot/shell.php",
+  "File_path": "/var/www/html/shell.php",
   "File_type": "php",
   "source": "server-01",
   "Detail": "{\"context\": [], \"feature\": {\"hash\": \"ec6c76aaf49c88a3013254382a395f0fc8d1564f087a89260eed2a72935642b5\"}}"

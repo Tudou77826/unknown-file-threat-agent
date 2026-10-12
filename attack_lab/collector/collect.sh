@@ -114,6 +114,13 @@ if [ -f "$WORK/system_paths.txt" ]; then
   while IFS= read -r p; do
     [ -n "$p" ] && [ -f "$p" ] && sha256sum "$p" >> "$BUNDLE/system_hashes.txt" || echo "WARN: system path missing $p" >&2
   done < "$WORK/system_paths.txt"
+  # 协议 v2：系统路径 stat 快照（窗口后抓取）——mtime/ctime/birth 是时间戳
+  # 回拨案的定性证据，tar 只保留工作区原件的时间，被篡改的投放副本必须
+  # 显式拍快照（t1070 首采实证：mtime 2024 < 落盘事件 2026 的矛盾不可见）
+  : > "$BUNDLE/system_stats.txt"
+  while IFS= read -r p; do
+    [ -n "$p" ] && [ -f "$p" ] && stat -c '%n|%y|%z|%w|%U|%a' "$p" >> "$BUNDLE/system_stats.txt" 2>/dev/null || true
+  done < "$WORK/system_paths.txt"
   # 协议 v2：系统文件内容快照（窗口后抓取）。t1136 复核实证：/etc/passwd 写入了
   # 什么（UID 0 账号）是定性关键，但此前只有"被写过"的事件没有内容——
   # AI 只能看到"useradd 改了 passwd"，与合法建账号无法区分。

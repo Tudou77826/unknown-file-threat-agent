@@ -1,8 +1,8 @@
 {
   "File_id": "file-record-t1486-ransomware",
-  "File_hash": "4a063d235783be9406a2309bd4fa3dfbdda310e7f260742e2e4ecbe54c211abb",
+  "File_hash": "6bdabe84510f829042684061d3df19ca6aa7af3274aebb2193b4b8faab7c805d",
   "File_path": "/tmp/.cache/cryptor.elf",
   "File_type": "elf",
   "source": "server-01",
-  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"4a063d235783be9406a2309bd4fa3dfbdda310e7f260742e2e4ecbe54c211abb\"}}"
+  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"6bdabe84510f829042684061d3df19ca6aa7af3274aebb2193b4b8faab7c805d\"}}"
 }

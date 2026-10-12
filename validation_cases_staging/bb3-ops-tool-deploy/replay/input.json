@@ -1,8 +1,8 @@
 {
   "File_id": "file-record-bb3-ops-tool-deploy",
-  "File_hash": "670d17960925cefe472dc1ace2ef7a9745d7646eb756df552987a8755b68bae8",
-  "File_path": "/tmp/.cache/ops-tool.sh",
+  "File_hash": "4b20c73720477fd6c17d7120ed61ecb34aa3571892b2e1928855f800ba3ca629",
+  "File_path": "/usr/local/bin/ops-healthcheck",
   "File_type": "script",
   "source": "server-01",
-  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"670d17960925cefe472dc1ace2ef7a9745d7646eb756df552987a8755b68bae8\"}}"
+  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"4b20c73720477fd6c17d7120ed61ecb34aa3571892b2e1928855f800ba3ca629\"}}"
 }

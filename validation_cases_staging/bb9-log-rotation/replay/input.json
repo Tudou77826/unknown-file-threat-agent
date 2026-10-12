@@ -1,8 +1,8 @@
 {
   "File_id": "file-record-bb9-log-rotation",
-  "File_hash": "f0e671a578515afc3cb0259b839c18a4a64df21f5b4f9693ea7a4e72c27d2264",
-  "File_path": "/opt/tools/cases/rotate.sh",
+  "File_hash": "168fa2e5f119bb80906a9f4864b43fe976395b28bb0df27cf4c9ad498f3f755c",
+  "File_path": "/usr/local/bin/ops-rotate",
   "File_type": "script",
   "source": "server-01",
-  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"f0e671a578515afc3cb0259b839c18a4a64df21f5b4f9693ea7a4e72c27d2264\"}}"
+  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"168fa2e5f119bb80906a9f4864b43fe976395b28bb0df27cf4c9ad498f3f755c\"}}"
 }

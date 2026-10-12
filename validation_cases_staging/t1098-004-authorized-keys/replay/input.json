@@ -1,8 +1,8 @@
 {
   "File_id": "file-record-t1098-004-authorized-keys",
-  "File_hash": "e1a9f49d26dbbba421e8635ea6146b46ec81d9ad09a5a574d74e066f47652c05",
+  "File_hash": "6d27552be37a61cae472e000ec12e6914b07a4e9fa5b3c5057e968847f608f72",
   "File_path": "/root/.ssh/authorized_keys",
   "File_type": "key",
   "source": "server-01",
-  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"e1a9f49d26dbbba421e8635ea6146b46ec81d9ad09a5a574d74e066f47652c05\"}}"
+  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"6d27552be37a61cae472e000ec12e6914b07a4e9fa5b3c5057e968847f608f72\"}}"
 }

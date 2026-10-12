@@ -1,8 +1,8 @@
 {
   "File_id": "file-record-bb7-vendor-agent",
-  "File_hash": "2aa7d4403a28340f2ac3b3c13b760a13a198af2d2e8a8feece7645795eea883f",
-  "File_path": "/opt/tools/cases/vendor-agent",
+  "File_hash": "5fe7520b134d9f491023c08130447fb91074ecbb34b04de16d305ba3019707de",
+  "File_path": "/usr/local/bin/vendor-agent",
   "File_type": "elf",
   "source": "server-01",
-  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"2aa7d4403a28340f2ac3b3c13b760a13a198af2d2e8a8feece7645795eea883f\"}}"
+  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"5fe7520b134d9f491023c08130447fb91074ecbb34b04de16d305ba3019707de\"}}"
 }

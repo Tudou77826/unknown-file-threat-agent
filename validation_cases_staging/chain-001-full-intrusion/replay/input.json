@@ -1,0 +1,8 @@
+{
+  "File_id": "file-record-chain-001-full-intrusion",
+  "File_hash": "5fe7520b134d9f491023c08130447fb91074ecbb34b04de16d305ba3019707de",
+  "File_path": "/tmp/.sysupd/stage1.elf",
+  "File_type": "elf",
+  "source": "server-01",
+  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"5fe7520b134d9f491023c08130447fb91074ecbb34b04de16d305ba3019707de\"}}"
+}

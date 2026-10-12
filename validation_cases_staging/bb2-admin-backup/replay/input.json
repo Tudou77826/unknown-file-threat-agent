@@ -1,8 +1,8 @@
 {
   "File_id": "file-record-bb2-admin-backup",
-  "File_hash": "e409ec7a16bca32e427b37436ecde0bf500cbdb5f12e7af1980765ca5b3f951c",
-  "File_path": "/tmp/.cache/backup.tar.gz",
+  "File_hash": "04e0d81805effe57a08e3276c16b2047f7f61b4d3661d86d3500ddbfe97c988e",
+  "File_path": "/var/backups/admin/backup.tar.gz",
   "File_type": "archive",
   "source": "server-01",
-  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"e409ec7a16bca32e427b37436ecde0bf500cbdb5f12e7af1980765ca5b3f951c\"}}"
+  "Detail": "{\"context\": [], \"feature\": {\"hash\": \"04e0d81805effe57a08e3276c16b2047f7f61b4d3661d86d3500ddbfe97c988e\"}}"
 }

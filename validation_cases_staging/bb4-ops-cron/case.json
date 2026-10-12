@@ -6,8 +6,8 @@
   ],
   "scenario": "运维写入日志清理 cron 任务并手动执行一次。",
   "judgment_target": {
-    "file_path": "/tmp/.cache/logclean.sh",
-    "file_hash": "61bebfaaea01dd9f0c8906f7673fdbf6efac2c0454d96eb82262ecf05279bbbb",
+    "file_path": "/usr/local/bin/ops-logclean",
+    "file_hash": "8dbe62b885740d0ad94d632bbefc334e6e7bf9d147290603c5d017ae0ddd2535",
     "file_type": "script"
   },
   "ground_truth": {
@@ -43,7 +43,8 @@
     "event_files": [
       "counter_evidence.jsonl",
       "file.jsonl",
-      "persistence.jsonl"
+      "persistence.jsonl",
+      "process.jsonl"
     ],
     "environment_baseline_sources": [
       "rpm-inventory"

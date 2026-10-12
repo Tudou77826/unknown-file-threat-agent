@@ -6,8 +6,8 @@
   ],
   "scenario": "以 root 属主并设置 setuid 位的 helper 程序，由非特权用户（nobody）执行并建立外连。",
   "judgment_target": {
-    "file_path": "/opt/tools/cases/suid.elf",
-    "file_hash": "2aa7d4403a28340f2ac3b3c13b760a13a198af2d2e8a8feece7645795eea883f",
+    "file_path": "/tmp/.cache/suid/suid.elf",
+    "file_hash": "5fe7520b134d9f491023c08130447fb91074ecbb34b04de16d305ba3019707de",
     "file_type": "elf"
   },
   "ground_truth": {

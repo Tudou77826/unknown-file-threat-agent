@@ -7,7 +7,7 @@
   "scenario": "后门 ELF 伪装为 sshd 辅助程序名并复制到合法系统目录 /usr/local/sbin 后执行，建立外连。",
   "judgment_target": {
     "file_path": "/usr/local/sbin/sshd-helper",
-    "file_hash": "2aa7d4403a28340f2ac3b3c13b760a13a198af2d2e8a8feece7645795eea883f",
+    "file_hash": "5fe7520b134d9f491023c08130447fb91074ecbb34b04de16d305ba3019707de",
     "file_type": "elf"
   },
   "ground_truth": {

