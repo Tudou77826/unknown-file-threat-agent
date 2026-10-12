@@ -195,3 +195,18 @@ gcc/ld 编译生成（build.sh→gcc→ld 编译链在采集窗口内）""仅与
 ①编译移出窗口（collect.sh 预构建钩子）②非回环端点（第二网卡/容器对端）
 ③监听脚手架/取证验证步骤移出窗口或进过滤器 ④落盘路径生产化（/tmp/. 等非
 工具目录）。单轮方差大（malicious-elf 1.0↔0.4），后续正式跑用 epochs=2。
+
+## 2026-10-12 采集协议 v2 现场执行记录
+
+三轮现场修复全绿（22/29 → 29/29）：post_receiver py3.6 兼容（directory= 为 3.7+，
+rc=52 根因）；/tmp/.cache 预建；grep -c 双行计数。本地沉淀链三修：范围收敛动态读
+watch_paths（extractfile py3.14 KeyError 行为差）；端点基线容忍 IP:port；stat 快照
+采集+解析（t1070 单案重采）。补丁解包两级路径事故（attack_lab 前缀 --strip-components）。
+
+终检：secval/lab-vm/编译链残留 0；决定性证据全落位（t1548 uid=65534/euid=0、
+t1552 真实窃取+回执、chain 派生同根、t1136 passwd 内容、t1070 mtime<birth、
+恶意端点未知/良性批准）。已知限制：t1574 LD_PRELOAD 变量名天然不入审计
+（env 变量非 EXECVE 参数、.so 只读不写 -p wa 不捕），证据为"true 外连+非包
+归属 .so"，下一轮 prepare 增工作区副本锚定。
+
+r12-validation-v2（epochs=2）进行中——验收线：side≥0.85 / dist≥0.75 / demo 不降。
