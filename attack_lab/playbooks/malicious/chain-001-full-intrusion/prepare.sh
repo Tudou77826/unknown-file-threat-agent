@@ -21,8 +21,17 @@ W
 : > approved_endpoints.txt
 cat > system_paths.txt <<S
 /tmp/.sysupd/stage1.elf
+/tmp/.sysupd/chain_ed25519
+/tmp/.sysupd/loot.tar.gz
 /root/.ssh/authorized_keys
 S
+# 内容物证清单（2026-10-12 复核整改：cron/公钥/回执须可读内容）
+cat > system_content_paths.txt <<C
+/etc/cron.d/sysupd-maint
+/root/.ssh/authorized_keys
+/tmp/.sysupd/upload-receipt.txt
+/tmp/.sysupd/chain_ed25519.pub
+C
 # 攻击者第二阶段脚本（将由 stage1.elf 派生执行——归因关键）
 cat > chain_stage2.sh <<'EOS'
 #!/usr/bin/env bash

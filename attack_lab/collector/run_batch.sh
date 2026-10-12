@@ -77,11 +77,18 @@ for case_id in "$@"; do
   sudo bash $LAB/collector/collect.sh "$case_id" bash "$neutral_dir/run.sh" 2>&1 | tail -1
   rules_off
 
-  # 窗口后清理：停监听、卸 C2、清系统残留（写入持久化项的案例必须清，防跨案污染）
+  # 窗口后清理：停监听、卸 C2；系统残留清理可延迟（SECLAB_DEFER_CLEANUP=1）——
+  # 2026-10-12 复核裁决第 4 条：本地"采到了+AI 能查到"双验证通过并保存完整采集包
+  # 之后才执行 cleanup_all（残留物证保留待验，验证不过可立即复查现场）。
+  # 纪律：延迟清理期间不得采集下一案（防跨案污染），逐案"采集→验证→清理→下一案"。
   for pf in /tmp/.seclab-listener-*.pid /tmp/.seclab-receiver-*.pid; do
     [ -f "$pf" ] && sudo kill "$(cat "$pf")" 2>/dev/null || true; sudo rm -f "$pf"
   done
-  sudo bash $LAB/collector/cleanup_all.sh >/dev/null 2>&1 || true
+  if [ "${SECLAB_DEFER_CLEANUP:-0}" != "1" ]; then
+    sudo bash $LAB/collector/cleanup_all.sh >/dev/null 2>&1 || true
+  else
+    echo "   DEFER_CLEANUP: 残留保留待本地验证（通过后手动 cleanup_all.sh）"
+  fi
   c2_off
 
   # 等待 auditd 排空积压

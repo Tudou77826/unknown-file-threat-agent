@@ -442,7 +442,11 @@ def _system_content_events(bundle: Path, host_id: str, observed_at: str) -> list
     for line in manifest.read_text(encoding="utf-8").splitlines():
         if "\t" not in line:
             continue
-        real_path, flat = line.split("\t", 1)
+        parts = line.split("\t")
+        if len(parts) >= 3 and parts[2].strip() == "binary":
+            # 采集端已标注二进制：哈希/stat 在，内容不进（声明制双清单语义）
+            continue
+        real_path, flat = parts[0], parts[1]
         source = bundle / "system_contents" / flat
         if not source.exists():
             continue
@@ -461,6 +465,45 @@ def _system_content_events(bundle: Path, host_id: str, observed_at: str) -> list
             "host_id": host_id,
             "subject_refs": [f"file:{host_id}:{real_path}"],
             "data": {"path": real_path, "size": len(content.encode()), "content": content},
+        })
+    return events
+
+
+
+def _transfer_receipt_events(bundle: Path, host_id: str, observed_at: str) -> list[dict]:
+    """接收端回执日志（采集侧证据，与连接轮询同源合法性）→ transfer_receipt 事件。
+
+    行格式（post_receiver v2.1）：receipt_id<TAB>iso_time<TAB>filename<TAB>size<TAB>sha256。
+    回执哈希与发送端归档哈希一致即收发对应成立——外传案的"收到的就是这个包"物证。
+    """
+
+    path = bundle / "transfer_receipts.log"
+    if not path.exists():
+        return []
+    events: list[dict] = []
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        if not line.strip() or line.startswith("#"):
+            continue
+        parts = line.split("	")
+        if len(parts) < 5:
+            continue
+        receipt_id, received_at, filename, size, sha256 = (x.strip() for x in parts[:5])
+        events.append({
+            "event_id": f"transfer-receipt-{receipt_id}",
+            "event_type": "transfer_receipt",
+            "domain": "other",
+            "source_system": "post-receiver/1",
+            "observed_at": observed_at,
+            "host_id": host_id,
+            "subject_refs": [f"file:{host_id}:{sha256}"] if sha256 != "-" else [f"host:{host_id}"],
+            "data": {
+                "receipt_id": receipt_id,
+                "received_at": received_at,
+                "filename": filename,
+                "upload_size": int(size) if size.isdigit() else None,
+                "upload_sha256": sha256 if sha256 != "-" else None,
+                "evidence_note": "采集侧接收端回执：解析上传文件本体计算的哈希，与发送端归档一致即收发对应",
+            },
         })
     return events
 
@@ -529,6 +572,7 @@ def settle(*, source: Path, bundle: Path, host_id: str, suite_root: Path, worksp
     events.extend(_system_content_events(bundle, host_id, observed_at))
     events.extend(_tar_mtime_stat_events(bundle, host_id, workspace_root, observed_at))
     events.extend(_system_stat_events(bundle, host_id, observed_at))
+    events.extend(_transfer_receipt_events(bundle, host_id, observed_at))
     # 文件事件补内容哈希关联：/etc/passwd 这类系统路径的写入事件此前不带
     # 哈希，调查目标与事件无法凭哈希对上（复核意见：t1136）。
     all_hashes = {**_load_system_hashes(bundle), **path_hashes}

@@ -107,37 +107,51 @@ find "$WORK" -type f ! -name '*.log' -printf '%P\n' 2>/dev/null | sort > "$BUNDL
 ( cd "$WORK" && tar czf "$BUNDLE/workspace.tar.gz" --exclude='*.log' . 2>/dev/null || true )
 ( cd "$WORK" && find . -type f ! -name '*.log' -exec sha256sum {} \; | sort -k2 > "$BUNDLE/workspace_hashes.txt" )
 
-# 判定对象在系统路径的剧本（伪装/密钥/账号案）：剧本在窗口内写 system_paths.txt
-# 声明触碰过的系统文件，采集器记录其哈希供 settle 回退锚定（与工作区清单同构）
-if [ -f "$WORK/system_paths.txt" ]; then
+# 声明制采集（2026-10-12 复核裁决第 2 条：不做宽泛类型白/黑名单猜测）：
+#   system_paths.txt         → 哈希 + stat（私钥等只取指纹与属性，正文不进模型）
+#   system_content_paths.txt → 哈希 + stat + 内容（公钥/cron/回执等需读内容的物证）
+# 两清单并集驱动哈希与 stat；内容只收声明者，解码失败的二进制保留哈希并标注。
+ALL_PATHS=$(mktemp)
+cat "$WORK/system_paths.txt" "$WORK/system_content_paths.txt" 2>/dev/null | grep -v '^$' | sort -u > "$ALL_PATHS" || true
+if [ -s "$ALL_PATHS" ]; then
   : > "$BUNDLE/system_hashes.txt"
   while IFS= read -r p; do
     [ -n "$p" ] && [ -f "$p" ] && sha256sum "$p" >> "$BUNDLE/system_hashes.txt" || echo "WARN: system path missing $p" >&2
-  done < "$WORK/system_paths.txt"
+  done < "$ALL_PATHS"
   # 协议 v2：系统路径 stat 快照（窗口后抓取）——mtime/ctime/birth 是时间戳
   # 回拨案的定性证据，tar 只保留工作区原件的时间，被篡改的投放副本必须
   # 显式拍快照（t1070 首采实证：mtime 2024 < 落盘事件 2026 的矛盾不可见）
   : > "$BUNDLE/system_stats.txt"
   while IFS= read -r p; do
     [ -n "$p" ] && [ -f "$p" ] && stat -c '%n|%y|%z|%w|%U|%a' "$p" >> "$BUNDLE/system_stats.txt" 2>/dev/null || true
-  done < "$WORK/system_paths.txt"
-  # 协议 v2：系统文件内容快照（窗口后抓取）。t1136 复核实证：/etc/passwd 写入了
-  # 什么（UID 0 账号）是定性关键，但此前只有"被写过"的事件没有内容——
-  # AI 只能看到"useradd 改了 passwd"，与合法建账号无法区分。
-  # 文本且 ≤16KB 才抓；路径映射存 manifest（文件名不可含 /）。
-  mkdir -p "$BUNDLE/system_contents"
-  : > "$BUNDLE/system_contents/manifest.txt"
-  while IFS= read -r p; do
-    [ -n "$p" ] && [ -f "$p" ] || continue
-    size=$(stat -c %s "$p" 2>/dev/null || echo 0)
-    [ "$size" -le 16384 ] || continue
-    if file -b "$p" 2>/dev/null | grep -qiE 'text|empty|json|script'; then
+  done < "$ALL_PATHS"
+  # 内容采集：仅 system_content_paths 声明者（声明即收；OpenSSH 公钥曾被
+  # 'text|json|script' 类型白名单误扔——v2.1 教训）。二进制保留哈希、跳过内容。
+  if [ -f "$WORK/system_content_paths.txt" ]; then
+    mkdir -p "$BUNDLE/system_contents"
+    : > "$BUNDLE/system_contents/manifest.txt"
+    while IFS= read -r p; do
+      [ -n "$p" ] && [ -f "$p" ] || continue
+      size=$(stat -c %s "$p" 2>/dev/null || echo 0)
+      [ "$size" -le 16384 ] || { echo "WARN: content path >16KB skipped: $p" >&2; continue; }
       flat=$(echo "$p" | sed 's#^/##; s#/#_#g')
-      cp "$p" "$BUNDLE/system_contents/$flat"
-      printf '%s\t%s\n' "$p" "$flat" >> "$BUNDLE/system_contents/manifest.txt"
-    fi
-  done < "$WORK/system_paths.txt"
+      if iconv -f UTF-8 -t UTF-8 "$p" >/dev/null 2>&1; then
+        cp "$p" "$BUNDLE/system_contents/$flat"
+        printf '%s\t%s\n' "$p" "$flat" >> "$BUNDLE/system_contents/manifest.txt"
+      else
+        printf '%s\t%s\tbinary\n' "$p" "$flat" >> "$BUNDLE/system_contents/manifest.txt"
+      fi
+    done < "$WORK/system_content_paths.txt"
+  fi
 fi
+rm -f "$ALL_PATHS"
+
+# 接收端回执日志入包（采集侧证据，与连接轮询同源合法性）：回执号+接收时间+
+# 解析出的上传文件名/字节数/SHA256——发送端归档哈希与回执哈希一致即收发对应
+: > "$BUNDLE/transfer_receipts.log"
+for rl in /tmp/.seclab-recv-*/receipts.log; do
+  [ -f "$rl" ] && { echo "# source: $rl"; cat "$rl"; } >> "$BUNDLE/transfer_receipts.log"
+done
 
 ps -eo pid,ppid,lstart,args --sort=pid > "$BUNDLE/ps_after.txt" 2>/dev/null || true
 # §2 包归属反证：逐工件查询所属包（非包文件 → owns_file=false 负证据）

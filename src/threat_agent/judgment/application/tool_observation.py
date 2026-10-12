@@ -31,6 +31,7 @@ _EXTENSION_DATA_KEYS = (
     "modify_time", "change_time", "birth_time", "access_time",
     "registered", "registry_available", "owns_file", "package",
     "approved", "remote_ip",
+    "receipt_id", "upload_sha256", "upload_size", "received_at", "evidence_note",
 )
 _CONTENT_PREVIEW_CHARS = 200
 
