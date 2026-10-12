@@ -145,12 +145,12 @@
     {
       "case_id": "chain-001-full-intrusion",
       "directory": "chain-001-full-intrusion",
-      "content_digest": "74d955686d1f3b34e5cfd00782d4929f966e5a2a3a1497569230930f48a95cac"
+      "content_digest": "c2354b73a43cf850fb8e028cc1d7626c66e602f7baad3eb7e32a47d5725bb290"
     },
     {
       "case_id": "t1552-004-private-key",
       "directory": "t1552-004-private-key",
-      "content_digest": "11df9f98c46c785e6eb8cecdaee3e2d26fdcaf810e41157aa270da11d9a63265"
+      "content_digest": "080c000641e627a62e639ae1ef569195a214583822683aef0bf2d678827d83c0"
     }
   ]
 }

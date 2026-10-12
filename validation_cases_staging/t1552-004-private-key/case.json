@@ -45,6 +45,7 @@
     "event_files": [
       "counter_evidence.jsonl",
       "file.jsonl",
+      "other.jsonl",
       "process.jsonl"
     ],
     "environment_baseline_sources": [
