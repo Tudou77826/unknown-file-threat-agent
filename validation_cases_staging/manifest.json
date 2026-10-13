@@ -10,82 +10,82 @@
     {
       "case_id": "t1005-t1560-001-archive",
       "directory": "t1005-t1560-001-archive",
-      "content_digest": "3d226d8d604263ced2a3a6508e65a6a0a0cdc7f9443740f07865f3b5caf7ef6d"
+      "content_digest": "683bd39d9f372347f80cb13f44bbfa9165378937503a282f748a7b85a87e358b"
     },
     {
       "case_id": "t1037-004-rc-local",
       "directory": "t1037-004-rc-local",
-      "content_digest": "82861603fd0e9f5b8c69380dee0431448c022a99e997056ea9c41923ad4d7f82"
+      "content_digest": "309d7224ba229d3dfdd1216f5e8e8b2170c066abd4f38b4f3a812242e616d9d8"
     },
     {
       "case_id": "t1053-003-cron-persistence",
       "directory": "t1053-003-cron-persistence",
-      "content_digest": "32412ac95dc715b163bffc50abf522da381ae2bdb30c9177ec39e352a23f2f61"
+      "content_digest": "dbc58f9caba60b69433979bd134b1ee196782d80b37605acb6ab1685e9dc7ef5"
     },
     {
       "case_id": "t1105-ingress-tool-transfer",
       "directory": "t1105-ingress-tool-transfer",
-      "content_digest": "2764ec08b244043cb2d448a8b486aacff8d55d96c342882feb4a74f64d2d345e"
+      "content_digest": "8a5ca9aab6512da40e51d3b9f74e8d491a53b65e0ee28115df11858cfb8c9d52"
     },
     {
       "case_id": "t1219-rat-tunnel",
       "directory": "t1219-rat-tunnel",
-      "content_digest": "83da61cb8f20faf560d4ff4336973848ed0c4dcd07d030d92fb4488f73c1a7d3"
+      "content_digest": "e94406242c037b3516843df85c29963d34f987cba222e60d01c3ec4fe4e58d6b"
     },
     {
       "case_id": "t1486-ransomware",
       "directory": "t1486-ransomware",
-      "content_digest": "2f4281d6318eaa97461ea7d3ed03764d04c493754f2dab02e5ba71429971b285"
+      "content_digest": "5cef35422281bfa5e56ea8c9e6887497b2388973b83b4b1124dd0c5a71ffde73"
     },
     {
       "case_id": "t1505-003-web-shell",
       "directory": "t1505-003-web-shell",
-      "content_digest": "533ac023a3bb1d4b010bc75e1f9bcf506a7eb8056a805729437d39aedc009973"
+      "content_digest": "f64558ff17667f6911f880df21f5803070c4f7a10b667fadd5ed86d33e3553bf"
     },
     {
       "case_id": "t1543-002-systemd-service",
       "directory": "t1543-002-systemd-service",
-      "content_digest": "ecc0dabfee4b2ad4c4ed082d46490acf2823ac34698dfa61cf83ac1c132d89f1"
+      "content_digest": "91522bdb2590f56a8d20c86644676cbb87effc58bd7833cd64c540e7bcc463b7"
     },
     {
       "case_id": "t1547-006-kernel-module",
       "directory": "t1547-006-kernel-module",
-      "content_digest": "b2fdd85ffe3ac12f8148e828066a325dad5b6f07f98eb115d7b521864133d0e2"
+      "content_digest": "6a4b786c9a1437f13bedebcc7ff560b976abf2ebac1465cfeeebf7e30d4739e6"
     },
     {
       "case_id": "t1567-002-exfil-upload",
       "directory": "t1567-002-exfil-upload",
-      "content_digest": "b1c7d26d22d49aed1b49fe7addc045049a2f078d95be5bb563a12c20584dfc7c"
+      "content_digest": "2b254da271c701ae1a0370ccf2e2b3b73405e1ba9f32e401ea58ba4e06ffcb74"
     },
     {
       "case_id": "t1574-006-ldpreload",
       "directory": "t1574-006-ldpreload",
-      "content_digest": "181d6fdf2dce1c0b29ab9775772908f10a14e0a1a5b861282fb6e9203529a195"
+      "content_digest": "88a3e5adda18145eff3079773cd5d9cc61d7cb949e0272f77890eee73975a38f"
     },
     {
       "case_id": "bb2-admin-backup",
       "directory": "bb2-admin-backup",
-      "content_digest": "5af1d8b48ae5a9b8597db1ffa6ea5611f11a65ba29c98abd9cae01111fdfbf2d"
+      "content_digest": "0cee35a7d1d6fcda0a530a011caadaabe5d3d5f0017dadad68916f1498ddf168"
     },
     {
       "case_id": "bb3-ops-tool-deploy",
       "directory": "bb3-ops-tool-deploy",
-      "content_digest": "3c693cf48fc1a433ce54d698a8ba8848bf453d59e4516fc4092baf991e880270"
+      "content_digest": "0dda425061ea86572332cf5026302ac43e7d8932bfe8185a36467cdc9aea9718"
     },
     {
       "case_id": "bb4-ops-cron",
       "directory": "bb4-ops-cron",
-      "content_digest": "a98c773cbd3255de175aac4e519784a27b4b5b3de28461991630a044ae68e2dc"
+      "content_digest": "1ce140f025298ebcc1a4b5b5cd11ccd9e870455d608ca38be5e90ab35c676a22"
     },
     {
       "case_id": "bb5-compiler-artifact",
       "directory": "bb5-compiler-artifact",
-      "content_digest": "01d8f981d5073c27b94a24c21899a0786805d05680408b97122cc7b6105e0382"
+      "content_digest": "5d0a12304b7c97ab3ecc48b07f666eccb5e181aec17c0d6094a4767a6f178887"
     },
     {
       "case_id": "bb6-mirror-download",
       "directory": "bb6-mirror-download",
-      "content_digest": "159fe91889e70721dad3be2c7bf5dd2a26382572ce943c585dd1c917e704ee47"
+      "content_digest": "b996a3971c3b289639341130b315564616c8d035591a53026f9bfc8107d079c5"
     },
     {
       "case_id": "t1070-006-timestomp",

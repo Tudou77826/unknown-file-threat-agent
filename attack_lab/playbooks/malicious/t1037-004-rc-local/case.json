@@ -19,7 +19,7 @@
       "judgment": "malicious",
       "basis": "启动项指向的非包归属载荷"
     },
-    "source": "剧本设计推导（GT 草案，人工复核后生效）"
+    "source": "人工复核通过（2026-09 首批评阅，2026-10 v2 重采沿用）"
   },
   "expected_rule": {
     "expected_hit": true,
