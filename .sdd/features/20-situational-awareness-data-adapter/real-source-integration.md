@@ -57,9 +57,11 @@ data_foundation/adapters/situational_awareness/
 
 已定决策：`query_extension` 暂不进入工具目录，待真实源端确认有扩展遥测再评估。
 
-### 缺口 4（可选后续）：告警 intake 连接器
+### 缺口 4：告警 intake 连接器
 
-当前告警由人工在工作台粘贴 JSON 建案。可选增加连接器：定时调用 `query_alerts` 拉取新告警并自动建运行。依赖缺口 1、3 完成。
+当前告警由人工在工作台粘贴 JSON 建案。自动接入连接器定时调用 `query_alerts` 拉取新告警并自动建运行，设计与分工见 [alert-intake-connector.md](alert-intake-connector.md)。
+
+状态：平台侧部分已完成——连接器服务、告警映射器、去重与水位存储、serve 后台轮询接线、`POST /api/intake/poll` 手动触发端点与 fixture 全链路测试均已实现。真实运行依赖缺口 1 的告警域 handler 与缺口 2 的注入（`build_alert_intake` 已留好衔接参数）。与缺口 3（工具层暴露）无依赖。
 
 ### 缺口 5（已知限制）：数据画像与注入式适配器不组合
 

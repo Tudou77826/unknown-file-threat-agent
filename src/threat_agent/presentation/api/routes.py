@@ -58,6 +58,14 @@ class EventServicePort(Protocol):
     def data_samples(self, activity_type: str, limit: int = 20) -> list: ...
 
 
+class AlertIntakePort(Protocol):
+    """One manual poll round of the automatic alert intake connector."""
+
+    def poll_once(self): ...
+
+    def recent_events(self, limit: int = 20) -> list: ...
+
+
 class ModelServiceSettingsPort(Protocol):
     """Management-plane read/write for the model-service block (bootstrap
     owns the .env file; the page only sees validated values)."""
@@ -110,6 +118,7 @@ def create_app(
     event_service: EventServicePort | None = None,
     settings_overview: dict | None = None,
     model_service_settings: ModelServiceSettingsPort | None = None,
+    alert_intake: AlertIntakePort | None = None,
 ) -> FastAPI:
     app = FastAPI(title="Unknown File Threat Agent", version="2.0")
 
@@ -277,6 +286,17 @@ def create_app(
             except Exception:
                 failed += 1
         return {"accepted": accepted, "failed": failed, "run_ids": run_ids}
+
+    @app.post("/api/intake/poll")
+    def intake_poll() -> dict[str, Any]:
+        """One manual round of the automatic alert intake (demo/test/acceptance)."""
+        if alert_intake is None:
+            raise HTTPException(status_code=503, detail="Alert intake connector is not configured")
+        report = alert_intake.poll_once()
+        return {
+            "report": report.model_dump(mode="json"),
+            "events": alert_intake.recent_events(20),
+        }
 
     # ------------------------------------------------------------- approvals
 

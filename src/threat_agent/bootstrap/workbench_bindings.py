@@ -298,6 +298,42 @@ def build_run_service(
     )
 
 
+def build_alert_intake(
+    settings: AppSettings, run_service: RunService,
+    investigation_data: InvestigationDataPort | None,
+):
+    """Compose the automatic alert intake connector (Feature 20).
+
+    Returns None when intake is disabled, no host scope is configured, or the
+    data plane has no alert capability — the manual intake channel keeps
+    working in all of those cases.
+    """
+    from ..case_management import (
+        AlertIntakeConfig, AlertIntakeConnector, SQLiteIntakeStateStore,
+    )
+
+    intake = settings.intake
+    if not intake.enabled:
+        return None
+    if investigation_data is None or not hasattr(investigation_data, "query_alerts"):
+        return None
+    if not intake.host_ids:
+        return None
+    return AlertIntakeConnector(
+        investigation_data,
+        run_service,
+        SQLiteIntakeStateStore(intake.state_path),
+        run_service.runtime_store,
+        AlertIntakeConfig(
+            tenant_id=settings.application.default_tenant,
+            host_ids=tuple(intake.host_ids),
+            interval_seconds=intake.interval_seconds,
+            max_runs_per_poll=intake.max_runs_per_poll,
+            alert_limit=intake.alert_limit,
+        ),
+    )
+
+
 class WorkbenchExecution:
     """Dispatch execution by run source (reference preset vs real alert)."""
 

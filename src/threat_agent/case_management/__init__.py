@@ -1,6 +1,9 @@
 from .application.graph import CaseGraph
 from .application.boundary_policy import SingleHostBoundaryPolicy
 from .application.intake import initialize_state
+from .application.alert_intake import (
+    AlertIntakeConfig, AlertIntakeConnector, AlertIntakePoller, IntakePollReport,
+)
 from .application.approval_service import ApprovalPort, ApprovalService
 from .application.debug_service import DebugService
 from .application.run_service import RunService, RunServiceConfig
@@ -10,10 +13,15 @@ from .adapters.checkpointing import (
     create_memory_checkpointer,
     create_sqlite_checkpointer,
 )
+from .adapters.intake_state import SQLiteIntakeStateStore
 from .adapters.runtime_store import SQLiteInvestigationRuntimeStore
 from .ports.execution import CaseResolver, EventSink, ExecutionPort
 
 __all__ = [
+    "AlertIntakeConfig",
+    "AlertIntakeConnector",
+    "AlertIntakePoller",
+    "IntakePollReport",
     "ApprovalPort",
     "ApprovalService",
     "CaseGraph",
@@ -29,5 +37,6 @@ __all__ = [
     "create_memory_checkpointer",
     "create_sqlite_checkpointer",
     "initialize_state",
+    "SQLiteIntakeStateStore",
     "SQLiteInvestigationRuntimeStore",
 ]

@@ -44,6 +44,7 @@ ACTION_ZH = {
     "knowledge_consulted": "知识咨询", "report_published": "报告发布",
     "approval_requested": "请求审批", "approval_decided": "审批决策",
     "debug_resumed": "调试重放",
+    "intake_alert_accepted": "告警自动接入",
     "demo_approval_decided": "审批决策",
 }
 

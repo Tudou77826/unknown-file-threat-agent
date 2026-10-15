@@ -8,6 +8,7 @@
 
 - [design.md](design.md)：模块职责、接口和输入输出约定。
 - [real-source-integration.md](real-source-integration.md)：真实源端接入的缺口清单、代码落位、工具层方案、开放点与验收门槛。
+- [alert-intake-connector.md](alert-intake-connector.md)：告警自动接入连接器的设计、运行策略与平台侧/源端侧分工。
 
 ## 状态
 

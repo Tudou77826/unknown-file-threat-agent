@@ -690,6 +690,7 @@ def main() -> None:
         import uvicorn
 
         from .workbench_bindings import (
+            build_alert_intake,
             build_approval_service,
             build_debug_service,
             build_event_service,
@@ -700,6 +701,10 @@ def main() -> None:
         )
 
         run_service = build_run_service(settings, project_root=PROJECT_ROOT)
+        # The data plane with alert capability arrives with the situational-
+        # awareness integration; until then build_alert_intake returns None and
+        # the manual intake channel keeps working unchanged.
+        alert_intake = build_alert_intake(settings, run_service, None)
         app = create_app(
             InMemoryCaseReadStore(),
             None,
@@ -712,8 +717,21 @@ def main() -> None:
             build_event_service(settings),
             build_settings_overview(settings),
             build_model_service_settings(settings, project_root=PROJECT_ROOT),
+            alert_intake=alert_intake,
         )
-        uvicorn.run(app, host=settings.presentation.host, port=settings.presentation.port)
+        poller = None
+        if alert_intake is not None:
+            from ..case_management import AlertIntakePoller
+
+            poller = AlertIntakePoller(alert_intake, settings.intake.interval_seconds)
+            poller.start()
+        try:
+            uvicorn.run(app, host=settings.presentation.host, port=settings.presentation.port)
+        finally:
+            if poller is not None:
+                poller.stop()
+            if alert_intake is not None:
+                alert_intake.close()
     else:
         summary = {
             key: [

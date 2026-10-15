@@ -150,6 +150,21 @@ class WorkbenchSettings(FrozenSettings):
     alert_activity_store_path: Path = PROJECT_ROOT / "outputs" / "alert-activities.sqlite"
 
 
+class IntakeSettings(FrozenSettings):
+    """Automatic alert intake (Feature 20 connector). Off by default: every
+    accepted alert starts a full LLM investigation, so enabling it is a cost
+    decision made explicitly by the deployment."""
+
+    enabled: bool = False
+    interval_seconds: int = 300
+    max_runs_per_poll: int = 5
+    alert_limit: int = 50
+    state_path: Path = PROJECT_ROOT / "outputs" / "intake-state.sqlite"
+    # Alert queries require an explicit host scope; alerts of other hosts are
+    # never fetched and therefore never ingested.
+    host_ids: list[str] = []
+
+
 class AppSettings(FrozenSettings):
     application: ApplicationSettings
     checkpoint: CheckpointSettings
@@ -167,6 +182,7 @@ class AppSettings(FrozenSettings):
     presentation: PresentationSettings
     observability: ObservabilitySettings
     workbench: WorkbenchSettings
+    intake: IntakeSettings
 
     @classmethod
     def load(
@@ -344,6 +360,21 @@ class AppSettings(FrozenSettings):
                     "WORKBENCH_ALERT_ACTIVITY_STORE_PATH",
                     PROJECT_ROOT / "outputs" / "alert-activities.sqlite",
                 ),
+            ),
+            intake=IntakeSettings(
+                enabled=get("THREAT_AGENT_INTAKE_ENABLED", False),
+                interval_seconds=int(get("THREAT_AGENT_INTAKE_INTERVAL_SECONDS", 300)),
+                max_runs_per_poll=int(get("THREAT_AGENT_INTAKE_MAX_RUNS_PER_POLL", 5)),
+                alert_limit=int(get("THREAT_AGENT_INTAKE_ALERT_LIMIT", 50)),
+                state_path=path(
+                    "THREAT_AGENT_INTAKE_STATE_PATH",
+                    PROJECT_ROOT / "outputs" / "intake-state.sqlite",
+                ),
+                host_ids=[
+                    item.strip()
+                    for item in str(get("THREAT_AGENT_INTAKE_HOSTS", "")).split(",")
+                    if item.strip()
+                ],
             ),
         )
         if settings.evidence_query.default_limit > settings.evidence_query.max_limit:
