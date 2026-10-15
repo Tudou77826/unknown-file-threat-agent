@@ -2,7 +2,7 @@
 
 ## 1. 架构结论
 
-目标系统由五个 Feature 组成：安全数据底座、AI 研判引擎、AI 处置建议、RAG 知识能力和案件治理。LLM 是研判与处置建议的核心推理组件；确定性计算、证据模型和策略校验作为引擎内部的可信约束。处置建议与实际执行隔离。
+目标系统由五项核心能力组成：安全数据底座、AI 研判引擎、AI 处置建议、RAG 知识能力和案件治理；具体演进由各 Feature 管理。LLM 是研判与处置建议的核心推理组件；确定性计算、证据模型和策略校验作为引擎内部的可信约束。处置建议与实际执行隔离。
 
 当前代码已实现目标架构的本地可运行骨架：聚合调查数据 Port、JSONL/Fixture 适配器与 SQLite 参考数据存储，由案件父图挂载的 create_agent + middleware 研判循环及 LangGraph 处置建议子图，内存/SQLite Checkpoint、审批中断、稳定读模型、API 和页面。代码采用按能力纵向组织的模块化单体；RAG 仅保留接口与 Null Adapter，生产数据源、知识检索、身份系统和处置执行尚未接入。
 
@@ -27,6 +27,8 @@ flowchart TB
         SRC["安全遥测与业务数据"] --> NORM["规范化安全事件模型"]
         NORM --> STORE["实时与历史存储"]
         STORE --> QUERY["统一查询接口"]
+        EXISTING["已有态势感知数据库 / IR"] --> ADAPTER["数据适配模块（Feature 20，目标设计）"]
+        ADAPTER --> QUERY
     end
 
     subgraph JE["Judgment Engine"]
@@ -81,6 +83,10 @@ flowchart TB
 
 进程、文件、网络、身份和资产记录通过结构化查询获得；调查手册、组织 SOP、威胁知识和历史复盘通过 RAG 获得。RAG 文档不能单独证明当前案件发生了某个行为。
 
+### 已有数据平台接入
+
+[Feature 20](features/20-situational-awareness-data-adapter/README.md) 定义态势感知数据适配模块的查询接口，沿用 `InvestigationDataPort`，内部封装数据库查询、IR 调用和字段转换；具体部署与通信方式在接入时确定。当前为接口设计，尚未实现。
+
 ### 研判与处置
 
 研判回答“发生了什么”；处置建议回答“应该怎么做”。处置循环不得修改已验证的 Fact、Finding 或 Verdict，只能基于风险采取更保守或更积极的建议。
@@ -132,7 +138,7 @@ src/threat_agent/
 
 ## 8. 后续演进
 
-1. 用生产数据源适配器替换案件 JSONL，保持 `EvidenceQueryPort` 不变。
+1. 按 Feature 20 实现态势感知 Adapter，沿用数据 Port 接入已有数据库/IR，并补充必要的查询接口。
 2. 将 Checkpoint、案件读模型、身份和审计迁入生产存储与服务。
 3. 将 RAG 作为独立需求建设，替换 Null Adapter。
 4. 在审批、幂等和补偿机制完备后接入处置执行系统。
@@ -146,4 +152,5 @@ src/threat_agent/
 - [RAG Knowledge](features/04-rag-knowledge/README.md)
 - [Case Governance](features/05-case-governance/README.md)
 - [Data-Driven Investigation Quality Demo](features/07-data-driven-investigation-quality-demo/README.md)
+- [态势感知数据适配模块](features/20-situational-awareness-data-adapter/README.md)
 - [Architecture Decisions](shared/architecture-decisions.md)

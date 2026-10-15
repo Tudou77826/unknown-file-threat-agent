@@ -40,6 +40,7 @@ from ..data_foundation.adapters import (
     SQLiteReferenceDataStore,
 )
 from ..data_foundation.application import initialize_reference_demo
+from ..data_foundation.ports import InvestigationDataPort
 from ..observability import TraceSink, build_trace_sink
 from .demo import (
     VERDICT_LABEL_ZH,
@@ -129,8 +130,7 @@ class ReferenceProfileExecution:
 
 
 class AlertExecution:
-    """Execute real-alert runs: intake channel is engine-ready; the data plane
-    points at the configured activity store until Feature 01 telemetry lands."""
+    """Execute alert runs using injected data or the configured local store."""
 
     def __init__(
         self,
@@ -138,10 +138,12 @@ class AlertExecution:
         *,
         project_root: Path = PROJECT_ROOT,
         trace_sink: TraceSink | None = None,
+        investigation_data: InvestigationDataPort | None = None,
     ):
         self.settings = settings
         self.project_root = project_root
         self.trace_sink = trace_sink
+        self.investigation_data = investigation_data
 
     def _trace_handler(self, request: RunExecutionRequest, emit):
         if self.trace_sink is None:
@@ -166,7 +168,7 @@ class AlertExecution:
             lookback_hours=self.settings.application.investigation_lookback_hours,
         )
         state.raw_input["run_id"] = request.run_id
-        activity_store = SQLiteActivityStore(
+        activity_store = None if self.investigation_data is not None else SQLiteActivityStore(
             self.settings.workbench.alert_activity_store_path, check_same_thread=False
         )
         try:
@@ -177,6 +179,7 @@ class AlertExecution:
                 emit=emit,
                 run_id=request.run_id,
                 trace_handler=self._trace_handler(request, emit),
+                investigation_data=self.investigation_data,
             )
             emit("graph", "AI 已开始调查：正在建立案件上下文", {
                 "node": "intake", "orchestration": "framework_middleware",
@@ -206,7 +209,8 @@ class AlertExecution:
                 )
             return self._outcome_from_result(result, request)
         finally:
-            activity_store.close()
+            if activity_store is not None:
+                activity_store.close()
 
     @staticmethod
     def _outcome_from_result(result: dict, request: RunExecutionRequest) -> RunExecutionOutcome:
@@ -273,13 +277,17 @@ def build_run_service(
     *,
     project_root: Path = PROJECT_ROOT,
     runtime_store=None,
+    investigation_data: InvestigationDataPort | None = None,
 ) -> RunService:
     sink = build_trace_sink(settings.observability.backend)
     execution = WorkbenchExecution(
         reference=ReferenceProfileExecution(
             settings, project_root=project_root, trace_sink=sink
         ),
-        alert=AlertExecution(settings, project_root=project_root, trace_sink=sink),
+        alert=AlertExecution(
+            settings, project_root=project_root, trace_sink=sink,
+            investigation_data=investigation_data,
+        ),
     )
     return RunService(
         run_service_config(settings),
@@ -430,9 +438,13 @@ class AlertCheckpointAccess:
     """Rebuild an alert run's graph; the alert payload is persisted as the
     run's alert_payload artifact so rebuilds survive restarts."""
 
-    def __init__(self, settings: AppSettings, *, project_root: Path = PROJECT_ROOT):
+    def __init__(
+        self, settings: AppSettings, *, project_root: Path = PROJECT_ROOT,
+        investigation_data: InvestigationDataPort | None = None,
+    ):
         self.settings = settings
         self.project_root = project_root
+        self.investigation_data = investigation_data
 
     def _request_alert(self, request: RunExecutionRequest) -> dict[str, Any]:
         from ..case_management import SQLiteInvestigationRuntimeStore
@@ -452,7 +464,7 @@ class AlertCheckpointAccess:
             raw, lookback_hours=self.settings.application.investigation_lookback_hours
         )
         state.raw_input["run_id"] = request.run_id
-        activity_store = SQLiteActivityStore(
+        activity_store = None if self.investigation_data is not None else SQLiteActivityStore(
             self.settings.workbench.alert_activity_store_path, check_same_thread=False
         )
         try:
@@ -462,9 +474,12 @@ class AlertCheckpointAccess:
                 settings=self.settings,
                 emit=emit,
                 run_id=request.run_id,
+                investigation_data=self.investigation_data,
             )
-        finally:
-            activity_store.close()
+        except Exception:
+            if activity_store is not None:
+                activity_store.close()
+            raise
 
     def list_checkpoints(self, request: RunExecutionRequest) -> list[CheckpointRef]:
         assembly = self._assemble(request, emit=None)
@@ -516,9 +531,14 @@ class AlertCheckpointAccess:
 class WorkbenchCheckpointAccess(CheckpointPort):
     """Dispatch checkpoint/debug access by run source."""
 
-    def __init__(self, settings: AppSettings, *, project_root: Path = PROJECT_ROOT):
+    def __init__(
+        self, settings: AppSettings, *, project_root: Path = PROJECT_ROOT,
+        investigation_data: InvestigationDataPort | None = None,
+    ):
         self.reference = ReferenceCheckpointAccess(settings, project_root=project_root)
-        self.alert = AlertCheckpointAccess(settings, project_root=project_root)
+        self.alert = AlertCheckpointAccess(
+            settings, project_root=project_root, investigation_data=investigation_data,
+        )
 
     def _impl(self, request: RunExecutionRequest) -> CheckpointPort:
         return self.alert if request.source == "alert_json" else self.reference
@@ -540,6 +560,16 @@ class WorkbenchCheckpointAccess(CheckpointPort):
         )
 
 
+def _workbench_checkpoints(settings: AppSettings, run_service: RunService):
+    execution = run_service.execution
+    data = (
+        execution.alert.investigation_data
+        if isinstance(execution, WorkbenchExecution) and isinstance(execution.alert, AlertExecution)
+        else None
+    )
+    return WorkbenchCheckpointAccess(settings, investigation_data=data)
+
+
 def build_debug_service(settings: AppSettings, run_service: RunService):
     """Debug service over the same runtime store; replay events land in the
     run's ledger marked ``debug_replay``."""
@@ -548,7 +578,7 @@ def build_debug_service(settings: AppSettings, run_service: RunService):
 
     return DebugService(
         tenant_id=settings.application.default_tenant,
-        checkpoints=ReferenceCheckpointAccess(settings, project_root=PROJECT_ROOT),
+        checkpoints=_workbench_checkpoints(settings, run_service),
         runtime_store=run_service.runtime_store,
         emit=run_service._emit,
     )
@@ -557,7 +587,7 @@ def build_debug_service(settings: AppSettings, run_service: RunService):
 def build_approval_service(settings: AppSettings, run_service: RunService) -> ApprovalService:
     return ApprovalService(
         tenant_id=settings.application.default_tenant,
-        approvals=WorkbenchCheckpointAccess(settings, project_root=PROJECT_ROOT),
+        approvals=_workbench_checkpoints(settings, run_service),
         runtime_store=run_service.runtime_store,
         run_service=run_service,
     )

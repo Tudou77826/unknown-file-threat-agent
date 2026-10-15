@@ -1,6 +1,8 @@
 """Security data access ports and local development adapters."""
 
-from .ports.evidence_query import DataAccessError
+from .ports.evidence_query import DataAccessError, DataQueryFailed, UnsupportedDataQuery
+from .ports.situational_awareness import SituationalAwarenessDataPort
+from .adapters.situational_awareness import SituationalAwarenessDataAdapter
 from .adapters.reference_store import SQLiteReferenceDataStore
 from .adapters.activity_store import SQLiteActivityStore
 from .adapters.parsers import ReferenceEventParser, VendorEnvelopeParser
@@ -10,7 +12,7 @@ from .adapters.activity_query import SQLiteActivityQueryAdapter
 from .adapters.investigation_data import SQLiteInvestigationDataAdapter
 from .domain.entity_projection import DeterministicEntityProjector, EntityProjection
 from .ports.activity_query import (
-    AssetActivityQueryPort, ExtensionActivityQueryPort, FileActivityQueryPort,
+    AssetActivityQueryPort, AuthenticationActivityQueryPort, ExtensionActivityQueryPort, FileActivityQueryPort,
     NetworkActivityQueryPort, PackageActivityQueryPort, ProcessActivityQueryPort,
     ServiceActivityQueryPort, SocketActivityQueryPort,
 )
@@ -21,6 +23,9 @@ from .ports.investigation_data import (
 
 __all__ = [
     "DataAccessError",
+    "DataQueryFailed", "UnsupportedDataQuery",
+    "SituationalAwarenessDataPort", "SituationalAwarenessDataAdapter",
+    "AuthenticationActivityQueryPort",
     "SQLiteReferenceDataStore",
     "ActivityIngestionStore",
     "BatchIngestionService",

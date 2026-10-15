@@ -5,6 +5,7 @@ from typing import Protocol
 from ...contracts import (
     ActivityQueryResult,
     AssetActivityQuery,
+    AuthenticationActivityQuery,
     ExtensionActivityQuery,
     FileActivityQuery,
     NetworkActivityQuery,
@@ -17,6 +18,10 @@ from ...contracts import (
 
 class ProcessActivityQueryPort(Protocol):
     def query_process(self, query: ProcessActivityQuery) -> ActivityQueryResult: ...
+
+
+class AuthenticationActivityQueryPort(Protocol):
+    def query_authentication(self, query: AuthenticationActivityQuery) -> ActivityQueryResult: ...
 
 
 class NetworkActivityQueryPort(Protocol):

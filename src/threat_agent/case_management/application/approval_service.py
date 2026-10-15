@@ -50,10 +50,12 @@ class ApprovalService:
         if run is None:
             raise KeyError(f"Unknown investigation run: {run_id}")
         metadata = self.runtime_store.get_run_metadata(self.tenant_id, run_id) or {}
+        alert = self.runtime_store.get_artifact(self.tenant_id, run_id, "alert_payload")
         return RunExecutionRequest(
             tenant_id=self.tenant_id,
             case_id=run.case_id,
             run_id=run_id,
+            source="alert_json" if alert and not metadata.get("dataset_id") else "reference_dataset",
             dataset_id=str(metadata.get("dataset_id") or ""),
             profile_id=str(metadata.get("profile_id") or ""),
         )

@@ -15,6 +15,7 @@ from typing import Any, Protocol
 from ...contracts import EntityIdentity, NormalizedActivity, ObservedRelation
 from .activity_query import (
     AssetActivityQueryPort,
+    AuthenticationActivityQueryPort,
     ExtensionActivityQueryPort,
     FileActivityQueryPort,
     NetworkActivityQueryPort,
@@ -56,6 +57,7 @@ class ActivityRawRecord:
 
 class InvestigationDataPort(
     ProcessActivityQueryPort,
+    AuthenticationActivityQueryPort,
     NetworkActivityQueryPort,
     SocketActivityQueryPort,
     FileActivityQueryPort,

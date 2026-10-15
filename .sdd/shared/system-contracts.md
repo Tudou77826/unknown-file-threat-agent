@@ -13,6 +13,7 @@
 | RAG Knowledge | Response Advisory | SOP、审批策略、操作手册和历史经验 |
 | Response Advisory | Case Governance | `ResponsePlan` |
 | Case Governance | Execution System | 经批准的 `ExecutionRequest` |
+| 态势感知数据适配模块（Feature 20，目标设计） | Data Foundation / Case Governance | 复用活动与实体查询，补充告警、文件信誉、资产信息和源端研判结果接口 |
 
 ## 2. 通用要求
 
@@ -33,3 +34,7 @@
 - 自然语言摘要不能替代结构化字段或证据引用。
 
 详细模型由提供该契约的 Feature 维护。
+
+## 3. 态势感知查询接口（目标设计）
+
+[Feature 20](../features/20-situational-awareness-data-adapter/design.md) 沿用现有数据 Port，补充告警、文件信誉、资产信息和源端研判结果查询。Adapter 负责读取与字段转换；调用方沿用现有查询范围与授权规则，最终研判仍由 AI 完成。

@@ -3,6 +3,7 @@ from .activity_store import SQLiteActivityStore
 from .parsers import ReferenceEventParser, VendorEnvelopeParser
 from .activity_query import SQLiteActivityQueryAdapter
 from .investigation_data import SQLiteInvestigationDataAdapter
+from .situational_awareness import SituationalAwarenessDataAdapter
 
 __all__ = [
     "SQLiteReferenceDataStore",
@@ -11,4 +12,5 @@ __all__ = [
     "VendorEnvelopeParser",
     "SQLiteActivityQueryAdapter",
     "SQLiteInvestigationDataAdapter",
+    "SituationalAwarenessDataAdapter",
 ]

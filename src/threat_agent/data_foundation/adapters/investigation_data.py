@@ -40,6 +40,9 @@ class SQLiteInvestigationDataAdapter:
     def query_process(self, query):
         return self._queries.query_process(query)
 
+    def query_authentication(self, query):
+        return self._queries.query_authentication(query)
+
     def query_network(self, query):
         return self._queries.query_network(query)
 

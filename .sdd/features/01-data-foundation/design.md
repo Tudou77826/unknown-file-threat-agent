@@ -1,5 +1,7 @@
 # Data Foundation Design
 
+已有态势感知数据的查询接口见 [Feature 20：态势感知数据适配模块](../20-situational-awareness-data-adapter/README.md)，可直接通过 Adapter 查询源数据库或 IR。
+
 ## 组件
 
 ```mermaid
@@ -11,6 +13,8 @@ flowchart LR
     M --> HS["Historical Store"]
     RT --> Q["Query Gateway"]
     HS --> Q
+    ES["已有数据库 / IR"] --> AD["态势感知 Adapter"]
+    AD --> Q
     Q --> A["Authorized Evidence API"]
 ```
 
@@ -25,6 +29,8 @@ flowchart LR
 ### Storage
 
 实时层服务低延迟研判，历史层服务长时间回溯和基线计算。存储技术可替换，查询契约不应绑定具体引擎。
+
+已有平台的数据可直接按需查询，不要求复制到本地存储。
 
 ### Query Gateway
 

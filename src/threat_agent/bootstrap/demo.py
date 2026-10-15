@@ -25,6 +25,7 @@ from ..data_foundation.adapters import (
     SQLiteReferenceDataStore,
 )
 from ..data_foundation.application import initialize_reference_demo, reference_activity_store_path
+from ..data_foundation.ports import InvestigationDataPort
 from ..judgment import (
     InvestigationToolGateway,
     ReportGroundingValidator,
@@ -276,7 +277,7 @@ class ReferenceRunAssembly:
         graph: CaseGraph,
         state,
         tenant_id: str,
-        activity_store: SQLiteActivityStore,
+        activity_store: SQLiteActivityStore | None,
         run_id: str,
         dataset_id: str | None = None,
         dataset_version: str | None = None,
@@ -292,11 +293,12 @@ class ReferenceRunAssembly:
         self.run_id = run_id
 
     def close(self) -> None:
-        self.activity_store.close()
+        if self.activity_store is not None:
+            self.activity_store.close()
 
 
 def assemble_investigation_run(
-    activity_store: SQLiteActivityStore,
+    activity_store: SQLiteActivityStore | None = None,
     *,
     state,
     settings: AppSettings,
@@ -305,14 +307,20 @@ def assemble_investigation_run(
     trace_handler=None,
     response_context_port=None,
     visible_sources=None,
+    investigation_data: InvestigationDataPort | None = None,
 ) -> ReferenceRunAssembly:
     """Settings-only assembly of the middleware runtime for one investigation
     state — shared by reference-dataset runs and real alert runs."""
 
     emit = emit or (lambda _kind, _message, _details=None: None)
-    investigation_data = SQLiteInvestigationDataAdapter(
-        activity_store, visible_sources=visible_sources
-    )
+    if investigation_data is None:
+        if activity_store is None:
+            raise ValueError("An activity store or investigation data adapter is required")
+        investigation_data = SQLiteInvestigationDataAdapter(
+            activity_store, visible_sources=visible_sources
+        )
+    elif visible_sources is not None:
+        raise ValueError("Data profile visibility must be configured on the injected adapter")
     tenant_id = settings.application.default_tenant
     boundary_policy = SingleHostBoundaryPolicy(
         tenant_id=tenant_id,

@@ -1,7 +1,8 @@
-from .evidence_query import DataAccessError
+from .evidence_query import DataAccessError, DataQueryFailed, UnsupportedDataQuery
+from .situational_awareness import SituationalAwarenessDataPort
 from .ingestion import ActivityIngestionStore, SourceParser
 from .activity_query import (
-    AssetActivityQueryPort, ExtensionActivityQueryPort, FileActivityQueryPort,
+    AssetActivityQueryPort, AuthenticationActivityQueryPort, ExtensionActivityQueryPort, FileActivityQueryPort,
     NetworkActivityQueryPort, PackageActivityQueryPort, ProcessActivityQueryPort,
     ServiceActivityQueryPort, SocketActivityQueryPort,
 )
@@ -14,6 +15,8 @@ from .investigation_data import (
 
 __all__ = [
     "ActivityIngestionStore", "DataAccessError", "SourceParser",
+    "DataQueryFailed", "UnsupportedDataQuery", "SituationalAwarenessDataPort",
+    "AuthenticationActivityQueryPort",
     "ProcessActivityQueryPort", "NetworkActivityQueryPort", "SocketActivityQueryPort",
     "FileActivityQueryPort", "ServiceActivityQueryPort", "PackageActivityQueryPort",
     "AssetActivityQueryPort", "ExtensionActivityQueryPort",

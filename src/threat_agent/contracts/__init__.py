@@ -109,6 +109,10 @@ from .demo import (
     SourceCoverageRule,
 )
 from .intake import AlertIntakeRequest
+from .situational_awareness import (
+    AlertQuery, AssessmentQuery, AssetInfo, DataQueryContext, FileHash,
+    FileReputation, QueryPage, ReputationMatch, SourceAssessment, UnknownFileAlert,
+)
 from .workbench import (
     ApprovalDecision,
     ApprovalDecisionKind,
@@ -232,6 +236,8 @@ __all__ = [
     "KnowledgeConsultationRecord",
     "KnowledgeToolName",
     "AlertIntakeRequest",
+    "AlertQuery", "AssessmentQuery", "AssetInfo", "DataQueryContext", "FileHash",
+    "FileReputation", "QueryPage", "ReputationMatch", "SourceAssessment", "UnknownFileAlert",
     "ApprovalDecision",
     "ApprovalDecisionKind",
     "ApprovalRequestReadModel",
